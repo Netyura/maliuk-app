@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=117" />
+    <link rel="stylesheet" href="./styles.css?v=118" />
   </head>
   <body>
     <main class="app">
@@ -25,31 +25,32 @@
                 <input id="childName" name="childName" type="text" maxlength="40" autocomplete="off" placeholder="Наприклад, Марко" required />
               </label>
 
-              <fieldset class="birth-date-field">
-                <legend>Коли народився малюк?</legend>
-
-                <div class="birth-date-selects">
-                  <label>
-                    <span>День</span>
-                    <select id="childBirthDay" aria-label="День народження" required>
-                      <option value="">—</option>
-                    </select>
-                  </label>
-                  <label class="birth-month-select">
-                    <span>Місяць</span>
-                    <select id="childBirthMonth" aria-label="Місяць народження" required>
-                      <option value="">Оберіть</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Рік</span>
-                    <select id="childBirthYear" aria-label="Рік народження" required>
-                      <option value="">—</option>
-                    </select>
-                  </label>
+              <div class="birth-date-group">
+                <span class="onboarding-field-label" id="birthDateLabel">Коли народився малюк?</span>
+                <div class="birth-date-field" role="group" aria-labelledby="birthDateLabel">
+                  <div class="birth-date-selects">
+                    <label>
+                      <span>День</span>
+                      <select id="childBirthDay" aria-label="День народження" required>
+                        <option value="">—</option>
+                      </select>
+                    </label>
+                    <label class="birth-month-select">
+                      <span>Місяць</span>
+                      <select id="childBirthMonth" aria-label="Місяць народження" required>
+                        <option value="">Оберіть</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Рік</span>
+                      <select id="childBirthYear" aria-label="Рік народження" required>
+                        <option value="">—</option>
+                      </select>
+                    </label>
+                  </div>
+                  <input id="childBirthDate" name="childBirthDate" type="hidden" />
                 </div>
-                <input id="childBirthDate" name="childBirthDate" type="hidden" />
-              </fieldset>
+              </div>
 
               <p class="onboarding-error" id="onboardingError" role="alert" hidden></p>
               <button class="onboarding-submit" id="onboardingSubmit" type="submit">Почати</button>

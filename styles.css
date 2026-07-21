@@ -3692,23 +3692,27 @@ body,
   font-weight: 800;
 }
 
+.birth-date-group {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.onboarding-field-label {
+  padding-left: 0.18rem;
+  color: #3f3a46;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .birth-date-field {
   display: grid;
   gap: 0.7rem;
   min-width: 0;
-  margin: 0;
   padding: 0.85rem;
   border: 1px solid rgba(23, 21, 31, 0.075);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 4px 14px rgba(74, 55, 42, 0.035);
-}
-
-.birth-date-field legend {
-  padding: 0 0.18rem;
-  color: #3f3a46;
-  font-size: 0.82rem;
-  font-weight: 850;
 }
 
 .birth-date-selects {
