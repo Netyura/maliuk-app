@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=118" />
+    <link rel="stylesheet" href="./styles.css?v=119" />
   </head>
   <body>
     <main class="app">
@@ -15,8 +15,8 @@
             <img class="onboarding-owl" src="./assets/images/onboarding-owl.png?v=1" alt="Сова OwlJoy вітає вас" />
             <div class="onboarding-copy">
               <span>Ласкаво просимо до OwlJoy</span>
-              <h1>Розкажіть про малюка</h1>
-              <p>Ми підбиратимемо заняття за віком. Це займе лише кілька секунд.</p>
+              <h1 id="onboardingTitle">Розкажіть про малюка</h1>
+              <p id="onboardingLead">Ми підбиратимемо заняття за віком. Це займе лише кілька секунд.</p>
             </div>
 
             <form class="onboarding-form" id="onboardingForm" novalidate>
@@ -54,6 +54,7 @@
 
               <p class="onboarding-error" id="onboardingError" role="alert" hidden></p>
               <button class="onboarding-submit" id="onboardingSubmit" type="submit">Почати</button>
+              <button class="onboarding-cancel" id="onboardingCancel" type="button" data-action="cancelAddChild" hidden>Скасувати</button>
             </form>
 
             <p class="onboarding-privacy">🔒 Профіль зберігається лише для вашого Telegram-акаунта.</p>
@@ -63,7 +64,10 @@
         <section class="home-screen" id="homeScreen" hidden>
           <div class="home-hero">
             <div class="home-hero-copy">
-              <span id="homeChildLabel">Для малюків 6–36 міс</span>
+              <button class="home-child-switcher" type="button" data-action="openChildSwitcher" aria-label="Вибрати дитину">
+                <span id="homeChildLabel">Для малюків 6–36 міс</span>
+                <b aria-hidden="true">⌄</b>
+              </button>
               <h2>Що будемо робити сьогодні?</h2>
               <p id="homeChildLead">Короткі заняття для батьків і дітей: грати, слухати, говорити й заспокоюватися.</p>
             </div>
@@ -453,10 +457,24 @@
     <button class="sleep-dim-overlay" id="sleepDimOverlay" data-action="restoreSleepScreen" aria-label="Повернути звичайний екран" hidden>
       <span>Торкніться, щоб повернути екран</span>
     </button>
+    <div class="child-switcher-overlay" id="childSwitcherOverlay" hidden>
+      <button class="child-switcher-backdrop" type="button" data-action="closeChildSwitcher" aria-label="Закрити вибір дитини"></button>
+      <section class="child-switcher-sheet" aria-labelledby="childSwitcherTitle">
+        <div class="child-switcher-heading">
+          <div>
+            <span>Профілі дітей</span>
+            <h2 id="childSwitcherTitle">Для кого обираємо заняття?</h2>
+          </div>
+          <button type="button" data-action="closeChildSwitcher" aria-label="Закрити">×</button>
+        </div>
+        <div class="child-profile-list" id="childProfileList"></div>
+        <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
+      </section>
+    </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=2"></script>
-    <script src="./app.js?v=105"></script>
+    <script src="./telegram-user.js?v=3"></script>
+    <script src="./app.js?v=106"></script>
   </body>
 </html>

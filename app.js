@@ -1691,6 +1691,9 @@ const stories = [
 ];
 
 const state = {
+  childProfile: null,
+  childProfiles: [],
+  onboardingMode: "first",
   age: null,
   gameId: "animals",
   gameItems: words,
@@ -1793,15 +1796,84 @@ function ageProfileKeyForBirthDate(birthDate) {
 function applyChildProfile(profile) {
   if (!profile) return;
   state.childProfile = profile;
+  localStorage.setItem("owljoyActiveChildId", profile.id);
   const ageLabel = formatChildAge(profile.birth_date);
   $("#homeChildLabel").textContent = `${profile.nickname}${ageLabel ? ` · ${ageLabel}` : ""}`;
   $("#homeChildLead").textContent = "Ігри, казки й спокійні заняття відповідно до віку малюка.";
+  renderChildSwitcher();
 }
 
-function showOnboarding() {
+function resetOnboardingForm() {
+  $("#onboardingForm").reset();
+  $("#childBirthDate").value = "";
+  refreshBirthDays();
+  $("#onboardingError").hidden = true;
+}
+
+function showOnboarding(mode = "first") {
+  setupBirthDatePicker();
+  state.onboardingMode = mode;
+  resetOnboardingForm();
+  closeChildSwitcher();
+  const addingChild = mode === "add";
+  $("#onboardingTitle").textContent = addingChild ? "Додайте ще одну дитину" : "Розкажіть про малюка";
+  $("#onboardingLead").textContent = addingChild
+    ? "Створимо окремий профіль, щоб правильно підбирати заняття за віком."
+    : "Ми підбиратимемо заняття за віком. Це займе лише кілька секунд.";
+  $("#onboardingSubmit").textContent = addingChild ? "Додати дитину" : "Почати";
+  $("#onboardingCancel").hidden = !addingChild;
   hideContentScreens();
   $("#onboardingScreen").hidden = false;
   updateTopBack();
+}
+
+function renderChildSwitcher() {
+  const list = $("#childProfileList");
+  if (!list) return;
+  list.innerHTML = "";
+  state.childProfiles.forEach((profile) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "child-profile-option";
+    if (profile.id === state.childProfile?.id) button.classList.add("active");
+    button.dataset.childId = profile.id;
+
+    const avatar = document.createElement("span");
+    avatar.className = "child-profile-avatar";
+    avatar.textContent = (profile.nickname || "М").trim().charAt(0).toUpperCase();
+    const copy = document.createElement("span");
+    copy.className = "child-profile-copy";
+    const name = document.createElement("strong");
+    name.textContent = profile.nickname;
+    const age = document.createElement("small");
+    age.textContent = formatChildAge(profile.birth_date) || "Вік не вказано";
+    copy.append(name, age);
+    const check = document.createElement("b");
+    check.textContent = profile.id === state.childProfile?.id ? "✓" : "›";
+    button.append(avatar, copy, check);
+    list.append(button);
+  });
+  const addButton = document.querySelector("[data-action='addChild']");
+  if (addButton) addButton.hidden = state.childProfiles.length >= 6;
+}
+
+function openChildSwitcher() {
+  renderChildSwitcher();
+  $("#childSwitcherOverlay").hidden = false;
+}
+
+function closeChildSwitcher() {
+  const overlay = $("#childSwitcherOverlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function selectChildProfile(childId) {
+  const profile = state.childProfiles.find((item) => item.id === childId);
+  if (!profile) return;
+  applyChildProfile(profile);
+  if (window.owlJoyAccount) window.owlJoyAccount.currentChild = profile;
+  closeChildSwitcher();
+  showToast(`Обрано профіль: ${profile.nickname}`);
 }
 
 const ukrainianMonths = [
@@ -1874,12 +1946,16 @@ function focusBirthDatePicker() {
 
 function initializeChildProfile(account) {
   setupBirthDatePicker();
-  if (!account?.currentChild) {
+  state.childProfiles = account?.childProfiles || (account?.currentChild ? [account.currentChild] : []);
+  if (!state.childProfiles.length) {
     showOnboarding();
     return;
   }
 
-  applyChildProfile(account.currentChild);
+  const activeChildId = localStorage.getItem("owljoyActiveChildId");
+  const activeChild = state.childProfiles.find((profile) => profile.id === activeChildId) || state.childProfiles[0];
+  applyChildProfile(activeChild);
+  if (window.owlJoyAccount) window.owlJoyAccount.currentChild = activeChild;
   backToHome();
 }
 
@@ -1915,6 +1991,7 @@ async function saveOnboardingProfile(event) {
   submit.textContent = "Зберігаємо…";
   try {
     const profile = await window.owlJoyAccount.saveChildProfile({ nickname: name, birthDate });
+    state.childProfiles = [...window.owlJoyAccount.childProfiles];
     applyChildProfile(profile);
     backToHome();
   } catch (saveError) {
@@ -1923,7 +2000,7 @@ async function saveOnboardingProfile(event) {
     error.hidden = false;
   } finally {
     submit.disabled = false;
-    submit.textContent = "Почати";
+    submit.textContent = state.onboardingMode === "add" ? "Додати дитину" : "Почати";
   }
 }
 
@@ -3083,6 +3160,12 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const selectedChildId = event.target.closest("[data-child-id]")?.dataset.childId;
+  if (selectedChildId) {
+    selectChildProfile(selectedChildId);
+    return;
+  }
+
   const section = event.target.closest("[data-section]")?.dataset.section;
   if (section === "games") {
     const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
@@ -3226,6 +3309,23 @@ document.addEventListener("click", (event) => {
     if (!state.sound) pauseSleep();
     if (!state.sound && "speechSynthesis" in window) window.speechSynthesis.cancel();
     showToast(state.sound ? "Звук увімкнено" : "Звук вимкнено");
+  }
+
+  if (action === "openChildSwitcher") {
+    openChildSwitcher();
+    return;
+  }
+  if (action === "closeChildSwitcher") {
+    closeChildSwitcher();
+    return;
+  }
+  if (action === "addChild") {
+    showOnboarding("add");
+    return;
+  }
+  if (action === "cancelAddChild") {
+    backToHome();
+    return;
   }
 
   if (action === "goBack") {

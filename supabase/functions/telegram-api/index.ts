@@ -170,19 +170,18 @@ export default {
               "id, nickname, birth_date, age_months, created_at, updated_at",
             )
             .eq("user_id", user.id)
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle(),
+            .order("created_at", { ascending: true }),
         ]);
         const { data: favorites, error: favoritesError } = favoritesResult;
-        const { data: childProfile, error: childError } = childResult;
+        const { data: childProfiles, error: childError } = childResult;
         if (favoritesError) throw favoritesError;
         if (childError) throw childError;
 
         return json(
           {
             user,
-            childProfile,
+            childProfile: (childProfiles || [])[0] || null,
+            childProfiles: childProfiles || [],
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
           },
           200,
@@ -210,26 +209,29 @@ export default {
           );
         }
 
-        const { data: existingChild, error: existingError } = await supabase
-          .from("child_profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (existingError) throw existingError;
-
         const profileValues = {
           nickname,
           birth_date: birthDate,
           age_months: ageMonths,
           updated_at: new Date().toISOString(),
         };
-        const profileQuery = existingChild
+        const childId = typeof body.childId === "string" ? body.childId : null;
+        if (!childId) {
+          const { count, error: countError } = await supabase
+            .from("child_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id);
+          if (countError) throw countError;
+          if ((count || 0) >= 6) {
+            return json({ error: "Можна додати не більше 6 дітей" }, 400, headers);
+          }
+        }
+
+        const profileQuery = childId
           ? supabase
               .from("child_profiles")
               .update(profileValues)
-              .eq("id", existingChild.id)
+              .eq("id", childId)
               .eq("user_id", user.id)
           : supabase
               .from("child_profiles")
