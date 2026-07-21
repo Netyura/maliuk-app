@@ -3315,6 +3315,27 @@ html.telegram-mini-app body {
   padding-left: 1rem;
 }
 
+/* Заголовок вибору гри прокручується разом із меню */
+.game-picker {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-bottom: 0.3rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.game-picker::-webkit-scrollbar {
+  display: none;
+}
+
+.game-grid {
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
 /* Сучасніша єдина візуальна система */
 :root {
   --orange: #f47d4a;
