@@ -199,7 +199,6 @@ h1 {
 }
 
 .category-hub-hero > div > span,
-.today-heading > span,
 .profile-hub-heading > span {
   color: #a45322;
   font-size: 0.7rem;
@@ -231,16 +230,6 @@ h1 {
   width: 78px;
   height: 78px;
   object-fit: contain;
-}
-
-.today-heading {
-  padding: 0.05rem 0.25rem 0;
-}
-
-.today-heading h3 {
-  margin: 0.2rem 0 0;
-  font-size: 1.22rem;
-  line-height: 1.1;
 }
 
 .profile-hub-card {
