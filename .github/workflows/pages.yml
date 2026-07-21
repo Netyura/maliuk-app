@@ -1,0 +1,34 @@
+name: Публікація Telegram Mini App
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отримати файли
+        uses: actions/checkout@v4
+      - name: Налаштувати GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Підготувати сайт
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Опублікувати сайт
+        id: deployment
+        uses: actions/deploy-pages@v4

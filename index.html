@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff8ec" />
+    <title>Покажи мені</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css?v=100" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="mobile-screen">
+        <header class="topbar">
+          <button class="icon-btn" data-action="sound" aria-label="Увімкнути або вимкнути звук">🔊</button>
+          <button class="icon-btn back-top-btn" id="topBackBtn" data-action="goBack" aria-label="Повернутися назад" hidden>
+            <span aria-hidden="true">←</span>
+          </button>
+        </header>
+
+        <section class="home-screen" id="homeScreen">
+          <div class="home-hero">
+            <div class="home-hero-copy">
+              <span>Для малюків 6–36 міс</span>
+              <h2>Що будемо робити сьогодні?</h2>
+              <p>Короткі заняття для батьків і дітей: грати, слухати, говорити й заспокоюватися.</p>
+            </div>
+            <img class="home-owl" src="./assets/images/home-owl.png" alt="" />
+          </div>
+
+          <div class="home-grid" aria-label="Розділи додатку">
+            <button data-section="games">
+              <img src="./assets/images/home-games.png" alt="" />
+              <strong>Розвиваючі ігри</strong>
+              <span>Картинки, звуки, перші слова</span>
+            </button>
+            <button data-section="stories">
+              <img src="./assets/images/home-stories.png" alt="" />
+              <strong>Казки</strong>
+              <span>Слухати або читати разом</span>
+            </button>
+            <button data-section="poems">
+              <img src="./assets/images/home-poems.png" alt="" />
+              <strong>Віршики</strong>
+              <span>Рими, пальчикові ігри, перші рядки</span>
+            </button>
+            <button data-section="sleep">
+              <img src="./assets/images/home-sounds.png" alt="" />
+              <strong>Звуки й сон</strong>
+              <span>Спокійні звуки для вечора</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="stories-screen" id="storiesScreen" hidden>
+          <div class="stories-hero">
+            <div>
+              <span>Час для казки</span>
+              <h2>Казки для малюка</h2>
+              <p id="storiesLead">Слухайте разом або читайте дитині своїм голосом.</p>
+            </div>
+            <img class="stories-hero-icon" src="./assets/images/home-stories.png" alt="" />
+          </div>
+
+          <div class="stories-list" id="storiesList" aria-label="Список казок"></div>
+        </section>
+
+        <section class="story-reader-screen" id="storyReaderScreen" hidden>
+          <article class="story-reader">
+            <div class="story-picture">
+              <img id="storyImage" src="./assets/images/story-kolobok-v2.png" alt="" />
+            </div>
+
+            <div class="story-heading">
+              <span id="storyKind">Українська народна казка</span>
+              <h2 id="storyTitle">Колобок</h2>
+            </div>
+
+            <div class="story-text" id="storyText"></div>
+
+            <div class="story-mode-actions">
+              <div class="story-read-label">📖 Читайте дитині своїм голосом</div>
+            </div>
+
+            <div class="story-pagination">
+              <button id="storyPrevBtn" data-action="prevStoryPage">← Назад</button>
+              <div class="story-dots" id="storyDots" aria-label="Сторінки казки"></div>
+              <button id="storyNextBtn" data-action="nextStoryPage">Далі →</button>
+            </div>
+
+            <aside class="story-parent-tip" id="storyParentTip"></aside>
+          </article>
+        </section>
+
+        <section class="age-picker" id="agePicker" hidden>
+          <div class="age-intro">
+            <div class="intro-copy">
+              <span>Почнемо м'яко</span>
+              <h2>Оберіть вік малюка</h2>
+              <p>Ми підберемо короткі ігри, які легко грати разом: картинки, звуки, перші слова і маленькі запитання.</p>
+            </div>
+            <div class="intro-mascot" aria-hidden="true">
+              <img src="./assets/images/mascot.png" alt="" />
+            </div>
+            <div class="intro-pills" aria-label="Що є в іграх">
+              <span>👀 увага</span>
+              <span>🔊 звуки</span>
+              <span>🗣️ слова</span>
+            </div>
+          </div>
+          <div class="age-grid" aria-label="Вибір віку">
+            <button data-age="baby">
+              <span class="age-icon"><img src="./assets/images/age-baby.png" alt="" /></span>
+              <strong>6–12 міс</strong>
+              <span>Одна велика картинка, знайомий звук і спокійний темп.</span>
+            </button>
+            <button data-age="early">
+              <span class="age-icon"><img src="./assets/images/age-early.png" alt="" /></span>
+              <strong>12–18 міс</strong>
+              <span>Показати правильну картинку з двох варіантів.</span>
+            </button>
+            <button data-age="talker">
+              <span class="age-icon"><img src="./assets/images/age-talker.png" alt="" /></span>
+              <strong>18–24 міс</strong>
+              <span>Перші слова: покажи, назви, повтори разом.</span>
+            </button>
+            <button data-age="curious">
+              <span class="age-icon"><img src="./assets/images/age-curious.png" alt="" /></span>
+              <strong>24–36 міс</strong>
+              <span>Так чи ні, хто каже, прості питання для розмови.</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="game-picker" id="gamePicker" hidden>
+          <div class="picker-heading">
+            <span id="selectedAgeLabel">6–12 міс</span>
+            <h2>Оберіть гру</h2>
+            <p>Короткі заняття на кілька хвилин. Оберіть те, що зараз найкраще зайде малюку.</p>
+          </div>
+
+          <div class="game-grid" id="gameGrid" aria-label="Вибір гри">
+            <button data-game="animals">
+              <span class="game-icon">🐾</span>
+              <strong>Тварини</strong>
+              <span>Картинки, звуки і перші слова.</span>
+            </button>
+            <button data-game="objects">
+              <span class="game-icon">🧸</span>
+              <strong>Предмети</strong>
+              <span>Знайомі речі з картинками та озвученням.</span>
+            </button>
+            <button data-game="colors">
+              <span class="game-icon">🌈</span>
+              <strong>Кольори</strong>
+              <span>Кольорові плямки й знайомі предмети з озвученням.</span>
+            </button>
+            <button data-game="families">
+              <span class="game-icon">🐣</span>
+              <strong>Мама і малюк</strong>
+              <span>Допоможи кожній тваринці знайти її малюка.</span>
+            </button>
+            <button data-game="emotions">
+              <span class="game-icon">😊</span>
+              <strong>Веселі емоції</strong>
+              <span>Впізнаємо радість, сум, здивування, сонливість і сердитість.</span>
+            </button>
+            <button data-game="dress-up">
+              <span class="game-icon">👕</span>
+              <strong>Одягни малюка</strong>
+              <span>Обирай будь-який одяг і допоможи малюкові зібратися.</span>
+            </button>
+            <button id="bubbleGameCard" data-game="bubbles">
+              <span class="game-icon">🫧</span>
+              <strong>Лопай бульбашки</strong>
+              <span>Торкайся великих бульбашок і слухай м’які звуки.</span>
+            </button>
+            <button id="myFaceGameCard" data-game="my-face">
+              <span class="game-icon">😊</span>
+              <strong>Моє личко</strong>
+              <span>Торкайся очей, носика, ротика та вушок.</span>
+            </button>
+            <button id="myBodyGameCard" data-game="my-body">
+              <span class="game-icon">🙌</span>
+              <strong>Моє тіло</strong>
+              <span>Торкайся голівки, ручок, ніжок і животика.</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="game-area" id="gameArea" hidden>
+          <section class="choices" id="choices" aria-label="Варіанти відповіді"></section>
+
+          <section class="prompt-panel control-panel">
+            <div class="progress-row">
+              <span id="modeLabel">Знайди</span>
+            </div>
+            <h2 id="promptText">Покажи котика</h2>
+            <div class="parent-copy">
+              <span>Для батьків</span>
+              <p id="parentPrompt">Запитайте: як каже котик? Де в нього вушка?</p>
+            </div>
+            <div class="task-actions">
+              <button class="next-btn" data-action="next">Наступна картинка</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="bubble-game-screen" id="bubbleGameScreen" hidden>
+          <div class="bubble-game-heading">
+            <span>Гра для маленьких пальчиків</span>
+            <h2>Лопай бульбашки!</h2>
+            <p>Торкнися бульбашки — лусь!</p>
+          </div>
+          <div class="bubble-field" id="bubbleField" aria-label="Ігрове поле з бульбашками"></div>
+          <div class="bubble-score" aria-live="polite">
+            <span>Лускаємо разом</span>
+            <strong id="bubbleScore">Лусь!</strong>
+          </div>
+        </section>
+
+        <section class="face-game-screen" id="faceGameScreen" hidden>
+          <div class="face-game-heading">
+            <span>Знайомимося з личком</span>
+            <h2>Моє личко</h2>
+            <p id="faceGamePrompt">Торкнися очей, носика, ротика або вушка</p>
+          </div>
+
+          <div class="face-picture" id="facePicture">
+            <img src="./assets/images/game-my-face.png" alt="Усміхнене дитяче личко" />
+            <button class="face-hotspot face-hotspot-eye face-hotspot-eye-left" data-face-part="Очі" aria-label="Ліве око"></button>
+            <button class="face-hotspot face-hotspot-eye face-hotspot-eye-right" data-face-part="Очі" aria-label="Праве око"></button>
+            <button class="face-hotspot face-hotspot-nose" data-face-part="Носик" aria-label="Носик"></button>
+            <button class="face-hotspot face-hotspot-mouth" data-face-part="Ротик" aria-label="Ротик"></button>
+            <button class="face-hotspot face-hotspot-ear face-hotspot-ear-left" data-face-part="Вушко" aria-label="Ліве вушко"></button>
+            <button class="face-hotspot face-hotspot-ear face-hotspot-ear-right" data-face-part="Вушко" aria-label="Праве вушко"></button>
+            <div class="face-part-label" id="facePartLabel" aria-live="polite">Торкнися личка</div>
+          </div>
+
+          <p class="face-parent-tip">Називайте частини личка разом із малюком</p>
+        </section>
+
+        <section class="body-game-screen" id="bodyGameScreen" hidden>
+          <div class="body-game-heading">
+            <span>Знайомимося зі своїм тілом</span>
+            <h2>Моє тіло</h2>
+            <p>Торкнися частини тіла</p>
+          </div>
+          <div class="body-picture">
+            <img src="./assets/images/game-my-body.png" alt="Дитина показує ручки, ніжки та животик" />
+            <svg class="body-map" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="Частини тіла">
+              <ellipse class="body-hotspot" cx="500" cy="238" rx="258" ry="210" data-body-part="Голівка" data-body-audio="head.mp3" aria-label="Голівка" role="button" tabindex="0" />
+              <path class="body-hotspot" d="M330 648 C370 630 455 632 500 654 L468 790 C463 835 458 878 451 914 C446 941 413 950 370 940 C336 932 318 909 324 873 C331 819 329 727 330 648 Z" data-body-part="Ніжка" data-body-audio="leg.mp3" aria-label="Ліва ніжка" role="button" tabindex="0" />
+              <path class="body-hotspot" d="M670 648 C630 630 545 632 500 654 L532 790 C537 835 542 878 549 914 C554 941 587 950 630 940 C664 932 682 909 676 873 C669 819 671 727 670 648 Z" data-body-part="Ніжка" data-body-audio="leg.mp3" aria-label="Права ніжка" role="button" tabindex="0" />
+              <ellipse class="body-hotspot" cx="500" cy="650" rx="145" ry="48" data-body-part="Животик" data-body-audio="tummy.mp3" aria-label="Животик" role="button" tabindex="0" />
+              <ellipse class="body-hotspot" cx="367" cy="943" rx="91" ry="42" data-body-part="Стопа" data-body-audio="foot.mp3" aria-label="Ліва стопа" role="button" tabindex="0" />
+              <ellipse class="body-hotspot" cx="633" cy="943" rx="91" ry="42" data-body-part="Стопа" data-body-audio="foot.mp3" aria-label="Права стопа" role="button" tabindex="0" />
+              <path class="body-hotspot" d="M342 447 C304 461 275 505 239 560 L174 637 C151 664 169 697 201 699 C226 700 248 673 267 649 L319 590 C347 551 374 516 402 493 Z" data-body-part="Ручка" data-body-audio="arm.mp3" aria-label="Ліва ручка" role="button" tabindex="0" />
+              <path class="body-hotspot" d="M658 447 C696 461 725 505 761 560 L826 637 C849 664 831 697 799 699 C774 700 752 673 733 649 L681 590 C653 551 626 516 598 493 Z" data-body-part="Ручка" data-body-audio="arm.mp3" aria-label="Права ручка" role="button" tabindex="0" />
+              <ellipse class="body-hotspot" cx="166" cy="658" rx="86" ry="76" data-body-part="Долонька" data-body-audio="hand.mp3" aria-label="Ліва долонька" role="button" tabindex="0" />
+              <ellipse class="body-hotspot" cx="834" cy="658" rx="86" ry="76" data-body-part="Долонька" data-body-audio="hand.mp3" aria-label="Права долонька" role="button" tabindex="0" />
+            </svg>
+            <div class="body-part-label" id="bodyPartLabel" aria-live="polite">Торкнися тіла</div>
+          </div>
+          <p class="body-parent-tip">Покажіть цю ж частину на тілі малюка</p>
+        </section>
+
+        <section class="family-game-screen" id="familyGameScreen" hidden>
+          <div class="family-game-heading">
+            <span>Тваринки та їхні малята</span>
+            <h2>Мама і малюк</h2>
+            <p id="familyPrompt">Знайди малюка для мами</p>
+          </div>
+          <div class="family-mother-card">
+            <img id="familyMotherImage" src="" alt="" />
+            <span>Мама</span>
+            <strong id="familyMotherName"></strong>
+          </div>
+          <div class="family-baby-grid" id="familyBabyGrid" aria-label="Оберіть малюка тваринки"></div>
+        </section>
+
+        <section class="emotion-game-screen" id="emotionGameScreen" hidden>
+          <div class="emotion-game-heading">
+            <span>Вчимося розуміти почуття</span>
+            <h2>Веселі емоції</h2>
+            <p id="emotionPrompt">Покажи радісне личко</p>
+          </div>
+          <div class="emotion-grid" id="emotionGrid" aria-label="Оберіть емоцію"></div>
+          <div class="emotion-footer">
+            <p id="emotionParentTip">Спробуйте разом показати таке саме личко.</p>
+          </div>
+        </section>
+
+        <section class="dress-game-screen" id="dressGameScreen" hidden>
+          <div class="dress-game-heading">
+            <span>Вчимо назви одягу</span>
+            <h2 id="dressTitle">Одягни малюка</h2>
+            <p id="dressPrompt">Обери одяг для малюка</p>
+          </div>
+          <div class="dress-character-picker" id="dressCharacterPicker" aria-label="Обери персонажа"></div>
+          <div class="dress-character-card">
+            <button class="dress-reset-icon" data-dress-reset aria-label="Зняти весь одяг" title="Зняти весь одяг">↻</button>
+            <img class="dress-character-image" id="dressCharacter" src="./assets/images/dress-up/stage-0-aligned.png" alt="Малюк, якого потрібно одягнути" />
+          </div>
+          <div class="dress-items" id="dressItems" aria-label="Одяг для малюка"></div>
+        </section>
+
+        <section class="sleep-screen" id="sleepScreen" hidden>
+          <div class="sleep-hero">
+            <div>
+              <span>Тихий режим</span>
+              <h2>Звуки для сну</h2>
+              <p>Оберіть м'який фон, увімкніть таймер і залиште звук грати спокійним циклом.</p>
+            </div>
+            <img src="./assets/images/home-sounds.png" alt="" />
+          </div>
+
+          <div class="sleep-list" id="sleepList" aria-label="Звуки для сну"></div>
+        </section>
+
+        <section class="poem-categories-screen" id="poemCategoriesScreen" hidden>
+          <div class="poems-hero">
+            <div>
+              <span>Короткі рими</span>
+              <h2>Віршики для малюка</h2>
+              <p>Оберіть папку: купання, сон, їжа, руханки або тваринки.</p>
+            </div>
+            <img src="./assets/images/home-poems.png" alt="" />
+          </div>
+
+          <button class="favorites-folder" id="favoritesFolder" data-poem-folder="favorites" hidden>
+            <span class="folder-icon">♥</span>
+            <strong>Улюблені віршики</strong>
+            <small id="favoritesCount">Збережені віршики</small>
+          </button>
+
+          <div class="poem-category-grid" id="poemCategoryGrid" aria-label="Категорії віршиків"></div>
+        </section>
+
+        <section class="poems-screen" id="poemsScreen" hidden>
+          <div class="poems-hero compact">
+            <div>
+              <span id="poemListKicker">Віршики</span>
+              <h2 id="poemListTitle">Купання</h2>
+              <p id="poemListLead">Короткі забавлянки для цього моменту дня.</p>
+            </div>
+            <img id="poemListImage" src="./assets/images/poem-category-bath.png" alt="" />
+          </div>
+
+          <div class="poems-list" id="poemsList" aria-label="Список віршиків"></div>
+        </section>
+
+        <section class="poem-detail-screen" id="poemDetailScreen" hidden>
+          <article class="poem-detail" id="poemDetail">
+            <div class="poem-art">
+              <img id="poemImage" src="./assets/images/poem-sleepy-kitten.png" alt="" />
+            </div>
+
+            <div class="poem-copy">
+              <span id="poemCategory">Сон</span>
+              <h2 id="poemTitle">Котик спить</h2>
+              <div class="poem-text" id="poemText"></div>
+              <div class="poem-instruction" id="poemInstruction" hidden></div>
+            </div>
+
+            <div class="poem-actions">
+              <button class="poem-listen-btn" data-action="playPoem">▶ Прослухати</button>
+              <button class="poem-fav-btn" id="poemFavoriteBtn" data-action="toggleCurrentPoemFavorite" aria-label="Додати в улюблені">♡</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="sleep-player-screen" id="sleepPlayerScreen" hidden>
+          <section class="sleep-player" id="sleepPlayer">
+            <div class="sleep-art">
+              <img id="sleepImage" src="./assets/images/sleep-water.png" alt="" />
+            </div>
+
+            <div class="sleep-now">
+              <span id="sleepMood">м'який фон</span>
+              <h2 id="sleepTitle">Шум води</h2>
+              <p id="sleepDescription">Тиха вода без різких сплесків.</p>
+            </div>
+
+            <div class="timer-row" aria-label="Таймер">
+              <button class="active" data-timer="10">10 хв</button>
+              <button data-timer="20">20 хв</button>
+              <button data-timer="30">30 хв</button>
+            </div>
+
+            <div class="sleep-actions">
+              <button class="sleep-play-btn" id="sleepPlayBtn" data-action="toggleSleep">▶ Увімкнути</button>
+              <span id="sleepTimerText">10:00</span>
+            </div>
+            <button class="sleep-dim-btn" data-action="dimSleepScreen">☾ Затемнити екран</button>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <button class="sleep-dim-overlay" id="sleepDimOverlay" data-action="restoreSleepScreen" aria-label="Повернути звичайний екран" hidden>
+      <span>Торкніться, щоб повернути екран</span>
+    </button>
+    <div class="toast" id="toast" hidden></div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="./app.js?v=101"></script>
+  </body>
+</html>
