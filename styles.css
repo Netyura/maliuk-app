@@ -3322,6 +3322,8 @@ html.telegram-mini-app body {
   --green: #75c98a;
   --surface-border: rgba(23, 21, 31, 0.055);
   --card-press-scale: 0.99;
+  --menu-card-shadow: 0 5px 14px rgba(74, 55, 42, 0.045);
+  --menu-hero-shadow: 0 8px 22px rgba(74, 55, 42, 0.055);
 }
 
 body,
@@ -3344,7 +3346,7 @@ body,
   padding: 1rem;
   border-radius: 28px;
   border: 1px solid var(--surface-border);
-  box-shadow: none;
+  box-shadow: var(--menu-hero-shadow);
   overflow: hidden;
 }
 
@@ -3463,7 +3465,7 @@ body,
 .sleep-card.active,
 .story-card {
   border: 1px solid var(--surface-border);
-  box-shadow: none;
+  box-shadow: var(--menu-card-shadow);
   transition:
     transform 140ms ease,
     background-color 140ms ease,
