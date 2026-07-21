@@ -1,7 +1,7 @@
 import { withSupabase } from "jsr:@supabase/server@^1";
 
 const encoder = new TextEncoder();
-const MAX_AUTH_AGE_SECONDS = 60 * 60;
+const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
 
 function corsHeaders(origin: string | null) {
   const configuredOrigins = (
