@@ -60,7 +60,6 @@ async function validateTelegramInitData(initData: string, botToken: string) {
   const params = new URLSearchParams(initData);
   const receivedHash = params.get("hash") || "";
   params.delete("hash");
-  params.delete("signature");
 
   const dataCheckString = [...params.entries()]
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
