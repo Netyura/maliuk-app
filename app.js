@@ -1695,6 +1695,7 @@ const state = {
   childProfiles: [],
   onboardingMode: "first",
   onboardingReturn: "today",
+  editingChildId: null,
   age: null,
   gameId: "animals",
   gameItems: words,
@@ -1817,12 +1818,27 @@ function showOnboarding(mode = "first") {
   resetOnboardingForm();
   closeChildSwitcher();
   const addingChild = mode === "add";
-  $("#onboardingTitle").textContent = addingChild ? "Додайте ще одну дитину" : "Розкажіть про малюка";
-  $("#onboardingLead").textContent = addingChild
-    ? "Створимо окремий профіль для ігор, казок, сну, прикорму й нагадувань."
-    : "Ігри, казки, сон, прикорм і нагадування про ліки — відповідно до віку малюка.";
-  $("#onboardingSubmit").textContent = addingChild ? "Додати дитину" : "Почати";
-  $("#onboardingCancel").hidden = !addingChild;
+  const editingChild = mode === "edit";
+  $("#onboardingTitle").textContent = editingChild
+    ? "Редагувати профіль"
+    : addingChild ? "Додайте ще одну дитину" : "Розкажіть про малюка";
+  $("#onboardingLead").textContent = editingChild
+    ? "Оновіть ім’я або дату народження — рекомендації зміняться автоматично."
+    : addingChild
+      ? "Створимо окремий профіль для ігор, казок, сну, прикорму й нагадувань."
+      : "Ігри, казки, сон, прикорм і нагадування про ліки — відповідно до віку малюка.";
+  $("#onboardingSubmit").textContent = editingChild ? "Зберегти зміни" : addingChild ? "Додати дитину" : "Почати";
+  $("#onboardingCancel").hidden = !(addingChild || editingChild);
+
+  if (editingChild) {
+    const profile = state.childProfiles.find((item) => item.id === state.editingChildId);
+    if (!profile) {
+      openProfileTab();
+      return;
+    }
+    $("#childName").value = profile.nickname || "";
+    setBirthDatePickerValue(profile.birth_date);
+  }
   $("#bottomNav").hidden = true;
   hideContentScreens();
   $("#onboardingScreen").hidden = false;
@@ -1852,7 +1868,19 @@ function renderChildSwitcher() {
     const check = document.createElement("b");
     check.textContent = profile.id === state.childProfile?.id ? "✓" : "›";
     button.append(avatar, copy, check);
-    list.append(button);
+    if (list.id === "profileHubChildList") {
+      const row = document.createElement("div");
+      row.className = "child-profile-row";
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "edit-child-button";
+      editButton.dataset.editChildId = profile.id;
+      editButton.textContent = "Редагувати";
+      row.append(button, editButton);
+      list.append(row);
+    } else {
+      list.append(button);
+    }
   });
   });
   document.querySelectorAll("[data-action='addChild']").forEach((button) => {
@@ -1915,6 +1943,22 @@ function selectChildProfile(childId) {
   if (window.owlJoyAccount) window.owlJoyAccount.currentChild = profile;
   closeChildSwitcher();
   showToast(`Обрано профіль: ${profile.nickname}`);
+}
+
+function setBirthDatePickerValue(birthDate) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate || "");
+  if (!match) return;
+  $("#childBirthYear").value = String(Number(match[1]));
+  $("#childBirthMonth").value = String(Number(match[2]));
+  refreshBirthDays(String(Number(match[3])));
+  syncBirthDateValue();
+}
+
+function editChildProfile(childId) {
+  if (!state.childProfiles.some((profile) => profile.id === childId)) return;
+  state.editingChildId = childId;
+  state.onboardingReturn = "profile";
+  showOnboarding("edit");
 }
 
 const ukrainianMonths = [
@@ -2032,10 +2076,16 @@ async function saveOnboardingProfile(event) {
   submit.textContent = "Зберігаємо…";
   try {
     const addingChild = state.onboardingMode === "add";
-    const profile = await window.owlJoyAccount.saveChildProfile({ nickname: name, birthDate });
+    const editingChild = state.onboardingMode === "edit";
+    const profile = await window.owlJoyAccount.saveChildProfile({
+      nickname: name,
+      birthDate,
+      childId: editingChild ? state.editingChildId : null
+    });
     state.childProfiles = [...window.owlJoyAccount.childProfiles];
     applyChildProfile(profile);
-    if (addingChild && state.onboardingReturn === "profile") openProfileTab();
+    state.editingChildId = null;
+    if ((addingChild || editingChild) && state.onboardingReturn === "profile") openProfileTab();
     else backToHome();
   } catch (saveError) {
     console.error("OwlJoy: не вдалося зберегти профіль", saveError);
@@ -2043,7 +2093,9 @@ async function saveOnboardingProfile(event) {
     error.hidden = false;
   } finally {
     submit.disabled = false;
-    submit.textContent = state.onboardingMode === "add" ? "Додати дитину" : "Почати";
+    submit.textContent = state.onboardingMode === "edit"
+      ? "Зберегти зміни"
+      : state.onboardingMode === "add" ? "Додати дитину" : "Почати";
   }
 }
 
@@ -3238,6 +3290,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const editChildId = event.target.closest("[data-edit-child-id]")?.dataset.editChildId;
+  if (editChildId) {
+    editChildProfile(editChildId);
+    return;
+  }
+
   const selectedChildId = event.target.closest("[data-child-id]")?.dataset.childId;
   if (selectedChildId) {
     selectChildProfile(selectedChildId);
@@ -3404,6 +3462,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "cancelAddChild") {
+    state.editingChildId = null;
     if (state.onboardingReturn === "profile") openProfileTab();
     else backToHome();
     return;

@@ -4123,6 +4123,28 @@ body,
   gap: 0.55rem;
 }
 
+.child-profile-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.child-profile-row .child-profile-option {
+  min-width: 0;
+}
+
+.edit-child-button {
+  min-height: 42px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  color: #a45322;
+  background: #fff0e5;
+  font-size: 0.7rem;
+  font-weight: 850;
+  box-shadow: none;
+}
+
 .child-profile-option {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 30px;
