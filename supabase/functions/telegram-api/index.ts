@@ -101,6 +101,19 @@ async function validateTelegramInitData(initData: string, botToken: string) {
   };
 }
 
+function childAgeInMonths(birthDate: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
+  const birth = new Date(`${birthDate}T12:00:00Z`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let months =
+    (today.getUTCFullYear() - birth.getUTCFullYear()) * 12 +
+    today.getUTCMonth() -
+    birth.getUTCMonth();
+  if (today.getUTCDate() < birth.getUTCDate()) months -= 1;
+  return months;
+}
+
 export default {
   fetch: withSupabase({ auth: "none" }, async (request, context) => {
     const headers = corsHeaders(request.headers.get("Origin"));
@@ -145,21 +158,90 @@ export default {
       if (error) throw error;
 
       if (body.action === "bootstrap") {
-        const { data: favorites, error: favoritesError } = await supabase
-          .from("user_favorites")
-          .select("content_id")
-          .eq("user_id", user.id)
-          .eq("content_type", "poem");
+        const [favoritesResult, childResult] = await Promise.all([
+          supabase
+            .from("user_favorites")
+            .select("content_id")
+            .eq("user_id", user.id)
+            .eq("content_type", "poem"),
+          supabase
+            .from("child_profiles")
+            .select(
+              "id, nickname, birth_date, age_months, created_at, updated_at",
+            )
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+        const { data: favorites, error: favoritesError } = favoritesResult;
+        const { data: childProfile, error: childError } = childResult;
         if (favoritesError) throw favoritesError;
+        if (childError) throw childError;
 
         return json(
           {
             user,
+            childProfile,
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
           },
           200,
           headers,
         );
+      }
+
+      if (body.action === "child.save") {
+        const nickname =
+          typeof body.nickname === "string" ? body.nickname.trim() : "";
+        const birthDate =
+          typeof body.birthDate === "string" ? body.birthDate : "";
+        const ageMonths = childAgeInMonths(birthDate);
+        if (
+          !nickname ||
+          nickname.length > 40 ||
+          ageMonths === null ||
+          ageMonths < 0 ||
+          ageMonths > 216
+        ) {
+          return json(
+            { error: "Перевірте ім’я та дату народження" },
+            400,
+            headers,
+          );
+        }
+
+        const { data: existingChild, error: existingError } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (existingError) throw existingError;
+
+        const profileValues = {
+          nickname,
+          birth_date: birthDate,
+          age_months: ageMonths,
+          updated_at: new Date().toISOString(),
+        };
+        const profileQuery = existingChild
+          ? supabase
+              .from("child_profiles")
+              .update(profileValues)
+              .eq("id", existingChild.id)
+              .eq("user_id", user.id)
+          : supabase
+              .from("child_profiles")
+              .insert({ user_id: user.id, ...profileValues });
+        const { data: childProfile, error: profileError } = await profileQuery
+          .select(
+            "id, nickname, birth_date, age_months, created_at, updated_at",
+          )
+          .single();
+        if (profileError) throw profileError;
+
+        return json({ childProfile }, 200, headers);
       }
 
       if (body.action === "favorite.set") {

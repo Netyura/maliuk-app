@@ -3609,3 +3609,161 @@ body,
     transition: none;
   }
 }
+
+/* Перший запуск: один простий профіль малюка */
+.onboarding-screen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.15rem 0 0.45rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.onboarding-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.onboarding-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  padding: 1.05rem;
+  border: 1px solid rgba(23, 21, 31, 0.055);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 85% 8%, rgba(255, 186, 111, 0.18), transparent 12rem),
+    linear-gradient(180deg, #fffdfa, #fff8f1);
+  box-shadow: 0 8px 22px rgba(74, 55, 42, 0.055);
+}
+
+.onboarding-owl {
+  display: block;
+  width: min(52vw, 196px);
+  aspect-ratio: 1;
+  margin: -0.2rem auto 0.35rem;
+  border-radius: 34px;
+  object-fit: cover;
+}
+
+.onboarding-copy {
+  text-align: center;
+}
+
+.onboarding-copy > span {
+  color: #a45322;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.onboarding-copy h1 {
+  margin: 0.42rem 0 0.55rem;
+  font-size: clamp(1.9rem, 9vw, 2.35rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.onboarding-copy p {
+  max-width: 320px;
+  margin: 0 auto;
+  color: #625d6d;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 0.82rem;
+  margin-top: 1.15rem;
+}
+
+.onboarding-form label {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.onboarding-form label > span {
+  padding-left: 0.18rem;
+  color: #3f3a46;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.onboarding-form input {
+  width: 100%;
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 0.82rem 0.95rem;
+  border: 1px solid rgba(23, 21, 31, 0.09);
+  border-radius: 17px;
+  outline: none;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 750;
+  box-shadow: 0 4px 12px rgba(74, 55, 42, 0.035);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.onboarding-form input:focus {
+  border-color: rgba(244, 125, 74, 0.62);
+  box-shadow: 0 0 0 4px rgba(244, 125, 74, 0.11);
+}
+
+.onboarding-form input::placeholder {
+  color: #aaa5af;
+  font-weight: 650;
+}
+
+.onboarding-submit {
+  min-height: 56px;
+  margin-top: 0.12rem;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #f47d4a, #ef6c3b);
+  font-size: 1rem;
+  font-weight: 850;
+  box-shadow: 0 10px 22px rgba(244, 125, 74, 0.2);
+}
+
+.onboarding-submit:disabled {
+  opacity: 0.62;
+}
+
+.onboarding-error {
+  margin: -0.15rem 0 0;
+  padding: 0.68rem 0.78rem;
+  border-radius: 14px;
+  color: #9d3427;
+  background: #fff0ec;
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.onboarding-privacy {
+  margin: 0.85rem 0 0;
+  color: #817b87;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: center;
+}
+
+@media (max-height: 760px) {
+  .onboarding-card {
+    min-height: auto;
+  }
+
+  .onboarding-owl {
+    width: 138px;
+  }
+
+  .onboarding-copy h1 {
+    font-size: 1.75rem;
+  }
+}

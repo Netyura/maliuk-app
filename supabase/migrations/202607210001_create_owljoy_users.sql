@@ -16,6 +16,7 @@ create table if not exists public.child_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.owljoy_users(id) on delete cascade,
   nickname text,
+  birth_date date,
   age_months smallint check (age_months between 0 and 216),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

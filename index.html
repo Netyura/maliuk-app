@@ -4,18 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
-    <title>Покажи мені</title>
-    <link rel="stylesheet" href="./styles.css?v=115" />
+    <title>OwlJoy</title>
+    <link rel="stylesheet" href="./styles.css?v=116" />
   </head>
   <body>
     <main class="app">
       <section class="mobile-screen">
-        <section class="home-screen" id="homeScreen">
+        <section class="onboarding-screen" id="onboardingScreen" hidden>
+          <div class="onboarding-card">
+            <img class="onboarding-owl" src="./assets/images/onboarding-owl.png?v=1" alt="Сова OwlJoy вітає вас" />
+            <div class="onboarding-copy">
+              <span>Ласкаво просимо до OwlJoy</span>
+              <h1>Розкажіть про малюка</h1>
+              <p>Ми підбиратимемо заняття за віком. Це займе лише кілька секунд.</p>
+            </div>
+
+            <form class="onboarding-form" id="onboardingForm" novalidate>
+              <label for="childName">
+                <span>Як звати малюка?</span>
+                <input id="childName" name="childName" type="text" maxlength="40" autocomplete="off" placeholder="Наприклад, Марко" required />
+              </label>
+
+              <label for="childBirthDate">
+                <span>Дата народження</span>
+                <input id="childBirthDate" name="childBirthDate" type="date" required />
+              </label>
+
+              <p class="onboarding-error" id="onboardingError" role="alert" hidden></p>
+              <button class="onboarding-submit" id="onboardingSubmit" type="submit">Почати</button>
+            </form>
+
+            <p class="onboarding-privacy">🔒 Профіль зберігається лише для вашого Telegram-акаунта.</p>
+          </div>
+        </section>
+
+        <section class="home-screen" id="homeScreen" hidden>
           <div class="home-hero">
             <div class="home-hero-copy">
-              <span>Для малюків 6–36 міс</span>
+              <span id="homeChildLabel">Для малюків 6–36 міс</span>
               <h2>Що будемо робити сьогодні?</h2>
-              <p>Короткі заняття для батьків і дітей: грати, слухати, говорити й заспокоюватися.</p>
+              <p id="homeChildLead">Короткі заняття для батьків і дітей: грати, слухати, говорити й заспокоюватися.</p>
             </div>
             <img class="home-owl" src="./assets/images/home-owl.png" alt="" />
           </div>
@@ -406,7 +434,7 @@
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=1"></script>
-    <script src="./app.js?v=103"></script>
+    <script src="./telegram-user.js?v=2"></script>
+    <script src="./app.js?v=104"></script>
   </body>
 </html>

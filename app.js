@@ -1745,10 +1745,122 @@ state.favoritePoems = new Set([...state.favoritePoems].filter((poemId) => poemId
 localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
 
 window.owlJoyAccount?.ready.then((account) => {
-  if (account.status !== "authenticated") return;
-  state.favoritePoems = new Set(account.favoritePoemIds.filter((poemId) => poemIds.has(poemId)));
-  localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
-}).catch(() => {});
+  if (account.status === "authenticated") {
+    state.favoritePoems = new Set(account.favoritePoemIds.filter((poemId) => poemIds.has(poemId)));
+    localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
+  }
+  initializeChildProfile(account);
+}).catch(() => showOnboarding());
+
+function ageInMonths(birthDate) {
+  const birth = new Date(`${birthDate}T12:00:00`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let months = (today.getFullYear() - birth.getFullYear()) * 12 + today.getMonth() - birth.getMonth();
+  if (today.getDate() < birth.getDate()) months -= 1;
+  return months;
+}
+
+function pluralizeUkrainian(value, one, few, many) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+function formatChildAge(birthDate) {
+  const months = ageInMonths(birthDate);
+  if (months === null || months < 0) return "";
+  if (months < 24) return `${months} ${pluralizeUkrainian(months, "місяць", "місяці", "місяців")}`;
+
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  const yearsText = `${years} ${pluralizeUkrainian(years, "рік", "роки", "років")}`;
+  if (!rest) return yearsText;
+  return `${yearsText} ${rest} ${pluralizeUkrainian(rest, "місяць", "місяці", "місяців")}`;
+}
+
+function ageProfileKeyForBirthDate(birthDate) {
+  const months = ageInMonths(birthDate);
+  if (months === null) return null;
+  if (months < 12) return "baby";
+  if (months < 18) return "early";
+  if (months < 24) return "talker";
+  return "curious";
+}
+
+function applyChildProfile(profile) {
+  if (!profile) return;
+  state.childProfile = profile;
+  const ageLabel = formatChildAge(profile.birth_date);
+  $("#homeChildLabel").textContent = `${profile.nickname}${ageLabel ? ` · ${ageLabel}` : ""}`;
+  $("#homeChildLead").textContent = "Ігри, казки й спокійні заняття відповідно до віку малюка.";
+}
+
+function showOnboarding() {
+  hideContentScreens();
+  $("#onboardingScreen").hidden = false;
+  updateTopBack();
+}
+
+function initializeChildProfile(account) {
+  const today = new Date().toISOString().slice(0, 10);
+  $("#childBirthDate").max = today;
+  if (!account?.currentChild) {
+    showOnboarding();
+    return;
+  }
+
+  applyChildProfile(account.currentChild);
+  backToHome();
+}
+
+async function saveOnboardingProfile(event) {
+  event.preventDefault();
+  const name = $("#childName").value.trim();
+  const birthDate = $("#childBirthDate").value;
+  const months = ageInMonths(birthDate);
+  const error = $("#onboardingError");
+  const submit = $("#onboardingSubmit");
+
+  error.hidden = true;
+  if (!name) {
+    error.textContent = "Введіть ім’я або домашнє прізвисько малюка.";
+    error.hidden = false;
+    $("#childName").focus();
+    return;
+  }
+  if (!birthDate || months === null || months < 0) {
+    error.textContent = "Оберіть правильну дату народження.";
+    error.hidden = false;
+    $("#childBirthDate").focus();
+    return;
+  }
+  if (months > 216) {
+    error.textContent = "Перевірте дату народження малюка.";
+    error.hidden = false;
+    $("#childBirthDate").focus();
+    return;
+  }
+
+  submit.disabled = true;
+  submit.textContent = "Зберігаємо…";
+  try {
+    const profile = await window.owlJoyAccount.saveChildProfile({ nickname: name, birthDate });
+    applyChildProfile(profile);
+    backToHome();
+  } catch (saveError) {
+    console.error("OwlJoy: не вдалося зберегти профіль", saveError);
+    error.textContent = "Не вдалося зберегти профіль. Перевірте інтернет і спробуйте ще раз.";
+    error.hidden = false;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Почати";
+  }
+}
+
+$("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -1849,6 +1961,7 @@ function speakWithBrowser(text) {
 
 function hideContentScreens() {
   stopBubbleGame();
+  $("#onboardingScreen").hidden = true;
   $("#homeScreen").hidden = true;
   $("#agePicker").hidden = true;
   $("#gamePicker").hidden = true;
@@ -2446,7 +2559,11 @@ function goBack() {
   }
 
   if (!$("#gamePicker").hidden) {
-    backToAges();
+    if (state.childProfile?.birth_date) {
+      backToHome();
+    } else {
+      backToAges();
+    }
     return;
   }
 
@@ -2456,7 +2573,7 @@ function goBack() {
 }
 
 function updateTopBack() {
-  const isHome = $("#homeScreen").hidden === false;
+  const isHome = $("#homeScreen").hidden === false || $("#onboardingScreen").hidden === false;
 
   if (telegramApp) {
     if (isHome) {
@@ -2901,7 +3018,14 @@ function showToast(text, tone = "neutral") {
 document.addEventListener("click", (event) => {
   const section = event.target.closest("[data-section]")?.dataset.section;
   if (section === "games") {
-    showAgePicker();
+    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
+    if (savedAge) {
+      hideContentScreens();
+      startAge(savedAge);
+      updateTopBack();
+    } else {
+      showAgePicker();
+    }
     return;
   }
 
