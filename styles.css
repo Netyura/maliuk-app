@@ -266,6 +266,19 @@ h1 {
     0 15px 34px rgba(130, 211, 149, 0.12);
 }
 
+.home-grid button[data-section="food"] {
+  background: linear-gradient(135deg, rgba(117, 201, 138, 0.16), rgba(255, 255, 255, 0.98));
+}
+
+.home-grid button[data-section="medicine"] {
+  background: linear-gradient(135deg, rgba(114, 182, 235, 0.16), rgba(255, 255, 255, 0.98));
+}
+
+.home-grid button[data-section="food"]:disabled,
+.home-grid button[data-section="medicine"]:disabled {
+  opacity: 1;
+}
+
 .home-grid button:active {
   transform: scale(0.985);
 }
