@@ -3585,6 +3585,11 @@ body,
   overflow: hidden;
 }
 
+.home-hero {
+  height: 170px;
+  min-height: 170px;
+}
+
 .home-hero,
 .age-intro {
   grid-template-columns: minmax(0, 1fr) 78px;
