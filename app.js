@@ -2451,7 +2451,6 @@ function goBack() {
 
 function updateTopBack() {
   const isHome = $("#homeScreen").hidden === false;
-  $("#topBackBtn").hidden = isHome;
 
   if (telegramApp) {
     if (isHome) {
