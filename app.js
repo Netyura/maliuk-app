@@ -1804,9 +1804,105 @@ function showOnboarding() {
   updateTopBack();
 }
 
+const ukrainianMonths = [
+  "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+  "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+];
+
+let birthDatePickerReady = false;
+
+function localDateValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function refreshBirthDays(preferredDay = $("#childBirthDay").value) {
+  const daySelect = $("#childBirthDay");
+  const month = Number($("#childBirthMonth").value);
+  const year = Number($("#childBirthYear").value);
+  const today = new Date();
+  let dayCount = 31;
+
+  if (month && year) {
+    dayCount = new Date(year, month, 0).getDate();
+    if (year === today.getFullYear() && month === today.getMonth() + 1) {
+      dayCount = Math.min(dayCount, today.getDate());
+    }
+  }
+
+  daySelect.innerHTML = '<option value="">—</option>';
+  for (let day = 1; day <= dayCount; day += 1) {
+    daySelect.add(new Option(String(day), String(day)));
+  }
+  if (preferredDay && Number(preferredDay) <= dayCount) daySelect.value = String(Number(preferredDay));
+}
+
+function syncBirthDateValue({ keepShortcut = false } = {}) {
+  const day = Number($("#childBirthDay").value);
+  const month = Number($("#childBirthMonth").value);
+  const year = Number($("#childBirthYear").value);
+  $("#childBirthDate").value = day && month && year
+    ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    : "";
+
+  if (!keepShortcut) {
+    document.querySelectorAll("[data-birth-age]").forEach((button) => button.classList.remove("active"));
+  }
+}
+
+function setBirthDateFromAge(months, activeButton) {
+  const date = new Date();
+  date.setDate(1);
+  date.setMonth(date.getMonth() - months);
+  const targetDay = Math.min(new Date().getDate(), new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate());
+  date.setDate(targetDay);
+
+  $("#childBirthYear").value = String(date.getFullYear());
+  $("#childBirthMonth").value = String(date.getMonth() + 1);
+  refreshBirthDays(String(date.getDate()));
+  syncBirthDateValue({ keepShortcut: true });
+  document.querySelectorAll("[data-birth-age]").forEach((button) => {
+    button.classList.toggle("active", button === activeButton);
+  });
+}
+
+function setupBirthDatePicker() {
+  if (birthDatePickerReady) return;
+  birthDatePickerReady = true;
+  const today = new Date();
+  const monthSelect = $("#childBirthMonth");
+  const yearSelect = $("#childBirthYear");
+
+  ukrainianMonths.forEach((month, index) => monthSelect.add(new Option(month, String(index + 1))));
+  for (let year = today.getFullYear(); year >= today.getFullYear() - 18; year -= 1) {
+    yearSelect.add(new Option(String(year), String(year)));
+  }
+  refreshBirthDays();
+
+  $("#childBirthDay").addEventListener("change", () => syncBirthDateValue());
+  monthSelect.addEventListener("change", () => {
+    refreshBirthDays();
+    syncBirthDateValue();
+  });
+  yearSelect.addEventListener("change", () => {
+    refreshBirthDays();
+    syncBirthDateValue();
+  });
+  document.querySelectorAll("[data-birth-age]").forEach((button) => {
+    button.addEventListener("click", () => setBirthDateFromAge(Number(button.dataset.birthAge), button));
+  });
+}
+
+function focusBirthDatePicker() {
+  const firstEmpty = [$("#childBirthDay"), $("#childBirthMonth"), $("#childBirthYear")]
+    .find((select) => !select.value);
+  (firstEmpty || $("#childBirthDay")).focus();
+}
+
 function initializeChildProfile(account) {
-  const today = new Date().toISOString().slice(0, 10);
-  $("#childBirthDate").max = today;
+  setupBirthDatePicker();
   if (!account?.currentChild) {
     showOnboarding();
     return;
@@ -1834,13 +1930,13 @@ async function saveOnboardingProfile(event) {
   if (!birthDate || months === null || months < 0) {
     error.textContent = "Оберіть правильну дату народження.";
     error.hidden = false;
-    $("#childBirthDate").focus();
+    focusBirthDatePicker();
     return;
   }
   if (months > 216) {
     error.textContent = "Перевірте дату народження малюка.";
     error.hidden = false;
-    $("#childBirthDate").focus();
+    focusBirthDatePicker();
     return;
   }
 
