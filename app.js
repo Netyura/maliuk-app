@@ -1733,7 +1733,10 @@ const state = {
 };
 
 const $ = (selector) => document.querySelector(selector);
-const asset = (name) => `./assets/images/${name}?v=96`;
+const asset = (name) => {
+  const optimizedName = name.replace(/\.png$/i, ".webp");
+  return `./assets/images/${optimizedName}?v=97`;
+};
 const audioAsset = (name) => `./assets/audio/uk/${name}`;
 const sfxAsset = (name) => `./assets/audio/sfx/${name}`;
 const sleepAsset = (name) => `./assets/audio/sleep/${name}`;
@@ -2289,7 +2292,7 @@ function renderStories() {
   $("#storiesLead").textContent = "Слухайте разом або читайте дитині своїм голосом.";
   list.innerHTML = stories.map((story) => `
     <button class="story-card" data-story="${story.id}">
-      <img src="${asset(story.image)}" alt="" />
+      <img loading="lazy" decoding="async" src="${asset(story.image)}" alt="" />
       <span class="story-card-copy">
         <strong>${story.title}</strong>
         <span>${story.kind || "Українська народна казка"} · ${story.duration}</span>
@@ -2571,7 +2574,7 @@ function renderFamilyRound() {
 
   $("#familyBabyGrid").innerHTML = options.map((item) => `
     <button class="family-baby-card" data-family-baby="${item.id}" aria-label="${item.baby}">
-      <img src="${asset(item.babyImage)}" alt="${item.baby}" />
+      <img loading="lazy" decoding="async" src="${asset(item.babyImage)}" alt="${item.baby}" />
       <strong>${item.baby}</strong>
     </button>
   `).join("");
@@ -2623,7 +2626,7 @@ function renderEmotionRound() {
   $("#emotionGrid").classList.toggle("two", optionCount === 2);
   $("#emotionGrid").innerHTML = options.map((item) => `
     <button class="emotion-card" data-emotion="${item.id}" aria-label="${item.name}">
-      <img src="${asset(item.image)}" alt="${item.name} вираз обличчя" />
+      <img loading="lazy" decoding="async" src="${asset(item.image)}" alt="${item.name} вираз обличчя" />
       <strong>${item.name}</strong>
     </button>
   `).join("");
@@ -2678,7 +2681,7 @@ function renderDressGame() {
     const selected = item.id === character.id;
     return `
       <button class="dress-character-choice${selected ? " is-selected" : ""}" data-dress-character="${item.id}" aria-pressed="${selected}">
-        <img src="${asset(item.preview)}" alt="" />
+        <img loading="lazy" decoding="async" src="${asset(item.preview)}" alt="" />
         <span>${item.name}</span>
       </button>
     `;
@@ -2696,7 +2699,7 @@ function renderDressGame() {
     const isWorn = wornItems.has(item.id);
     return `
     <button class="dress-item${isWorn ? " is-worn" : ""}" data-dress-item="${item.id}" aria-pressed="${isWorn}" aria-label="${isWorn ? "Зняти" : "Одягнути"}: ${item.name}">
-      <img src="${asset(item.image)}" alt="${item.name}" />
+      <img loading="lazy" decoding="async" src="${asset(item.image)}" alt="${item.name}" />
       <strong>${item.name}</strong>
       ${isWorn ? '<span aria-hidden="true">−</span>' : ""}
     </button>
@@ -2904,7 +2907,7 @@ function renderSleepList() {
     button.className = "sleep-card";
     button.dataset.sleep = sound.id;
     button.innerHTML = `
-      <img src="${asset(sound.image)}" alt="" />
+      <img loading="lazy" decoding="async" src="${asset(sound.image)}" alt="" />
       <strong>${sound.title}</strong>
       <span>${sound.mood}</span>
     `;
@@ -2960,7 +2963,7 @@ function renderPoemCategories() {
     button.className = "poem-category-card";
     button.dataset.poemCategory = category.id;
     button.innerHTML = `
-      <img src="${asset(category.image)}" alt="" />
+      <img loading="lazy" decoding="async" src="${asset(category.image)}" alt="" />
       <strong>${category.title}</strong>
       <span>${category.lead}</span>
       <small>${hasPoems ? "Відкрити добірку" : "Додаємо скоро"}</small>
@@ -3001,7 +3004,7 @@ function renderPoems() {
     button.className = `poem-card${poem.image ? "" : " no-image"}`;
     button.dataset.poem = poem.id;
     button.innerHTML = `
-      ${poem.image ? `<img src="${asset(poem.image)}" alt="" />` : ""}
+      ${poem.image ? `<img loading="lazy" decoding="async" src="${asset(poem.image)}" alt="" />` : ""}
       <strong>${poem.title}</strong>
       <span>${poem.preview}</span>
       <small>${poem.category}</small>
@@ -3235,7 +3238,7 @@ function render() {
       <span class="art-frame">
         ${showColorSwatch
           ? `<span class="color-swatch${choice.id === "white" ? " is-white" : ""}" style="--swatch: ${choice.hex}" aria-hidden="true"></span>`
-          : `<img src="${asset(choice.image)}" alt="${choice.label}" />`}
+          : `<img loading="lazy" decoding="async" src="${asset(choice.image)}" alt="${choice.label}" />`}
         ${state.age.type === "single" && (choice.sfx || choice.voice) ? '<span class="sound-cue" aria-hidden="true">🔊</span>' : ""}
       </span>
       <strong>${choice.label}</strong>
