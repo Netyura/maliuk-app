@@ -10,7 +10,10 @@
   --green: #82d395;
   --shadow: 0 18px 44px rgba(32, 27, 42, 0.12);
   --shadow-soft: 0 10px 28px rgba(32, 27, 42, 0.09);
-  font-family: "Nunito", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -72,7 +75,7 @@ button {
   margin: 0 0 0.12rem;
   color: var(--muted);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -87,7 +90,7 @@ h1 {
   margin-bottom: 0;
   font-size: 1.9rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .icon-btn,
@@ -99,7 +102,7 @@ h1 {
   border-radius: 18px;
   color: var(--ink);
   background: var(--soft);
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: inset 0 0 0 1px rgba(23, 21, 31, 0.03);
 }
 
@@ -120,7 +123,7 @@ h1 {
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(23, 21, 31, 0.06);
   font-size: 1.18rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
 }
 
@@ -167,7 +170,7 @@ h1 {
 .home-hero span {
   color: #a45322;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -176,7 +179,7 @@ h1 {
   margin: 0.45rem 0 0.62rem;
   max-width: 245px;
   font-size: clamp(2.12rem, 9.5vw, 2.72rem);
-  line-height: 0.94;
+  line-height: 1.03;
 }
 
 .home-hero p {
@@ -228,7 +231,7 @@ h1 {
   top: 50%;
   color: rgba(23, 21, 31, 0.34);
   font-size: 1.95rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-54%);
 }
 
@@ -293,7 +296,7 @@ h1 {
   padding-right: 2.55rem;
   font-size: 1.2rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .home-grid span {
@@ -301,7 +304,7 @@ h1 {
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .age-picker {
@@ -337,7 +340,7 @@ h1 {
 .intro-copy span {
   color: #a45322;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -347,7 +350,7 @@ h1 {
   margin: 0.45rem 0 0.62rem;
   max-width: 250px;
   font-size: clamp(2.1rem, 9.4vw, 2.7rem);
-  line-height: 0.94;
+  line-height: 1.03;
 }
 
 .intro-copy p {
@@ -391,7 +394,7 @@ h1 {
   color: #625d6d;
   background: rgba(255, 255, 255, 0.68);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: inset 0 0 0 1px rgba(23, 21, 31, 0.04);
 }
 
@@ -425,7 +428,7 @@ h1 {
   top: 50%;
   color: rgba(23, 21, 31, 0.34);
   font-size: 1.8rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-54%);
 }
 
@@ -467,7 +470,7 @@ h1 {
   padding-right: 1.25rem;
   font-size: 1.12rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .age-grid span {
@@ -475,7 +478,7 @@ h1 {
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .age-grid .age-icon {
@@ -510,13 +513,13 @@ h1 {
   color: #a45322;
   background: rgba(255, 135, 72, 0.14);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .picker-heading h2 {
   margin: 0.72rem 0 0.52rem;
   font-size: clamp(2.2rem, 10vw, 2.85rem);
-  line-height: 0.94;
+  line-height: 1.03;
 }
 
 .picker-heading p {
@@ -540,7 +543,7 @@ h1 {
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(23, 21, 31, 0.05);
   font-size: 1.7rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
 }
 
@@ -586,7 +589,7 @@ h1 {
   top: 50%;
   color: rgba(23, 21, 31, 0.34);
   font-size: 1.9rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-54%);
 }
 
@@ -631,7 +634,7 @@ h1 {
   padding-right: 1.45rem;
   font-size: 1.18rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .game-grid span:not(.game-icon) {
@@ -639,7 +642,7 @@ h1 {
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .sleep-screen {
@@ -707,7 +710,7 @@ h1 {
 .poem-copy span {
   color: #3e7b50;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -715,7 +718,7 @@ h1 {
 .poems-hero h2 {
   margin: 0.4rem 0 0.48rem;
   font-size: clamp(2.08rem, 9vw, 2.62rem);
-  line-height: 0.94;
+  line-height: 1.03;
 }
 
 .poems-hero p {
@@ -775,7 +778,7 @@ h1 {
   top: 50%;
   color: rgba(23, 21, 31, 0.34);
   font-size: 1.9rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-54%);
 }
 
@@ -796,14 +799,14 @@ h1 {
   align-self: end;
   font-size: 1.16rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-category-card span {
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-category-card small {
@@ -813,7 +816,7 @@ h1 {
   color: #3e7b50;
   background: rgba(130, 211, 149, 0.16);
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-filters {
@@ -836,7 +839,7 @@ h1 {
   color: var(--muted);
   background: #f4f1ec;
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -871,7 +874,7 @@ h1 {
   top: 50%;
   color: rgba(23, 21, 31, 0.34);
   font-size: 1.8rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-54%);
 }
 
@@ -896,7 +899,7 @@ h1 {
   color: #ff6374;
   background: rgba(255, 255, 255, 0.76);
   font-size: 1.25rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
@@ -904,13 +907,13 @@ h1 {
   align-self: end;
   font-size: 1.08rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .favorites-folder small {
   color: var(--muted);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poems-list {
@@ -959,14 +962,14 @@ h1 {
   align-self: end;
   font-size: 1.08rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-card span:not(.poem-heart) {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.16;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-card small {
@@ -976,7 +979,7 @@ h1 {
   color: #3e7b50;
   background: rgba(130, 211, 149, 0.16);
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-heart {
@@ -991,7 +994,7 @@ h1 {
   color: rgba(23, 21, 31, 0.32);
   background: #f7f4ef;
   font-size: 1.2rem;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-50%);
 }
 
@@ -1013,7 +1016,7 @@ h1 {
 
 .poems-empty strong {
   font-size: 1.1rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poems-empty span {
@@ -1084,7 +1087,7 @@ h1 {
   background: rgba(130, 211, 149, 0.14);
   font-size: 0.9rem;
   line-height: 1.22;
-  font-weight: 900;
+  font-weight: 800;
   text-align: left;
 }
 
@@ -1094,7 +1097,7 @@ h1 {
   margin-bottom: 0.26rem;
   color: #3e7b50;
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1104,7 +1107,7 @@ h1 {
   color: #302b3a;
   font-size: clamp(1.08rem, 5vw, 1.34rem);
   line-height: 1.24;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-actions {
@@ -1117,7 +1120,7 @@ h1 {
 .poem-fav-btn {
   min-height: 58px;
   border-radius: 22px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .poem-listen-btn {
@@ -1155,7 +1158,7 @@ h1 {
 .sleep-now span {
   color: #39739f;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1163,7 +1166,7 @@ h1 {
 .sleep-hero h2 {
   margin: 0.4rem 0 0.48rem;
   font-size: clamp(2.1rem, 9vw, 2.65rem);
-  line-height: 0.94;
+  line-height: 1.03;
 }
 
 .sleep-hero p,
@@ -1227,7 +1230,7 @@ h1 {
   margin-top: 0.52rem;
   font-size: 1rem;
   line-height: 1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .sleep-card span {
@@ -1236,7 +1239,7 @@ h1 {
   color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.16;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .sleep-player {
@@ -1297,7 +1300,7 @@ h1 {
   color: var(--muted);
   background: var(--soft);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .timer-row button.active {
@@ -1319,7 +1322,7 @@ h1 {
   color: #fff;
   background: var(--ink);
   font-size: 0.98rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: 0 12px 24px rgba(23, 21, 31, 0.18);
 }
 
@@ -1330,7 +1333,7 @@ h1 {
   color: #615d6b;
   background: #eeebf2;
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .sleep-dim-overlay {
@@ -1365,7 +1368,7 @@ h1 {
   border-radius: 22px;
   color: #39739f;
   background: rgba(126, 188, 244, 0.15);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .game-area {
@@ -1402,7 +1405,7 @@ h1 {
 .bubble-game-heading span {
   color: #4c83a3;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .bubble-game-heading h2 {
@@ -1477,7 +1480,7 @@ h1 {
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 8px 20px rgba(50, 109, 139, 0.12);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
   pointer-events: none;
   backdrop-filter: blur(8px);
 }
@@ -1522,7 +1525,7 @@ h1 {
 .face-game-heading span {
   color: #bd754e;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .face-game-heading h2 {
@@ -1621,7 +1624,7 @@ h1 {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 8px 18px rgba(104, 62, 40, 0.15);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 800;
   text-align: center;
   transform: translateX(-50%);
   pointer-events: none;
@@ -1664,7 +1667,7 @@ h1 {
 .body-game-heading span {
   color: #bd754e;
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .body-game-heading h2 {
@@ -1746,7 +1749,7 @@ h1 {
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 18px rgba(104, 62, 40, 0.15);
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 800;
   text-align: center;
   transform: translateX(-50%);
   pointer-events: none;
@@ -1769,7 +1772,7 @@ h1 {
   color: var(--muted);
   background: #f4f1ec;
   font-size: 0.84rem;
-  font-weight: 900;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -1811,7 +1814,7 @@ h1 {
   color: #a45322;
   background: rgba(255, 135, 72, 0.16);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .control-panel.simple-prompt .progress-row span {
@@ -1825,7 +1828,7 @@ h1 {
 .progress-row strong {
   color: var(--muted);
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .progress-track {
@@ -1850,7 +1853,7 @@ h2 {
   margin-bottom: 0.62rem;
   font-size: clamp(1.72rem, 7.4vw, 2.12rem);
   line-height: 0.98;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
@@ -1861,7 +1864,7 @@ h2 {
   color: #fff;
   background: var(--orange);
   font-size: 0.94rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: 0 12px 24px rgba(255, 135, 72, 0.28);
 }
 
@@ -1873,7 +1876,7 @@ h2 {
   color: #fff;
   background: var(--ink);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: 0 12px 26px rgba(23, 21, 31, 0.18);
 }
 
@@ -2020,7 +2023,7 @@ h2 {
 .choice-card strong {
   color: var(--ink);
   font-size: 1.05rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .choice-card.single strong {
@@ -2076,7 +2079,7 @@ h2 {
 .family-mother-card > span {
   color: var(--orange);
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2116,7 +2119,7 @@ h2 {
   align-self: start;
   color: var(--ink);
   font-size: 1.55rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .family-mother-card > span {
@@ -2156,7 +2159,7 @@ h2 {
 
 .family-baby-card strong {
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .family-baby-card:last-child:nth-child(odd) {
@@ -2181,7 +2184,7 @@ h2 {
   border-radius: 999px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.78);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .emotion-game-screen {
@@ -2199,7 +2202,7 @@ h2 {
 .emotion-game-heading > span {
   color: #e8799f;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2211,7 +2214,7 @@ h2 {
 .emotion-game-heading p {
   margin: 0.12rem 0 0;
   color: var(--muted);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .emotion-grid {
@@ -2260,7 +2263,7 @@ h2 {
 
 .emotion-card strong {
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .emotion-grid.single .emotion-card strong {
@@ -2289,7 +2292,7 @@ h2 {
 .emotion-footer span {
   flex: 0 0 auto;
   color: #e8799f;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .emotion-footer p {
@@ -2314,7 +2317,7 @@ h2 {
 .dress-game-heading > span {
   color: #4f9c91;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2326,7 +2329,7 @@ h2 {
 .dress-game-heading p {
   margin: 0.1rem 0 0;
   color: var(--muted);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .dress-character-picker {
@@ -2348,7 +2351,7 @@ h2 {
   background: #fff;
   box-shadow: 0 7px 16px rgba(32, 27, 42, 0.08);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 800;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
@@ -2403,7 +2406,7 @@ h2 {
   color: #4f9c91;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 6px 16px rgba(32, 27, 42, 0.08);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .dress-reset-icon {
@@ -2422,7 +2425,7 @@ h2 {
   background: var(--orange);
   box-shadow: 0 8px 18px rgba(255, 135, 72, 0.3);
   font-size: 1.55rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
   transition: transform 160ms ease;
 }
@@ -2464,7 +2467,7 @@ h2 {
   max-width: 100%;
   overflow: hidden;
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 800;
   text-overflow: ellipsis;
 }
 
@@ -2479,7 +2482,7 @@ h2 {
   border-radius: 50%;
   color: #fff;
   background: var(--green);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .dress-item.is-correct {
@@ -2531,7 +2534,7 @@ h2 {
   margin-bottom: 0.18rem;
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2541,7 +2544,7 @@ h2 {
   color: var(--ink);
   font-size: 0.9rem;
   line-height: 1.22;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .task-actions {
@@ -2576,7 +2579,7 @@ h2 {
   margin: 0.12rem 0 0;
   font-size: 0.9rem;
   line-height: 1.24;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .parent-note button {
@@ -2587,7 +2590,7 @@ h2 {
   color: var(--ink);
   background: #fff;
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: var(--shadow-soft);
 }
 
@@ -2626,13 +2629,13 @@ h2 {
 
 .playbar strong {
   font-size: 0.98rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .playbar span {
   color: rgba(255, 255, 255, 0.68);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .playbar button {
@@ -2661,7 +2664,7 @@ h2 {
   pointer-events: none;
   text-align: center;
   font-size: 1.08rem;
-  font-weight: 900;
+  font-weight: 800;
   animation: toastPop 180ms ease-out;
 }
 
@@ -2719,7 +2722,7 @@ h2 {
 .story-heading span {
   color: #9b6fc4;
   font-size: 0.74rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -2838,7 +2841,7 @@ h2 {
   background: rgba(255, 255, 255, 0.9);
   color: #735f80;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .story-heading h2 {
@@ -2870,7 +2873,7 @@ h2 {
   border: 0;
   border-radius: 17px;
   font-family: inherit;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .story-read-label {
@@ -2884,7 +2887,7 @@ h2 {
   background: #fff0dd;
   color: #9a715a;
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .story-pagination {
