@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=116" />
+    <link rel="stylesheet" href="./styles.css?v=117" />
   </head>
   <body>
     <main class="app">
@@ -25,10 +25,32 @@
                 <input id="childName" name="childName" type="text" maxlength="40" autocomplete="off" placeholder="Наприклад, Марко" required />
               </label>
 
-              <label for="childBirthDate">
-                <span>Дата народження</span>
-                <input id="childBirthDate" name="childBirthDate" type="date" required />
-              </label>
+              <fieldset class="birth-date-field">
+                <legend>Дата народження</legend>
+                <p class="birth-date-hint">Вкажіть точну дату народження</p>
+
+                <div class="birth-date-selects">
+                  <label>
+                    <span>День</span>
+                    <select id="childBirthDay" aria-label="День народження" required>
+                      <option value="">—</option>
+                    </select>
+                  </label>
+                  <label class="birth-month-select">
+                    <span>Місяць</span>
+                    <select id="childBirthMonth" aria-label="Місяць народження" required>
+                      <option value="">Оберіть</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Рік</span>
+                    <select id="childBirthYear" aria-label="Рік народження" required>
+                      <option value="">—</option>
+                    </select>
+                  </label>
+                </div>
+                <input id="childBirthDate" name="childBirthDate" type="hidden" />
+              </fieldset>
 
               <p class="onboarding-error" id="onboardingError" role="alert" hidden></p>
               <button class="onboarding-submit" id="onboardingSubmit" type="submit">Почати</button>
@@ -435,6 +457,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=2"></script>
-    <script src="./app.js?v=104"></script>
+    <script src="./app.js?v=105"></script>
   </body>
 </html>

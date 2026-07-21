@@ -3692,6 +3692,71 @@ body,
   font-weight: 800;
 }
 
+.birth-date-field {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid rgba(23, 21, 31, 0.075);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 14px rgba(74, 55, 42, 0.035);
+}
+
+.birth-date-field legend {
+  padding: 0 0.18rem;
+  color: #3f3a46;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.birth-date-hint {
+  margin: -0.2rem 0 0;
+  color: #817b87;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.birth-date-selects {
+  display: grid;
+  grid-template-columns: 0.82fr 1.5fr 1fr;
+  gap: 0.42rem;
+}
+
+.onboarding-form .birth-date-selects label {
+  gap: 0.28rem;
+}
+
+.onboarding-form .birth-date-selects label > span {
+  padding-left: 0.12rem;
+  color: #817b87;
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+}
+
+.birth-date-selects select {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0.65rem 1.65rem 0.65rem 0.65rem;
+  border: 1px solid rgba(23, 21, 31, 0.085);
+  border-radius: 14px;
+  outline: none;
+  color: var(--ink);
+  background-color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.birth-date-selects select:focus {
+  border-color: rgba(244, 125, 74, 0.62);
+  box-shadow: 0 0 0 3px rgba(244, 125, 74, 0.1);
+}
+
 .onboarding-form input {
   width: 100%;
   min-height: 54px;
