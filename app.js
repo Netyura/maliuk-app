@@ -1799,7 +1799,7 @@ function applyChildProfile(profile) {
   localStorage.setItem("owljoyActiveChildId", profile.id);
   const ageLabel = formatChildAge(profile.birth_date);
   $("#homeChildLabel").textContent = `${profile.nickname}${ageLabel ? ` · ${ageLabel}` : ""}`;
-  $("#homeChildLead").textContent = "Ігри, казки й спокійні заняття відповідно до віку малюка.";
+  $("#homeChildLead").textContent = "Ігри, казки, сон, прикорм і турбота відповідно до віку малюка.";
   renderChildSwitcher();
 }
 
@@ -1818,8 +1818,8 @@ function showOnboarding(mode = "first") {
   const addingChild = mode === "add";
   $("#onboardingTitle").textContent = addingChild ? "Додайте ще одну дитину" : "Розкажіть про малюка";
   $("#onboardingLead").textContent = addingChild
-    ? "Створимо окремий профіль, щоб правильно підбирати заняття за віком."
-    : "Ми підбиратимемо заняття за віком. Це займе лише кілька секунд.";
+    ? "Створимо окремий профіль для ігор, казок, сну, прикорму й нагадувань."
+    : "Ігри, казки, сон, прикорм і нагадування про ліки — відповідно до віку малюка.";
   $("#onboardingSubmit").textContent = addingChild ? "Додати дитину" : "Почати";
   $("#onboardingCancel").hidden = !addingChild;
   hideContentScreens();
