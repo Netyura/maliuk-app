@@ -106,8 +106,29 @@
     return previewProfile;
   }
 
+  async function deleteChildProfile(childId) {
+    if (!childId || account.childProfiles.length <= 1) {
+      throw new Error("Потрібно залишити хоча б один профіль дитини");
+    }
+
+    if (account.status === "authenticated") {
+      await request("child.delete", { childId });
+    } else if (account.status === "error") {
+      throw account.error || new Error("Не вдалося підключитися до OwlJoy");
+    }
+
+    account.childProfiles = account.childProfiles.filter((profile) => profile.id !== childId);
+    if (account.status !== "authenticated") {
+      localStorage.setItem(previewChildrenKey, JSON.stringify(account.childProfiles));
+      localStorage.removeItem(previewChildKey);
+    }
+    if (account.currentChild?.id === childId) account.currentChild = account.childProfiles[0] || null;
+    return account.currentChild;
+  }
+
   account.request = request;
   account.saveChildProfile = saveChildProfile;
+  account.deleteChildProfile = deleteChildProfile;
   account.ready = bootstrap();
   window.owlJoyAccount = account;
 })();

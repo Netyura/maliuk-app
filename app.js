@@ -1696,6 +1696,7 @@ const state = {
   onboardingMode: "first",
   onboardingReturn: "today",
   editingChildId: null,
+  deletingChildId: null,
   age: null,
   gameId: "animals",
   gameItems: words,
@@ -1869,12 +1870,25 @@ function renderChildSwitcher() {
     if (list.id === "profileHubChildList") {
       const row = document.createElement("div");
       row.className = "child-profile-row";
+      const actions = document.createElement("div");
+      actions.className = "child-profile-actions";
       const editButton = document.createElement("button");
       editButton.type = "button";
-      editButton.className = "edit-child-button";
+      editButton.className = "child-profile-action edit";
       editButton.dataset.editChildId = profile.id;
-      editButton.textContent = "Редагувати";
-      row.append(button, editButton);
+      editButton.setAttribute("aria-label", `Редагувати профіль ${profile.nickname}`);
+      editButton.title = "Редагувати";
+      editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-.8 4.8L8 20l10.6-10.6a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14 8 3 3"/></svg>';
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "child-profile-action delete";
+      deleteButton.dataset.deleteChildId = profile.id;
+      deleteButton.setAttribute("aria-label", `Видалити профіль ${profile.nickname}`);
+      deleteButton.title = state.childProfiles.length <= 1 ? "Потрібно залишити хоча б один профіль" : "Видалити";
+      deleteButton.disabled = state.childProfiles.length <= 1;
+      deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>';
+      actions.append(editButton, deleteButton);
+      row.append(button, actions);
       list.append(row);
     } else {
       list.append(button);
@@ -1957,6 +1971,47 @@ function editChildProfile(childId) {
   state.editingChildId = childId;
   state.onboardingReturn = "profile";
   showOnboarding("edit");
+}
+
+function openDeleteChildDialog(childId) {
+  const profile = state.childProfiles.find((item) => item.id === childId);
+  if (!profile || state.childProfiles.length <= 1) {
+    showToast("Потрібно залишити хоча б один профіль");
+    return;
+  }
+  state.deletingChildId = childId;
+  $("#profileDeleteTitle").textContent = `Видалити профіль «${profile.nickname}»?`;
+  $("#profileDeleteOverlay").hidden = false;
+  $("#confirmDeleteChild").focus();
+}
+
+function closeDeleteChildDialog() {
+  state.deletingChildId = null;
+  $("#profileDeleteOverlay").hidden = true;
+}
+
+async function confirmDeleteChildProfile() {
+  const childId = state.deletingChildId;
+  const profile = state.childProfiles.find((item) => item.id === childId);
+  if (!childId || !profile) return closeDeleteChildDialog();
+  const confirmButton = $("#confirmDeleteChild");
+  confirmButton.disabled = true;
+  confirmButton.textContent = "Видаляємо…";
+  try {
+    const nextProfile = await window.owlJoyAccount.deleteChildProfile(childId);
+    state.childProfiles = [...window.owlJoyAccount.childProfiles];
+    closeDeleteChildDialog();
+    if (state.childProfile?.id === childId && nextProfile) applyChildProfile(nextProfile);
+    else renderChildSwitcher();
+    openProfileTab();
+    showToast(`Профіль «${profile.nickname}» видалено`);
+  } catch (deleteError) {
+    console.error("OwlJoy: не вдалося видалити профіль", deleteError);
+    showToast(deleteError?.message || "Не вдалося видалити профіль");
+  } finally {
+    confirmButton.disabled = false;
+    confirmButton.textContent = "Видалити";
+  }
 }
 
 const ukrainianMonths = [
@@ -3294,6 +3349,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const deleteChildId = event.target.closest("[data-delete-child-id]")?.dataset.deleteChildId;
+  if (deleteChildId) {
+    openDeleteChildDialog(deleteChildId);
+    return;
+  }
+
   const selectedChildId = event.target.closest("[data-child-id]")?.dataset.childId;
   if (selectedChildId) {
     selectChildProfile(selectedChildId);
@@ -3457,6 +3518,14 @@ document.addEventListener("click", (event) => {
   if (action === "addChild") {
     state.onboardingReturn = $("#profileHubScreen").hidden ? "today" : "profile";
     showOnboarding("add");
+    return;
+  }
+  if (action === "cancelDeleteChild") {
+    closeDeleteChildDialog();
+    return;
+  }
+  if (action === "confirmDeleteChild") {
+    confirmDeleteChildProfile();
     return;
   }
   if (action === "cancelAddChild") {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=122" />
+    <link rel="stylesheet" href="./styles.css?v=123" />
   </head>
   <body>
     <main class="app">
@@ -550,10 +550,24 @@
         <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
       </section>
     </div>
+    <div class="profile-delete-overlay" id="profileDeleteOverlay" hidden>
+      <button class="profile-delete-backdrop" type="button" data-action="cancelDeleteChild" aria-label="Скасувати видалення"></button>
+      <section class="profile-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="profileDeleteTitle" aria-describedby="profileDeleteText">
+        <span class="profile-delete-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>
+        </span>
+        <h2 id="profileDeleteTitle">Видалити профіль?</h2>
+        <p id="profileDeleteText">Ви точно хочете видалити профіль? Усі пов’язані з ним дані буде стерто без можливості відновлення.</p>
+        <div class="profile-delete-actions">
+          <button type="button" data-action="cancelDeleteChild">Скасувати</button>
+          <button class="danger" id="confirmDeleteChild" type="button" data-action="confirmDeleteChild">Видалити</button>
+        </div>
+      </section>
+    </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=3"></script>
-    <script src="./app.js?v=111"></script>
+    <script src="./telegram-user.js?v=4"></script>
+    <script src="./app.js?v=112"></script>
   </body>
 </html>

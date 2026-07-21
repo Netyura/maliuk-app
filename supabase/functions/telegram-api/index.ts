@@ -246,6 +246,32 @@ export default {
         return json({ childProfile }, 200, headers);
       }
 
+      if (body.action === "child.delete") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        if (!childId) return json({ error: "Не вказано профіль дитини" }, 400, headers);
+
+        const { count, error: countError } = await supabase
+          .from("child_profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
+        if (countError) throw countError;
+        if ((count || 0) <= 1) {
+          return json({ error: "Потрібно залишити хоча б один профіль дитини" }, 400, headers);
+        }
+
+        const { data: deletedProfile, error: deleteError } = await supabase
+          .from("child_profiles")
+          .delete()
+          .eq("id", childId)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (deleteError) throw deleteError;
+        if (!deletedProfile) return json({ error: "Профіль не знайдено" }, 404, headers);
+
+        return json({ ok: true, deletedChildId: childId }, 200, headers);
+      }
+
       if (body.action === "favorite.set") {
         const contentTypes = ["poem", "story", "sound", "game"];
         if (
