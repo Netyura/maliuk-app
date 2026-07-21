@@ -75,5 +75,19 @@ alter table public.medicine_reminders enable row level security;
 alter table public.user_favorites enable row level security;
 alter table public.purchases enable row level security;
 
+revoke all on public.owljoy_users from anon, authenticated;
+revoke all on public.child_profiles from anon, authenticated;
+revoke all on public.user_preferences from anon, authenticated;
+revoke all on public.medicine_reminders from anon, authenticated;
+revoke all on public.user_favorites from anon, authenticated;
+revoke all on public.purchases from anon, authenticated;
+
+grant select, insert, update, delete on public.owljoy_users to service_role;
+grant select, insert, update, delete on public.child_profiles to service_role;
+grant select, insert, update, delete on public.user_preferences to service_role;
+grant select, insert, update, delete on public.medicine_reminders to service_role;
+grant select, insert, update, delete on public.user_favorites to service_role;
+grant select, insert, update, delete on public.purchases to service_role;
+
 -- Політики навмисно не створюємо: браузер не має прямого доступу до таблиць.
 -- Усі операції проходять через Edge Function після перевірки підпису Telegram.
