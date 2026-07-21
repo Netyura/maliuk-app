@@ -1694,6 +1694,7 @@ const state = {
   childProfile: null,
   childProfiles: [],
   onboardingMode: "first",
+  onboardingReturn: "today",
   age: null,
   gameId: "animals",
   gameItems: words,
@@ -1829,8 +1830,7 @@ function showOnboarding(mode = "first") {
 }
 
 function renderChildSwitcher() {
-  const list = $("#childProfileList");
-  if (!list) return;
+  [$("#childProfileList"), $("#profileHubChildList")].filter(Boolean).forEach((list) => {
   list.innerHTML = "";
   state.childProfiles.forEach((profile) => {
     const button = document.createElement("button");
@@ -1854,8 +1854,10 @@ function renderChildSwitcher() {
     button.append(avatar, copy, check);
     list.append(button);
   });
-  const addButton = document.querySelector("[data-action='addChild']");
-  if (addButton) addButton.hidden = state.childProfiles.length >= 6;
+  });
+  document.querySelectorAll("[data-action='addChild']").forEach((button) => {
+    button.hidden = state.childProfiles.length >= 6;
+  });
 }
 
 function openChildSwitcher() {
@@ -1885,19 +1887,25 @@ function showMainNavigation(tabName) {
 }
 
 function openDevelopmentTab() {
-  const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
-  if (savedAge) {
-    hideContentScreens();
-    startAge(savedAge);
-  } else {
-    showAgePicker();
-  }
+  hideContentScreens();
+  $("#developmentHubScreen").hidden = false;
   showMainNavigation("development");
+  updateTopBack();
 }
 
 function openCareTab() {
-  showSleepScreen();
+  hideContentScreens();
+  $("#careHubScreen").hidden = false;
   showMainNavigation("care");
+  updateTopBack();
+}
+
+function openProfileTab() {
+  hideContentScreens();
+  renderChildSwitcher();
+  $("#profileHubScreen").hidden = false;
+  showMainNavigation("profile");
+  updateTopBack();
 }
 
 function selectChildProfile(childId) {
@@ -2023,10 +2031,12 @@ async function saveOnboardingProfile(event) {
   submit.disabled = true;
   submit.textContent = "Зберігаємо…";
   try {
+    const addingChild = state.onboardingMode === "add";
     const profile = await window.owlJoyAccount.saveChildProfile({ nickname: name, birthDate });
     state.childProfiles = [...window.owlJoyAccount.childProfiles];
     applyChildProfile(profile);
-    backToHome();
+    if (addingChild && state.onboardingReturn === "profile") openProfileTab();
+    else backToHome();
   } catch (saveError) {
     console.error("OwlJoy: не вдалося зберегти профіль", saveError);
     error.textContent = "Не вдалося зберегти профіль. Перевірте інтернет і спробуйте ще раз.";
@@ -2140,6 +2150,9 @@ function hideContentScreens() {
   stopBubbleGame();
   $("#onboardingScreen").hidden = true;
   $("#homeScreen").hidden = true;
+  $("#developmentHubScreen").hidden = true;
+  $("#careHubScreen").hidden = true;
+  $("#profileHubScreen").hidden = true;
   $("#agePicker").hidden = true;
   $("#gamePicker").hidden = true;
   $("#gameArea").hidden = true;
@@ -2706,7 +2719,7 @@ function goBack() {
   }
 
   if (!$("#storiesScreen").hidden) {
-    backToHome();
+    openDevelopmentTab();
     return;
   }
 
@@ -2721,7 +2734,7 @@ function goBack() {
   }
 
   if (!$("#poemCategoriesScreen").hidden) {
-    backToHome();
+    openDevelopmentTab();
     return;
   }
 
@@ -2735,7 +2748,7 @@ function goBack() {
   }
 
   if (!$("#sleepScreen").hidden) {
-    backToHome();
+    openCareTab();
     return;
   }
 
@@ -2746,7 +2759,7 @@ function goBack() {
 
   if (!$("#gamePicker").hidden) {
     if (state.childProfile?.birth_date) {
-      backToHome();
+      openDevelopmentTab();
     } else {
       backToAges();
     }
@@ -2754,12 +2767,13 @@ function goBack() {
   }
 
   if (!$("#agePicker").hidden) {
-    backToHome();
+    openDevelopmentTab();
   }
 }
 
 function updateTopBack() {
-  const isHome = $("#homeScreen").hidden === false || $("#onboardingScreen").hidden === false;
+  const isHome = ["#homeScreen", "#onboardingScreen", "#developmentHubScreen", "#careHubScreen", "#profileHubScreen"]
+    .some((selector) => $(selector).hidden === false);
 
   if (telegramApp) {
     if (isHome) {
@@ -3219,7 +3233,8 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (mainTab === "profile") {
-    openChildSwitcher();
+    closeChildSwitcher();
+    openProfileTab();
     return;
   }
 
@@ -3384,11 +3399,13 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "addChild") {
+    state.onboardingReturn = $("#profileHubScreen").hidden ? "today" : "profile";
     showOnboarding("add");
     return;
   }
   if (action === "cancelAddChild") {
-    backToHome();
+    if (state.onboardingReturn === "profile") openProfileTab();
+    else backToHome();
     return;
   }
 

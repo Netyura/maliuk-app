@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=120" />
+    <link rel="stylesheet" href="./styles.css?v=121" />
   </head>
   <body>
     <main class="app">
@@ -74,7 +74,39 @@
             <img class="home-owl" src="./assets/images/home-owl.png" alt="" />
           </div>
 
-          <div class="home-grid" aria-label="Розділи додатку">
+          <div class="today-heading">
+            <span>Для вас сьогодні</span>
+            <h3>Швидкий старт</h3>
+          </div>
+          <div class="home-grid today-grid" aria-label="Рекомендації на сьогодні">
+            <button data-section="games">
+              <img src="./assets/images/home-games.png" alt="" />
+              <strong>Гра за віком</strong>
+              <span>Коротке розвиваюче заняття</span>
+            </button>
+            <button data-section="stories">
+              <img src="./assets/images/home-stories.png" alt="" />
+              <strong>Казка на сьогодні</strong>
+              <span>Тепла історія для спільного читання</span>
+            </button>
+            <button data-section="sleep">
+              <img src="./assets/images/home-sounds.png" alt="" />
+              <strong>Час відпочити</strong>
+              <span>Спокійний звук для сну</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="category-hub-screen" id="developmentHubScreen" hidden>
+          <div class="category-hub-hero development-hub-hero">
+            <div>
+              <span>Навчатися граючись</span>
+              <h2>Розвиток</h2>
+              <p>Ігри, казки та віршики відповідно до віку активної дитини.</p>
+            </div>
+            <img src="./assets/images/nav/development.webp" alt="" />
+          </div>
+          <div class="home-grid" aria-label="Розділи розвитку">
             <button data-section="games">
               <img src="./assets/images/home-games.png" alt="" />
               <strong>Розвиваючі ігри</strong>
@@ -90,10 +122,23 @@
               <strong>Віршики</strong>
               <span>Рими, пальчикові ігри, перші рядки</span>
             </button>
+          </div>
+        </section>
+
+        <section class="category-hub-screen" id="careHubScreen" hidden>
+          <div class="category-hub-hero care-hub-hero">
+            <div>
+              <span>Щоденна турбота</span>
+              <h2>Турбота</h2>
+              <p>Сон, прикорм і важливі нагадування в одному місці.</p>
+            </div>
+            <img src="./assets/images/nav/care.webp" alt="" />
+          </div>
+          <div class="home-grid" aria-label="Розділи турботи">
             <button data-section="sleep">
               <img src="./assets/images/home-sounds.png" alt="" />
-              <strong>Звуки й сон</strong>
-              <span>Спокійні звуки для вечора</span>
+              <strong>Сон і звуки</strong>
+              <span>Спокійні звуки та таймер для відпочинку</span>
             </button>
             <button data-section="food" disabled aria-label="Прикорм — розділ скоро з’явиться">
               <img src="./assets/images/home-food.png" alt="" />
@@ -105,6 +150,25 @@
               <strong>Ліки</strong>
               <span>Нагадування та записи для батьків</span>
             </button>
+          </div>
+        </section>
+
+        <section class="category-hub-screen" id="profileHubScreen" hidden>
+          <div class="category-hub-hero profile-hub-hero">
+            <div>
+              <span>Ваша сім’я</span>
+              <h2>Профіль</h2>
+              <p>Оберіть дитину або додайте ще один профіль.</p>
+            </div>
+            <img src="./assets/images/nav/profile.webp" alt="" />
+          </div>
+          <div class="profile-hub-card">
+            <div class="profile-hub-heading">
+              <span>Профілі дітей</span>
+              <small>Активний профіль позначено галочкою</small>
+            </div>
+            <div class="child-profile-list" id="profileHubChildList"></div>
+            <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
           </div>
         </section>
 
@@ -494,6 +558,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=3"></script>
-    <script src="./app.js?v=108"></script>
+    <script src="./app.js?v=109"></script>
   </body>
 </html>
