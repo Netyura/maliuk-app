@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=119" />
+    <link rel="stylesheet" href="./styles.css?v=120" />
   </head>
   <body>
     <main class="app">
@@ -451,6 +451,25 @@
             <button class="sleep-dim-btn" data-action="dimSleepScreen">☾ Затемнити екран</button>
           </section>
         </section>
+
+        <nav class="bottom-nav" id="bottomNav" aria-label="Основне меню" hidden>
+          <button class="active" type="button" data-main-tab="today" aria-current="page">
+            <img src="./assets/images/nav/today.webp" alt="" />
+            <span>Сьогодні</span>
+          </button>
+          <button type="button" data-main-tab="development">
+            <img src="./assets/images/nav/development.webp" alt="" />
+            <span>Розвиток</span>
+          </button>
+          <button type="button" data-main-tab="care">
+            <img src="./assets/images/nav/care.webp" alt="" />
+            <span>Турбота</span>
+          </button>
+          <button type="button" data-main-tab="profile">
+            <img src="./assets/images/nav/profile.webp" alt="" />
+            <span>Профіль</span>
+          </button>
+        </nav>
       </section>
     </main>
 
@@ -475,6 +494,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=3"></script>
-    <script src="./app.js?v=107"></script>
+    <script src="./app.js?v=108"></script>
   </body>
 </html>

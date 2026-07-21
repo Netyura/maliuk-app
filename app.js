@@ -1822,6 +1822,7 @@ function showOnboarding(mode = "first") {
     : "Ігри, казки, сон, прикорм і нагадування про ліки — відповідно до віку малюка.";
   $("#onboardingSubmit").textContent = addingChild ? "Додати дитину" : "Почати";
   $("#onboardingCancel").hidden = !addingChild;
+  $("#bottomNav").hidden = true;
   hideContentScreens();
   $("#onboardingScreen").hidden = false;
   updateTopBack();
@@ -1859,12 +1860,44 @@ function renderChildSwitcher() {
 
 function openChildSwitcher() {
   renderChildSwitcher();
+  setMainTab("profile");
   $("#childSwitcherOverlay").hidden = false;
 }
 
 function closeChildSwitcher() {
   const overlay = $("#childSwitcherOverlay");
   if (overlay) overlay.hidden = true;
+  if (!$("#homeScreen").hidden) setMainTab("today");
+}
+
+function setMainTab(tabName) {
+  document.querySelectorAll("[data-main-tab]").forEach((button) => {
+    const active = button.dataset.mainTab === tabName;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+}
+
+function showMainNavigation(tabName) {
+  $("#bottomNav").hidden = false;
+  setMainTab(tabName);
+}
+
+function openDevelopmentTab() {
+  const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
+  if (savedAge) {
+    hideContentScreens();
+    startAge(savedAge);
+  } else {
+    showAgePicker();
+  }
+  showMainNavigation("development");
+}
+
+function openCareTab() {
+  showSleepScreen();
+  showMainNavigation("care");
 }
 
 function selectChildProfile(childId) {
@@ -2129,6 +2162,7 @@ function showStories() {
   hideContentScreens();
   $("#storiesScreen").hidden = false;
   renderStories();
+  showMainNavigation("development");
   updateTopBack();
 }
 
@@ -2153,6 +2187,7 @@ function showStory(storyId) {
   state.storyPage = 0;
   hideContentScreens();
   $("#storyReaderScreen").hidden = false;
+  showMainNavigation("development");
   renderStoryPage();
   updateTopBack();
 }
@@ -2185,6 +2220,7 @@ function changeStoryPage(direction) {
 function showAgePicker() {
   hideContentScreens();
   $("#agePicker").hidden = false;
+  showMainNavigation("development");
   updateTopBack();
 }
 
@@ -2192,12 +2228,14 @@ function showSleepScreen() {
   hideContentScreens();
   $("#sleepScreen").hidden = false;
   renderSleepList();
+  showMainNavigation("care");
   updateTopBack();
 }
 
 function showSleepPlayer() {
   hideContentScreens();
   $("#sleepPlayerScreen").hidden = false;
+  showMainNavigation("care");
   renderSleepPlayer();
   updateTopBack();
 }
@@ -2207,6 +2245,7 @@ function showPoemCategories() {
   hideContentScreens();
   $("#poemCategoriesScreen").hidden = false;
   renderPoemCategories();
+  showMainNavigation("development");
   updateTopBack();
 }
 
@@ -2234,6 +2273,7 @@ function backToPoems() {
   hideContentScreens();
   $("#poemsScreen").hidden = false;
   renderPoems();
+  showMainNavigation("development");
   updateTopBack();
 }
 
@@ -2245,6 +2285,7 @@ function startAge(age) {
   $("#myBodyGameCard").hidden = age !== "baby";
   $("#agePicker").hidden = true;
   $("#gamePicker").hidden = false;
+  showMainNavigation("development");
   $("#gameGrid").scrollTop = 0;
   updateTopBack();
 }
@@ -2596,6 +2637,7 @@ function backToHome() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   hideContentScreens();
   $("#homeScreen").hidden = false;
+  showMainNavigation("today");
   updateTopBack();
 }
 
@@ -3160,6 +3202,27 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const mainTab = event.target.closest("[data-main-tab]")?.dataset.mainTab;
+  if (mainTab === "today") {
+    closeChildSwitcher();
+    backToHome();
+    return;
+  }
+  if (mainTab === "development") {
+    closeChildSwitcher();
+    openDevelopmentTab();
+    return;
+  }
+  if (mainTab === "care") {
+    closeChildSwitcher();
+    openCareTab();
+    return;
+  }
+  if (mainTab === "profile") {
+    openChildSwitcher();
+    return;
+  }
+
   const selectedChildId = event.target.closest("[data-child-id]")?.dataset.childId;
   if (selectedChildId) {
     selectChildProfile(selectedChildId);
@@ -3172,6 +3235,7 @@ document.addEventListener("click", (event) => {
     if (savedAge) {
       hideContentScreens();
       startAge(savedAge);
+      showMainNavigation("development");
       updateTopBack();
     } else {
       showAgePicker();
