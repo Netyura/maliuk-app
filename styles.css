@@ -3327,9 +3327,15 @@ html.telegram-mini-app body {
 }
 
 body,
-.app,
+.app {
+  background: #f3ece3;
+}
+
 .mobile-screen {
-  background: #fffdfa;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(114, 182, 235, 0.09), transparent 19rem),
+    radial-gradient(circle at 0% 100%, rgba(244, 125, 74, 0.075), transparent 21rem),
+    #fbf6ee;
 }
 
 .home-hero,
