@@ -8,6 +8,7 @@
   --orange-soft: #fff0e6;
   --blue: #7ebcf4;
   --green: #82d395;
+  --section-menu-gap: 0.85rem;
   --shadow: 0 18px 44px rgba(32, 27, 42, 0.12);
   --shadow-soft: 0 10px 28px rgba(32, 27, 42, 0.09);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -138,7 +139,7 @@ h1 {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-  gap: 0.95rem;
+  gap: var(--section-menu-gap);
   overflow-y: auto;
   padding-bottom: 0.8rem;
   scrollbar-width: none;
@@ -313,7 +314,7 @@ h1 {
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.2rem;
+  gap: var(--section-menu-gap);
   padding-top: 0.15rem;
 }
 
@@ -492,7 +493,7 @@ h1 {
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.95rem;
+  gap: var(--section-menu-gap);
   overflow: hidden;
 }
 
@@ -664,7 +665,7 @@ h1 {
   min-height: 0;
   height: 100%;
   flex-direction: column;
-  gap: 0.72rem;
+  gap: var(--section-menu-gap);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-bottom: 1rem;
@@ -694,7 +695,7 @@ h1 {
 
 .poem-categories-screen,
 .poems-screen {
-  gap: 0.72rem;
+  gap: var(--section-menu-gap);
   overflow-y: auto;
   padding-bottom: 0.9rem;
   scrollbar-width: none;
@@ -2727,7 +2728,7 @@ h2 {
   grid-template-columns: 1fr 72px;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: var(--section-menu-gap);
   padding: 1rem;
   border-radius: 28px;
   background: linear-gradient(135deg, #fff0d8, #f4e8ff);
@@ -2976,7 +2977,7 @@ h2 {
   }
 
   .home-screen {
-    gap: 0.68rem;
+    gap: var(--section-menu-gap);
   }
 
   .home-hero {
@@ -3103,7 +3104,7 @@ h2 {
   }
 
   .game-picker {
-    gap: 0.68rem;
+    gap: var(--section-menu-gap);
   }
 
   .picker-heading {
