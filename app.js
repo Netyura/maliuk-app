@@ -1799,8 +1799,6 @@ function applyChildProfile(profile) {
   if (!profile) return;
   state.childProfile = profile;
   localStorage.setItem("owljoyActiveChildId", profile.id);
-  const ageLabel = formatChildAge(profile.birth_date);
-  $("#homeChildLabel").textContent = `${profile.nickname}${ageLabel ? ` · ${ageLabel}` : ""}`;
   $("#homeChildLead").textContent = "Ігри, казки, сон, прикорм і турбота відповідно до віку малюка.";
   renderChildSwitcher();
 }
