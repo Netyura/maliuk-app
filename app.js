@@ -1744,6 +1744,12 @@ const poemIds = new Set(poems.map((poem) => poem.id));
 state.favoritePoems = new Set([...state.favoritePoems].filter((poemId) => poemIds.has(poemId)));
 localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
 
+window.owlJoyAccount?.ready.then((account) => {
+  if (account.status !== "authenticated") return;
+  state.favoritePoems = new Set(account.favoritePoemIds.filter((poemId) => poemIds.has(poemId)));
+  localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
+}).catch(() => {});
+
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
@@ -2504,6 +2510,11 @@ function togglePoemFavorite(poemId) {
     state.favoritePoems.add(poemId);
   }
   saveFavoritePoems();
+  window.owlJoyAccount?.request("favorite.set", {
+    contentType: "poem",
+    contentId: poemId,
+    active: isPoemFavorite(poemId)
+  }).catch((error) => console.error("OwlJoy: не вдалося синхронізувати обране", error));
 }
 
 function filteredPoems() {

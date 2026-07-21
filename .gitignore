@@ -1,4 +1,6 @@
 .DS_Store
 AGENTS.md
 tmp/
-
+supabase/functions/.env
+.env
+.env.local
