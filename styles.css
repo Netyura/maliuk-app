@@ -3711,14 +3711,6 @@ body,
   font-weight: 850;
 }
 
-.birth-date-hint {
-  margin: -0.2rem 0 0;
-  color: #817b87;
-  font-size: 0.72rem;
-  font-weight: 650;
-  line-height: 1.3;
-}
-
 .birth-date-selects {
   display: grid;
   grid-template-columns: 0.82fr 1.5fr 1fr;
