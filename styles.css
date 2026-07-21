@@ -315,19 +315,8 @@ h1 {
   transform: translateY(-1px) scale(1.04);
 }
 
-.bottom-nav button[data-main-tab="care"] img {
-  opacity: 0.86;
-  filter: saturate(1.45) contrast(1.14) brightness(0.96);
-}
-
-.bottom-nav button[data-main-tab="care"].active img {
-  opacity: 1;
-  filter: saturate(1.35) contrast(1.12) brightness(0.97);
-}
-
 .care-hub-hero > img {
-  filter: saturate(1.4) contrast(1.12) brightness(0.97)
-    drop-shadow(0 5px 8px rgba(74, 55, 42, 0.1));
+  filter: drop-shadow(0 5px 8px rgba(74, 55, 42, 0.12));
 }
 
 .bottom-nav span {
