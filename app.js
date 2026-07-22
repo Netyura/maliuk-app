@@ -1729,6 +1729,10 @@ const state = {
     doll: new Set(),
     bear: new Set()
   },
+  medicineReminders: [],
+  medicineIntakes: [],
+  medicineTab: "today",
+  editingMedicineId: null,
   task: null
 };
 
@@ -1754,6 +1758,8 @@ state.favoritePoems = new Set([...state.favoritePoems].filter((poemId) => poemId
 localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
 
 window.owlJoyAccount?.ready.then((account) => {
+  state.medicineReminders = [...(account.medicineReminders || [])];
+  state.medicineIntakes = [...(account.medicineIntakes || [])];
   if (account.status === "authenticated") {
     state.favoritePoems = new Set(account.favoritePoemIds.filter((poemId) => poemIds.has(poemId)));
     localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
@@ -1943,6 +1949,344 @@ function openCareTab() {
   updateTopBack();
 }
 
+function openMedicineScreen(tabName = state.medicineTab || "today") {
+  hideContentScreens();
+  state.medicineTab = tabName;
+  $("#medicineScreen").hidden = false;
+  showMainNavigation("care");
+  renderMedicineScreen();
+  updateTopBack();
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isoDayForDate(date = new Date()) {
+  return date.getDay() === 0 ? 7 : date.getDay();
+}
+
+function dateFromKey(dateKey) {
+  return new Date(`${dateKey}T12:00:00`);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function medicineDateLabel(dateKey, style = "long") {
+  const date = dateFromKey(dateKey);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("uk-UA", style === "short"
+    ? { day: "numeric", month: "short" }
+    : { weekday: "long", day: "numeric", month: "long" }
+  ).format(date);
+}
+
+function medicineTime(reminder) {
+  return String(reminder.reminder_time || reminder.reminderTime || "").slice(0, 5);
+}
+
+function reminderRunsOnDate(reminder, dateKey) {
+  if (!reminder.is_active && reminder.is_active !== undefined) return false;
+  if (reminder.start_date && dateKey < reminder.start_date) return false;
+  if (reminder.end_date && dateKey > reminder.end_date) return false;
+  const days = reminder.days_of_week || reminder.daysOfWeek || [];
+  return days.map(Number).includes(isoDayForDate(dateFromKey(dateKey)));
+}
+
+function activeChildMedicineReminders() {
+  const childId = state.childProfile?.id;
+  return state.medicineReminders.filter((reminder) => !childId || reminder.child_id === childId || reminder.childId === childId);
+}
+
+function intakeForReminder(reminderId, dateKey) {
+  return state.medicineIntakes.find((intake) =>
+    (intake.reminder_id === reminderId || intake.reminderId === reminderId) &&
+    (intake.scheduled_date === dateKey || intake.scheduledDate === dateKey)
+  );
+}
+
+function medicineDoseText(reminder) {
+  return [reminder.dose_amount || reminder.doseAmount, reminder.dose_unit || reminder.doseUnit]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function medicineCardHtml(reminder, dateKey, mode = "today") {
+  const intake = intakeForReminder(reminder.id, dateKey);
+  const taken = intake?.status === "taken";
+  const skipped = intake?.status === "skipped";
+  const note = reminder.note ? `<small>${escapeHtml(reminder.note)}</small>` : "";
+  let actions = "";
+
+  if (mode === "today") {
+    actions = taken
+      ? '<span class="medicine-status">Дано ✓</span>'
+      : skipped
+        ? '<span class="medicine-status">Пропущено</span>'
+        : `<div class="medicine-card-actions">
+            <button type="button" data-medicine-skip="${reminder.id}" aria-label="Пропустити прийом">−</button>
+            <button class="medicine-take" type="button" data-medicine-take="${reminder.id}" aria-label="Позначити як дано">✓</button>
+          </div>`;
+  } else {
+    actions = `<div class="medicine-card-actions">
+      <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
+      <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
+    </div>`;
+  }
+
+  return `<article class="medicine-card${taken ? " taken" : ""}${skipped ? " skipped" : ""}">
+    <span class="medicine-time">${escapeHtml(medicineTime(reminder))}</span>
+    <div class="medicine-card-copy">
+      <strong>${escapeHtml(reminder.title)}</strong>
+      <span>${escapeHtml(medicineDoseText(reminder) || "Дозу не вказано")}</span>
+      ${note}
+    </div>
+    ${actions}
+  </article>`;
+}
+
+function renderMedicineToday() {
+  const dateKey = localDateKey();
+  const reminders = activeChildMedicineReminders()
+    .filter((reminder) => reminderRunsOnDate(reminder, dateKey))
+    .sort((left, right) => medicineTime(left).localeCompare(medicineTime(right)));
+  if (!reminders.length) {
+    return `<div class="medicine-empty">
+      <span>♡</span>
+      <strong>На сьогодні нагадувань немає</strong>
+      <small>Додайте препарат і час — OwlJoy збере все у зрозумілий розклад.</small>
+    </div>`;
+  }
+  const completed = reminders.filter((reminder) => intakeForReminder(reminder.id, dateKey)?.status === "taken").length;
+  return `<div class="medicine-day-heading">
+    <strong>${escapeHtml(medicineDateLabel(dateKey))}</strong>
+    <span>${completed} із ${reminders.length} виконано</span>
+  </div>${reminders.map((reminder) => medicineCardHtml(reminder, dateKey)).join("")}`;
+}
+
+function medicineDaysText(reminder) {
+  const days = (reminder.days_of_week || reminder.daysOfWeek || []).map(Number);
+  if (days.length === 7) return "Щодня";
+  const labels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
+  return days.map((day) => labels[day - 1]).filter(Boolean).join(", ");
+}
+
+function renderMedicineAll() {
+  const reminders = activeChildMedicineReminders()
+    .sort((left, right) => medicineTime(left).localeCompare(medicineTime(right)));
+  if (!reminders.length) {
+    return `<div class="medicine-empty"><span>＋</span><strong>Список поки порожній</strong><small>Перший препарат можна додати за кілька секунд.</small></div>`;
+  }
+  return reminders.map((reminder) => {
+    const withSchedule = { ...reminder, note: `${medicineDaysText(reminder)} · ${reminder.note || "без примітки"}` };
+    return medicineCardHtml(withSchedule, localDateKey(), "all");
+  }).join("");
+}
+
+function renderMedicineHistory() {
+  const childId = state.childProfile?.id;
+  const history = state.medicineIntakes
+    .filter((intake) => !childId || intake.child_id === childId || intake.childId === childId)
+    .sort((left, right) => String(right.scheduled_date || right.scheduledDate).localeCompare(String(left.scheduled_date || left.scheduledDate)));
+  if (!history.length) {
+    return `<div class="medicine-empty"><span>✓</span><strong>Історія ще порожня</strong><small>Тут з’являться позначки «Дано» та «Пропущено».</small></div>`;
+  }
+
+  const groups = new Map();
+  history.forEach((intake) => {
+    const dateKey = intake.scheduled_date || intake.scheduledDate;
+    if (!groups.has(dateKey)) groups.set(dateKey, []);
+    groups.get(dateKey).push(intake);
+  });
+
+  return [...groups.entries()].map(([dateKey, intakes]) => `<section class="medicine-history-day">
+    <strong>${escapeHtml(medicineDateLabel(dateKey, "short"))}</strong>
+    ${intakes.map((intake) => {
+      const reminder = state.medicineReminders.find((item) => item.id === (intake.reminder_id || intake.reminderId));
+      if (!reminder) return "";
+      return medicineCardHtml(reminder, dateKey);
+    }).join("")}
+  </section>`).join("");
+}
+
+function renderMedicineScreen() {
+  const childName = state.childProfile?.nickname || "малюка";
+  $("#medicineChildName").textContent = childName;
+  $("#medicineTodayLabel").textContent = `${medicineDateLabel(localDateKey())}. Розклад і позначки про прийом.`;
+  document.querySelectorAll("[data-medicine-tab]").forEach((button) => {
+    const active = button.dataset.medicineTab === state.medicineTab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  $("#medicineContent").innerHTML = state.medicineTab === "all"
+    ? renderMedicineAll()
+    : state.medicineTab === "history" ? renderMedicineHistory() : renderMedicineToday();
+}
+
+function populateMedicineChildren(selectedId) {
+  $("#medicineChild").innerHTML = state.childProfiles.map((profile) =>
+    `<option value="${escapeHtml(profile.id)}"${profile.id === selectedId ? " selected" : ""}>${escapeHtml(profile.nickname)}</option>`
+  ).join("");
+}
+
+function setMedicineDays(days = [1, 2, 3, 4, 5, 6, 7]) {
+  const selected = new Set(days.map(Number));
+  document.querySelectorAll("[data-medicine-day]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(selected.has(Number(button.dataset.medicineDay))));
+  });
+}
+
+function openMedicineForm(reminderId = null) {
+  state.editingMedicineId = reminderId;
+  const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  $("#medicineForm").reset();
+  $("#medicineFormError").hidden = true;
+  $("#medicineFormTitle").textContent = reminder ? "Редагувати ліки" : "Додати ліки";
+  $("#medicineSaveButton").textContent = reminder ? "Зберегти зміни" : "Зберегти нагадування";
+  populateMedicineChildren(reminder?.child_id || state.childProfile?.id);
+  $("#medicineTitle").value = reminder?.title || "";
+  $("#medicineDose").value = reminder?.dose_amount || "";
+  $("#medicineUnit").value = reminder?.dose_unit || "краплі";
+  $("#medicineTime").value = medicineTime(reminder || {}) || "09:00";
+  $("#medicineStartDate").value = reminder?.start_date || localDateKey();
+  $("#medicineEndDate").value = reminder?.end_date || "";
+  $("#medicineNote").value = reminder?.note || "";
+  setMedicineDays(reminder?.days_of_week || [1, 2, 3, 4, 5, 6, 7]);
+  hideContentScreens();
+  $("#medicineFormScreen").hidden = false;
+  showMainNavigation("care");
+  updateTopBack();
+}
+
+function selectedMedicineDays() {
+  return [...document.querySelectorAll("[data-medicine-day][aria-pressed='true']")]
+    .map((button) => Number(button.dataset.medicineDay));
+}
+
+function requestMedicineWriteAccess() {
+  const permissionState = localStorage.getItem("owljoyMedicineWriteAccess");
+  if (telegramApp?.initDataUnsafe?.user?.allows_write_to_pm || permissionState === "allowed") {
+    localStorage.setItem("owljoyMedicineWriteAccess", "allowed");
+    return Promise.resolve(true);
+  }
+  if (
+    !telegramApp?.initData ||
+    !telegramApp?.requestWriteAccess ||
+    (telegramApp?.isVersionAtLeast && !telegramApp.isVersionAtLeast("6.9"))
+  ) {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    telegramApp.requestWriteAccess((allowed) => {
+      localStorage.setItem("owljoyMedicineWriteAccess", allowed ? "allowed" : "declined");
+      resolve(Boolean(allowed));
+    });
+  });
+}
+
+async function saveMedicineForm(event) {
+  event.preventDefault();
+  const title = $("#medicineTitle").value.trim();
+  const doseAmount = $("#medicineDose").value.trim().replace(",", ".");
+  const doseUnit = $("#medicineUnit").value;
+  const reminderTime = $("#medicineTime").value;
+  const daysOfWeek = selectedMedicineDays();
+  const startDate = $("#medicineStartDate").value || localDateKey();
+  const endDate = $("#medicineEndDate").value || null;
+  const error = $("#medicineFormError");
+
+  if (!title || !doseAmount || !reminderTime || !daysOfWeek.length) {
+    error.textContent = "Заповніть назву, кількість, час і виберіть хоча б один день.";
+    error.hidden = false;
+    return;
+  }
+  if (endDate && endDate < startDate) {
+    error.textContent = "Дата завершення не може бути раніше дати початку.";
+    error.hidden = false;
+    return;
+  }
+
+  error.hidden = true;
+  $("#medicineSaveButton").disabled = true;
+  const writeAccessPromise = requestMedicineWriteAccess();
+  try {
+    const reminder = await window.owlJoyAccount.saveMedicineReminder({
+      reminderId: state.editingMedicineId,
+      childId: $("#medicineChild").value,
+      title,
+      doseAmount,
+      doseUnit,
+      reminderTime,
+      daysOfWeek,
+      startDate,
+      endDate,
+      note: $("#medicineNote").value.trim(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Kyiv"
+    });
+    state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
+    const notificationsEnabled = await writeAccessPromise;
+    if (notificationsEnabled) window.owlJoyAccount.setMedicineNotifications(true).catch(() => {});
+    showToast(state.editingMedicineId ? "Зміни збережено" : "Нагадування додано", "correct");
+    state.editingMedicineId = null;
+    openMedicineScreen("today");
+    return reminder;
+  } catch (saveError) {
+    error.textContent = saveError.message || "Не вдалося зберегти нагадування.";
+    error.hidden = false;
+  } finally {
+    $("#medicineSaveButton").disabled = false;
+  }
+}
+
+function confirmMedicineDelete() {
+  if (telegramApp?.showConfirm) {
+    return new Promise((resolve) => telegramApp.showConfirm("Видалити це нагадування? Історія прийомів також буде стерта.", resolve));
+  }
+  return Promise.resolve(window.confirm("Видалити це нагадування? Історія прийомів також буде стерта."));
+}
+
+async function deleteMedicineReminder(reminderId) {
+  if (!(await confirmMedicineDelete())) return;
+  try {
+    await window.owlJoyAccount.deleteMedicineReminder(reminderId);
+    state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
+    state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+    renderMedicineScreen();
+    showToast("Нагадування видалено");
+  } catch (error) {
+    showToast(error.message || "Не вдалося видалити", "wrong");
+  }
+}
+
+async function logMedicineIntake(reminderId, status) {
+  const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  if (!reminder) return;
+  try {
+    await window.owlJoyAccount.logMedicineIntake({
+      reminderId,
+      childId: reminder.child_id,
+      scheduledDate: localDateKey(),
+      scheduledTime: medicineTime(reminder),
+      status
+    });
+    state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+    renderMedicineScreen();
+    showToast(status === "taken" ? "Позначено: дано" : "Позначено: пропущено", status === "taken" ? "correct" : "neutral");
+  } catch (error) {
+    showToast(error.message || "Не вдалося зберегти позначку", "wrong");
+  }
+}
+
 function openProfileTab() {
   hideContentScreens();
   renderChildSwitcher();
@@ -2097,7 +2441,9 @@ function initializeChildProfile(account) {
   const activeChild = state.childProfiles.find((profile) => profile.id === activeChildId) || state.childProfiles[0];
   applyChildProfile(activeChild);
   if (window.owlJoyAccount) window.owlJoyAccount.currentChild = activeChild;
-  backToHome();
+  const startParam = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location.search).get("tgWebAppStartParam");
+  if (startParam === "medicine") openMedicineScreen("today");
+  else backToHome();
 }
 
 async function saveOnboardingProfile(event) {
@@ -2156,6 +2502,7 @@ async function saveOnboardingProfile(event) {
 }
 
 $("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
+$("#medicineForm").addEventListener("submit", saveMedicineForm);
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -2261,6 +2608,8 @@ function hideContentScreens() {
   $("#developmentHubScreen").hidden = true;
   $("#careHubScreen").hidden = true;
   $("#profileHubScreen").hidden = true;
+  $("#medicineScreen").hidden = true;
+  $("#medicineFormScreen").hidden = true;
   $("#agePicker").hidden = true;
   $("#gamePicker").hidden = true;
   $("#gameArea").hidden = true;
@@ -2789,6 +3138,17 @@ function backToGames() {
 }
 
 function goBack() {
+  if (!$("#medicineFormScreen").hidden) {
+    state.editingMedicineId = null;
+    openMedicineScreen(state.medicineTab);
+    return;
+  }
+
+  if (!$("#medicineScreen").hidden) {
+    openCareTab();
+    return;
+  }
+
   if (!$("#dressGameScreen").hidden) {
     backToGames();
     return;
@@ -3324,6 +3684,43 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const medicineTab = event.target.closest("[data-medicine-tab]")?.dataset.medicineTab;
+  if (medicineTab) {
+    state.medicineTab = medicineTab;
+    renderMedicineScreen();
+    return;
+  }
+
+  const medicineDay = event.target.closest("[data-medicine-day]");
+  if (medicineDay) {
+    medicineDay.setAttribute("aria-pressed", String(medicineDay.getAttribute("aria-pressed") !== "true"));
+    return;
+  }
+
+  const medicineTake = event.target.closest("[data-medicine-take]")?.dataset.medicineTake;
+  if (medicineTake) {
+    logMedicineIntake(medicineTake, "taken");
+    return;
+  }
+
+  const medicineSkip = event.target.closest("[data-medicine-skip]")?.dataset.medicineSkip;
+  if (medicineSkip) {
+    logMedicineIntake(medicineSkip, "skipped");
+    return;
+  }
+
+  const medicineEdit = event.target.closest("[data-medicine-edit]")?.dataset.medicineEdit;
+  if (medicineEdit) {
+    openMedicineForm(medicineEdit);
+    return;
+  }
+
+  const medicineDelete = event.target.closest("[data-medicine-delete]")?.dataset.medicineDelete;
+  if (medicineDelete) {
+    deleteMedicineReminder(medicineDelete);
+    return;
+  }
+
   const mainTab = event.target.closest("[data-main-tab]")?.dataset.mainTab;
   if (mainTab === "today") {
     closeChildSwitcher();
@@ -3380,6 +3777,11 @@ document.addEventListener("click", (event) => {
 
   if (section === "sleep") {
     showSleepScreen();
+    return;
+  }
+
+  if (section === "medicine") {
+    openMedicineScreen();
     return;
   }
 
@@ -3501,6 +3903,16 @@ document.addEventListener("click", (event) => {
 
   const action = event.target.closest("[data-action]")?.dataset.action;
   if (!action) return;
+
+  if (action === "addMedicine") {
+    openMedicineForm();
+    return;
+  }
+  if (action === "cancelMedicineForm") {
+    state.editingMedicineId = null;
+    openMedicineScreen(state.medicineTab);
+    return;
+  }
 
   if (action === "sound") {
     state.sound = !state.sound;

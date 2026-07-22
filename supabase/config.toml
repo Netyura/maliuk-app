@@ -1,2 +1,8 @@
 [functions.telegram-api]
 verify_jwt = false
+
+[functions.send-medicine-reminders]
+verify_jwt = false
+
+[functions.telegram-bot-webhook]
+verify_jwt = false

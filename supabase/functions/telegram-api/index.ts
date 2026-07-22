@@ -157,7 +157,7 @@ export default {
       if (error) throw error;
 
       if (body.action === "bootstrap") {
-        const [favoritesResult, childResult] = await Promise.all([
+        const [favoritesResult, childResult, medicineResult, intakeResult] = await Promise.all([
           supabase
             .from("user_favorites")
             .select("content_id")
@@ -170,11 +170,26 @@ export default {
             )
             .eq("user_id", user.id)
             .order("created_at", { ascending: true }),
+          supabase
+            .from("medicine_reminders")
+            .select("id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
+            .eq("user_id", user.id)
+            .order("reminder_time", { ascending: true }),
+          supabase
+            .from("medicine_intakes")
+            .select("id, reminder_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
+            .eq("user_id", user.id)
+            .order("scheduled_date", { ascending: false })
+            .limit(120),
         ]);
         const { data: favorites, error: favoritesError } = favoritesResult;
         const { data: childProfiles, error: childError } = childResult;
+        const { data: medicineReminders, error: medicineError } = medicineResult;
+        const { data: medicineIntakes, error: intakeError } = intakeResult;
         if (favoritesError) throw favoritesError;
         if (childError) throw childError;
+        if (medicineError) throw medicineError;
+        if (intakeError) throw intakeError;
 
         return json(
           {
@@ -182,6 +197,8 @@ export default {
             childProfile: (childProfiles || [])[0] || null,
             childProfiles: childProfiles || [],
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
+            medicineReminders: medicineReminders || [],
+            medicineIntakes: medicineIntakes || [],
           },
           200,
           headers,
@@ -269,6 +286,135 @@ export default {
         if (!deletedProfile) return json({ error: "Профіль не знайдено" }, 404, headers);
 
         return json({ ok: true, deletedChildId: childId }, 200, headers);
+      }
+
+      if (body.action === "medicine.save") {
+        const reminderId = typeof body.reminderId === "string" ? body.reminderId : null;
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const title = typeof body.title === "string" ? body.title.trim() : "";
+        const doseAmount = typeof body.doseAmount === "string" ? body.doseAmount.trim() : "";
+        const doseUnit = typeof body.doseUnit === "string" ? body.doseUnit.trim() : "";
+        const reminderTime = typeof body.reminderTime === "string" ? body.reminderTime : "";
+        const note = typeof body.note === "string" ? body.note.trim() : "";
+        const startDate = typeof body.startDate === "string" ? body.startDate : "";
+        const endDate = typeof body.endDate === "string" && body.endDate ? body.endDate : null;
+        const timezone = typeof body.timezone === "string" ? body.timezone : "Europe/Kyiv";
+        const allowedUnits = ["краплі", "мл", "таблетка", "мірна ложка", "доза"];
+        const daysOfWeek = Array.isArray(body.daysOfWeek)
+          ? [...new Set(body.daysOfWeek.map(Number))].filter((day) => Number.isInteger(day) && day >= 1 && day <= 7).sort()
+          : [];
+        let timezoneValid = true;
+        try {
+          new Intl.DateTimeFormat("uk-UA", { timeZone: timezone }).format();
+        } catch {
+          timezoneValid = false;
+        }
+
+        if (
+          !childId || !title || title.length > 120 || !doseAmount || doseAmount.length > 20 ||
+          !allowedUnits.includes(doseUnit) || !/^\d{2}:\d{2}$/.test(reminderTime) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
+          (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) ||
+          (endDate && endDate < startDate) || !daysOfWeek.length || !timezoneValid || note.length > 500
+        ) {
+          return json({ error: "Перевірте дані нагадування" }, 400, headers);
+        }
+
+        const { data: ownedChild, error: childLookupError } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("id", childId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (childLookupError) throw childLookupError;
+        if (!ownedChild) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+
+        const reminderValues = {
+          user_id: user.id,
+          child_id: childId,
+          title,
+          dose_amount: doseAmount,
+          dose_unit: doseUnit,
+          note: note || null,
+          reminder_time: reminderTime,
+          timezone,
+          days_of_week: daysOfWeek,
+          start_date: startDate,
+          end_date: endDate,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        };
+        const reminderQuery = reminderId
+          ? supabase.from("medicine_reminders").update(reminderValues).eq("id", reminderId).eq("user_id", user.id)
+          : supabase.from("medicine_reminders").insert(reminderValues);
+        const { data: medicineReminder, error: reminderError } = await reminderQuery
+          .select("id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
+          .single();
+        if (reminderError) throw reminderError;
+        return json({ medicineReminder }, 200, headers);
+      }
+
+      if (body.action === "medicine.delete") {
+        const reminderId = typeof body.reminderId === "string" ? body.reminderId : "";
+        if (!reminderId) return json({ error: "Нагадування не вказано" }, 400, headers);
+        const { data: deletedReminder, error: reminderDeleteError } = await supabase
+          .from("medicine_reminders")
+          .delete()
+          .eq("id", reminderId)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (reminderDeleteError) throw reminderDeleteError;
+        if (!deletedReminder) return json({ error: "Нагадування не знайдено" }, 404, headers);
+        return json({ ok: true }, 200, headers);
+      }
+
+      if (body.action === "medicine.intake") {
+        const reminderId = typeof body.reminderId === "string" ? body.reminderId : "";
+        const scheduledDate = typeof body.scheduledDate === "string" ? body.scheduledDate : "";
+        const scheduledTime = typeof body.scheduledTime === "string" ? body.scheduledTime : "";
+        const status = body.status === "taken" || body.status === "skipped" ? body.status : "";
+        if (!reminderId || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate) || !/^\d{2}:\d{2}$/.test(scheduledTime) || !status) {
+          return json({ error: "Некоректна позначка прийому" }, 400, headers);
+        }
+
+        const { data: reminder, error: reminderLookupError } = await supabase
+          .from("medicine_reminders")
+          .select("id, child_id")
+          .eq("id", reminderId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (reminderLookupError) throw reminderLookupError;
+        if (!reminder) return json({ error: "Нагадування не знайдено" }, 404, headers);
+
+        const { data: medicineIntake, error: intakeSaveError } = await supabase
+          .from("medicine_intakes")
+          .upsert({
+            reminder_id: reminderId,
+            user_id: user.id,
+            child_id: reminder.child_id,
+            scheduled_date: scheduledDate,
+            scheduled_time: scheduledTime,
+            status,
+            recorded_at: new Date().toISOString(),
+          }, { onConflict: "reminder_id,scheduled_date" })
+          .select("id, reminder_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
+          .single();
+        if (intakeSaveError) throw intakeSaveError;
+        return json({ medicineIntake }, 200, headers);
+      }
+
+      if (body.action === "medicine.notifications") {
+        if (typeof body.enabled !== "boolean") return json({ error: "Некоректне налаштування" }, 400, headers);
+        const { error: preferenceError } = await supabase
+          .from("user_preferences")
+          .upsert({
+            user_id: user.id,
+            notifications_enabled: body.enabled,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
+        if (preferenceError) throw preferenceError;
+        return json({ ok: true }, 200, headers);
       }
 
       if (body.action === "favorite.set") {

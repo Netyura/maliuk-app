@@ -3381,6 +3381,445 @@ html.telegram-mini-app body {
   overscroll-behavior: none;
 }
 
+/* Ліки: простий щоденний розклад */
+.medicine-screen,
+.medicine-form-screen {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--section-menu-gap);
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.medicine-screen::-webkit-scrollbar,
+.medicine-form-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.medicine-hero {
+  display: grid;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  height: 170px;
+  min-height: 170px;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #fff1e7, #fffaf5);
+  box-shadow: var(--menu-hero-shadow);
+}
+
+.medicine-hero > div {
+  min-width: 0;
+}
+
+.medicine-hero span,
+.medicine-form-heading > span {
+  color: #a45322;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.medicine-hero h2,
+.medicine-form-heading h2 {
+  margin: 0.38rem 0 0.46rem;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.medicine-hero h2 b {
+  font: inherit;
+}
+
+.medicine-hero p,
+.medicine-form-heading p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #5c5864;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.medicine-hero img {
+  width: 78px;
+  height: 78px;
+  border-radius: 23px;
+  object-fit: cover;
+}
+
+.medicine-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 19px;
+  background: rgba(243, 236, 227, 0.78);
+}
+
+.medicine-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0.55rem 0.3rem;
+  border-radius: 15px;
+  color: #77717d;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.medicine-tabs button.active {
+  color: #9e4d24;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(66, 49, 37, 0.08);
+}
+
+.medicine-content {
+  display: grid;
+  gap: 0.68rem;
+}
+
+.medicine-day-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0 0.2rem;
+}
+
+.medicine-day-heading strong {
+  font-size: 1.08rem;
+}
+
+.medicine-day-heading span {
+  color: #817b87;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.medicine-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 96px;
+  padding: 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--menu-card-shadow);
+}
+
+.medicine-card.taken {
+  border-color: rgba(92, 165, 116, 0.2);
+  background: linear-gradient(135deg, #eef9f0, #fff);
+}
+
+.medicine-time {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 18px;
+  color: #9e4d24;
+  background: #fff0e7;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.medicine-card.taken .medicine-time {
+  color: #377d4f;
+  background: #dff3e4;
+}
+
+.medicine-card-copy {
+  min-width: 0;
+}
+
+.medicine-card-copy strong,
+.medicine-card-copy span,
+.medicine-card-copy small {
+  display: block;
+}
+
+.medicine-card-copy strong {
+  overflow: hidden;
+  font-size: 1rem;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medicine-card-copy span {
+  margin-top: 0.24rem;
+  color: #625d6d;
+  font-size: 0.8rem;
+  font-weight: 780;
+}
+
+.medicine-card-copy small {
+  margin-top: 0.2rem;
+  overflow: hidden;
+  color: #918b96;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medicine-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.medicine-card-actions button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border-radius: 15px;
+  color: #716b77;
+  background: #f7f3ee;
+  box-shadow: none;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.medicine-card-actions .medicine-take {
+  color: #fff;
+  background: #56a66e;
+}
+
+.medicine-status {
+  color: #44845a;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.medicine-empty {
+  padding: 1.5rem 1rem;
+  border: 1px dashed rgba(164, 83, 34, 0.2);
+  border-radius: 25px;
+  background: rgba(255, 250, 246, 0.75);
+  text-align: center;
+}
+
+.medicine-empty span {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 0.65rem;
+  place-items: center;
+  border-radius: 18px;
+  background: #fff0e7;
+  font-size: 1.35rem;
+}
+
+.medicine-empty strong,
+.medicine-empty small {
+  display: block;
+}
+
+.medicine-empty strong {
+  font-size: 1rem;
+}
+
+.medicine-empty small {
+  max-width: 260px;
+  margin: 0.35rem auto 0;
+  color: #7c7682;
+  font-size: 0.77rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.medicine-add-button,
+.medicine-save-button {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 19px;
+  color: #fff;
+  background: #f47540;
+  box-shadow: 0 10px 22px rgba(226, 101, 48, 0.2);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.medicine-safety-note {
+  margin: -0.2rem 0 0;
+  padding: 0 0.5rem;
+  color: #8e8792;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.medicine-form-heading {
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #fff1e7, #fffaf5);
+  box-shadow: var(--menu-hero-shadow);
+}
+
+.medicine-form {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--menu-card-shadow);
+}
+
+.medicine-form label,
+.medicine-extra {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.medicine-form label > span,
+.medicine-days legend {
+  color: #4d4853;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.medicine-form input,
+.medicine-form select,
+.medicine-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.75rem 0.82rem;
+  border: 1px solid rgba(39, 34, 47, 0.12);
+  border-radius: 17px;
+  color: var(--ink);
+  background: #fffdfa;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 750;
+  outline: none;
+}
+
+.medicine-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.medicine-form input:focus,
+.medicine-form select:focus,
+.medicine-form textarea:focus {
+  border-color: rgba(244, 117, 64, 0.62);
+  box-shadow: 0 0 0 3px rgba(244, 117, 64, 0.09);
+}
+
+.medicine-dose-row,
+.medicine-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.68rem;
+}
+
+.medicine-days {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.medicine-days > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.28rem;
+  margin-top: 0.48rem;
+}
+
+.medicine-days button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0.3rem 0;
+  border-radius: 14px;
+  color: #807985;
+  background: #f5f0ea;
+  box-shadow: none;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.medicine-days button[aria-pressed="true"] {
+  color: #a24e24;
+  background: #ffe8da;
+}
+
+.medicine-extra {
+  padding: 0.78rem;
+  border-radius: 19px;
+  background: #faf6f1;
+}
+
+.medicine-extra summary {
+  color: #6d6672;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.medicine-extra[open] summary {
+  margin-bottom: 0.72rem;
+}
+
+.medicine-form-error {
+  margin: 0;
+  padding: 0.72rem;
+  border-radius: 16px;
+  color: #a63c2d;
+  background: #fff0eb;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.medicine-cancel-button {
+  min-height: 46px;
+  color: #756e7a;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.medicine-history-day {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.medicine-history-day > strong {
+  padding: 0 0.25rem;
+  color: #6d6672;
+  font-size: 0.78rem;
+}
+
 /* Єдиний розмір карток у всіх основних меню */
 .home-grid button,
 .age-grid button,

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=127" />
+    <link rel="stylesheet" href="./styles.css?v=128" />
   </head>
   <body>
     <main class="app">
@@ -137,12 +137,104 @@
               <strong>Прикорм</strong>
               <span>Перші продукти, порції та м’які підказки</span>
             </button>
-            <button data-section="medicine" disabled aria-label="Ліки — розділ скоро з’явиться">
+            <button data-section="medicine">
               <img loading="lazy" decoding="async" src="./assets/images/home-medicine.webp" alt="" />
               <strong>Ліки</strong>
               <span>Нагадування та записи для батьків</span>
             </button>
           </div>
+        </section>
+
+        <section class="medicine-screen" id="medicineScreen" hidden>
+          <div class="medicine-hero">
+            <div>
+              <span>Турбота без метушні</span>
+              <h2>Ліки для <b id="medicineChildName">малюка</b></h2>
+              <p id="medicineTodayLabel">Сьогоднішній розклад і позначки про прийом.</p>
+            </div>
+            <img loading="lazy" decoding="async" src="./assets/images/medicine-reminder-hero-v2.webp" alt="" />
+          </div>
+
+          <div class="medicine-tabs" role="tablist" aria-label="Розділи ліків">
+            <button class="active" type="button" data-medicine-tab="today" role="tab" aria-selected="true">Сьогодні</button>
+            <button type="button" data-medicine-tab="all" role="tab" aria-selected="false">Мої ліки</button>
+            <button type="button" data-medicine-tab="history" role="tab" aria-selected="false">Історія</button>
+          </div>
+
+          <div class="medicine-content" id="medicineContent" aria-live="polite"></div>
+          <button class="medicine-add-button" type="button" data-action="addMedicine">＋ Додати ліки</button>
+          <p class="medicine-safety-note">OwlJoy лише нагадує про введений вами розклад і не призначає лікування чи дозування.</p>
+        </section>
+
+        <section class="medicine-form-screen" id="medicineFormScreen" hidden>
+          <div class="medicine-form-heading">
+            <span>Нове нагадування</span>
+            <h2 id="medicineFormTitle">Додати ліки</h2>
+            <p>Внесіть дані так, як рекомендував лікар.</p>
+          </div>
+
+          <form class="medicine-form" id="medicineForm" novalidate>
+            <label>
+              <span>Для кого?</span>
+              <select id="medicineChild" required></select>
+            </label>
+            <label>
+              <span>Назва препарату</span>
+              <input id="medicineTitle" type="text" maxlength="120" autocomplete="off" placeholder="Наприклад, Вітамін D" required />
+            </label>
+            <div class="medicine-dose-row">
+              <label>
+                <span>Кількість</span>
+                <input id="medicineDose" type="text" inputmode="decimal" maxlength="20" placeholder="2" required />
+              </label>
+              <label>
+                <span>Одиниця</span>
+                <select id="medicineUnit" required>
+                  <option value="краплі">краплі</option>
+                  <option value="мл">мл</option>
+                  <option value="таблетка">таблетка</option>
+                  <option value="мірна ложка">мірна ложка</option>
+                  <option value="доза">доза</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              <span>Час нагадування</span>
+              <input id="medicineTime" type="time" required />
+            </label>
+            <fieldset class="medicine-days">
+              <legend>У які дні?</legend>
+              <div aria-label="Дні повторення">
+                <button type="button" data-medicine-day="1" aria-pressed="true">Пн</button>
+                <button type="button" data-medicine-day="2" aria-pressed="true">Вт</button>
+                <button type="button" data-medicine-day="3" aria-pressed="true">Ср</button>
+                <button type="button" data-medicine-day="4" aria-pressed="true">Чт</button>
+                <button type="button" data-medicine-day="5" aria-pressed="true">Пт</button>
+                <button type="button" data-medicine-day="6" aria-pressed="true">Сб</button>
+                <button type="button" data-medicine-day="7" aria-pressed="true">Нд</button>
+              </div>
+            </fieldset>
+            <details class="medicine-extra">
+              <summary>Додатково</summary>
+              <div class="medicine-date-row">
+                <label>
+                  <span>Початок</span>
+                  <input id="medicineStartDate" type="date" />
+                </label>
+                <label>
+                  <span>Завершення</span>
+                  <input id="medicineEndDate" type="date" />
+                </label>
+              </div>
+              <label>
+                <span>Примітка</span>
+                <textarea id="medicineNote" maxlength="500" rows="3" placeholder="Наприклад, після їжі"></textarea>
+              </label>
+            </details>
+            <p class="medicine-form-error" id="medicineFormError" role="alert" hidden></p>
+            <button class="medicine-save-button" id="medicineSaveButton" type="submit">Зберегти нагадування</button>
+            <button class="medicine-cancel-button" type="button" data-action="cancelMedicineForm">Скасувати</button>
+          </form>
         </section>
 
         <section class="category-hub-screen" id="profileHubScreen" hidden>
@@ -563,7 +655,7 @@
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=4"></script>
-    <script src="./app.js?v=113"></script>
+    <script src="./telegram-user.js?v=5"></script>
+    <script src="./app.js?v=114"></script>
   </body>
 </html>
