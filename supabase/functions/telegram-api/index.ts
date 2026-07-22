@@ -436,7 +436,8 @@ export default {
             typeof id === "string" && (
               allowedShortcuts.has(id) ||
               /^story:[a-z0-9-]{1,120}$/.test(id) ||
-              /^poem:[a-z0-9-]{1,120}$/.test(id)
+              /^poem:[a-z0-9-]{1,120}$/.test(id) ||
+              /^sleep:[a-z0-9-]{1,120}$/.test(id)
             )
           ).slice(0, 12)
           : null;

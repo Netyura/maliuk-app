@@ -1710,6 +1710,13 @@ const mainHomeShortcutCatalog = [
 
 const homeShortcutCatalog = [
   ...mainHomeShortcutCatalog,
+  ...sleepSounds.map((sound) => ({
+    id: `sleep:${sound.id}`,
+    group: "Сон і звуки",
+    title: sound.title,
+    image: `./assets/images/${sound.image.replace(/\.png$/i, ".webp")}`,
+    sleepSound: sound.id
+  })),
   ...stories.map((story) => ({
     id: `story:${story.id}`,
     group: "Казки",
@@ -1729,7 +1736,8 @@ const homeShortcutCatalog = [
 const homeShortcutFolders = [
   { id: "games", title: "Розвиваючі ігри", lead: "Додайте весь розділ або виберіть конкретну гру", image: "./assets/images/home-games.webp", shortcutId: "games" },
   { id: "stories", title: "Казки", lead: "Додайте розділ або одну улюблену казку", image: "./assets/images/home-stories.webp", shortcutId: "stories" },
-  { id: "poems", title: "Віршики", lead: "Додайте розділ або конкретний віршик", image: "./assets/images/home-poems.webp", shortcutId: "poems" }
+  { id: "poems", title: "Віршики", lead: "Додайте розділ або конкретний віршик", image: "./assets/images/home-poems.webp", shortcutId: "poems" },
+  { id: "sleep", title: "Сон і звуки", lead: "Додайте розділ або окремий звук для сну", image: "./assets/images/home-sounds.webp", shortcutId: "sleep" }
 ];
 
 function normalizeHomeShortcutIds(shortcutIds) {
@@ -2080,7 +2088,7 @@ function renderHomeShortcutCatalog() {
       </section>
       <section class="home-shortcut-group">
         <h3>Турбота</h3>
-        <div>${mainHomeShortcutCatalog.filter((item) => item.group === "Турбота").map((item) => {
+        <div>${mainHomeShortcutCatalog.filter((item) => item.group === "Турбота" && !homeShortcutFolders.some((folder) => folder.shortcutId === item.id)).map((item) => {
           const active = selected.has(item.id);
           return `<button type="button" data-home-picker-item="${item.id}" aria-pressed="${active}">
             <img loading="lazy" decoding="async" src="${item.image}" alt="" />
@@ -2097,7 +2105,9 @@ function renderHomeShortcutCatalog() {
     ? homeShortcutCatalog.filter((item) => item.game)
     : state.homeShortcutFolder === "stories"
       ? homeShortcutCatalog.filter((item) => item.story)
-      : homeShortcutCatalog.filter((item) => item.poem);
+      : state.homeShortcutFolder === "poems"
+        ? homeShortcutCatalog.filter((item) => item.poem)
+        : homeShortcutCatalog.filter((item) => item.sleepSound);
   title.textContent = folder?.title || "Виберіть";
   lead.textContent = "Натисніть «＋», щоб додати окремий пункт на головну.";
   backButton.hidden = false;
@@ -2175,6 +2185,7 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "sleep") return showSleepScreen();
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
+  if (shortcut.sleepSound) return selectSleepSound(shortcut.sleepSound);
   if (shortcut.story) return showStory(shortcut.story);
   if (shortcut.poem) return showPoemDetail(shortcut.poem);
 }
