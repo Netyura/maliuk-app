@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=130" />
+    <link rel="stylesheet" href="./styles.css?v=131" />
   </head>
   <body>
     <main class="app">
@@ -629,10 +629,11 @@
       <button class="home-shortcut-backdrop" type="button" data-action="closeHomeShortcutPicker" aria-label="Закрити налаштування головної"></button>
       <section class="home-shortcut-sheet" role="dialog" aria-modal="true" aria-labelledby="homeShortcutPickerTitle">
         <div class="home-shortcut-sheet-heading">
+          <button class="home-shortcut-folder-back" id="homeShortcutFolderBack" type="button" data-action="backHomeShortcutFolder" aria-label="Назад" hidden>‹</button>
           <div>
             <span>Налаштування</span>
             <h2 id="homeShortcutPickerTitle">Додати на головну</h2>
-            <p>Оберіть до 12 ігор і корисних розділів.</p>
+            <p id="homeShortcutPickerLead">Додайте розділ або відкрийте його й виберіть щось конкретне.</p>
           </div>
           <button type="button" data-action="closeHomeShortcutPicker" aria-label="Готово">Готово</button>
         </div>
@@ -671,6 +672,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=6"></script>
-    <script src="./app.js?v=117"></script>
+    <script src="./app.js?v=118"></script>
   </body>
 </html>

@@ -1691,6 +1691,9 @@ const stories = [
 ];
 
 const mainHomeShortcutCatalog = [
+  { id: "games", group: "Основне", title: "Розвиваючі ігри", image: "./assets/images/home-games.webp", section: "games" },
+  { id: "stories", group: "Основне", title: "Казки", image: "./assets/images/home-stories.webp", section: "stories" },
+  { id: "poems", group: "Основне", title: "Віршики", image: "./assets/images/home-poems.webp", section: "poems" },
   { id: "game:animals", group: "Ігри", title: "Тварини", image: "./assets/images/cat.webp", game: "animals" },
   { id: "game:objects", group: "Ігри", title: "Предмети", image: "./assets/images/objects/cube.webp", game: "objects" },
   { id: "game:colors", group: "Ігри", title: "Кольори", image: "./assets/images/colors/red-apple.webp", game: "colors" },
@@ -1723,11 +1726,16 @@ const homeShortcutCatalog = [
   }))
 ];
 
+const homeShortcutFolders = [
+  { id: "games", title: "Розвиваючі ігри", lead: "Додайте весь розділ або виберіть конкретну гру", image: "./assets/images/home-games.webp", shortcutId: "games" },
+  { id: "stories", title: "Казки", lead: "Додайте розділ або одну улюблену казку", image: "./assets/images/home-stories.webp", shortcutId: "stories" },
+  { id: "poems", title: "Віршики", lead: "Додайте розділ або конкретний віршик", image: "./assets/images/home-poems.webp", shortcutId: "poems" }
+];
+
 function normalizeHomeShortcutIds(shortcutIds) {
   if (!Array.isArray(shortcutIds)) return null;
-  const migrated = shortcutIds.map((id) => id === "stories" ? "story:kolobok" : id === "poems" ? "poem:bath-kotyku-vorkotyku" : id);
   const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
-  return [...new Set(migrated)].filter((id) => allowedIds.has(id)).slice(0, 12);
+  return [...new Set(shortcutIds)].filter((id) => allowedIds.has(id)).slice(0, 12);
 }
 
 function readHomeShortcutIds() {
@@ -1786,6 +1794,7 @@ const state = {
   editingMedicineId: null,
   deletingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
+  homeShortcutFolder: null,
   task: null
 };
 
@@ -2047,11 +2056,54 @@ function renderHomeShortcutCatalog() {
   const catalog = $("#homeShortcutCatalog");
   if (!catalog) return;
   const selected = new Set(state.homeShortcutIds);
-  const groups = [...new Set(homeShortcutCatalog.map((item) => item.group))];
-  catalog.innerHTML = groups.map((group) => `
-    <section class="home-shortcut-group">
-      <h3>${group}</h3>
-      <div>${homeShortcutCatalog.filter((item) => item.group === group).map((item) => {
+  const title = $("#homeShortcutPickerTitle");
+  const lead = $("#homeShortcutPickerLead");
+  const backButton = $("#homeShortcutFolderBack");
+
+  if (!state.homeShortcutFolder) {
+    title.textContent = "Додати на головну";
+    lead.textContent = "Додайте розділ або відкрийте його й виберіть щось конкретне.";
+    backButton.hidden = true;
+    catalog.innerHTML = `
+      <section class="home-shortcut-folder-list">
+        ${homeShortcutFolders.map((folder) => {
+          const active = selected.has(folder.shortcutId);
+          return `<article>
+            <button class="home-shortcut-folder-open" type="button" data-home-picker-folder="${folder.id}" aria-label="Відкрити ${folder.title}">
+              <img loading="lazy" decoding="async" src="${folder.image}" alt="" />
+              <span><strong>${folder.title}</strong><small>${folder.lead}</small></span>
+              <b>›</b>
+            </button>
+            <button class="home-shortcut-folder-add" type="button" data-home-picker-item="${folder.shortcutId}" aria-pressed="${active}" aria-label="${active ? "Прибрати" : "Додати"} розділ ${folder.title}">${active ? "✓" : "+"}</button>
+          </article>`;
+        }).join("")}
+      </section>
+      <section class="home-shortcut-group">
+        <h3>Турбота</h3>
+        <div>${mainHomeShortcutCatalog.filter((item) => item.group === "Турбота").map((item) => {
+          const active = selected.has(item.id);
+          return `<button type="button" data-home-picker-item="${item.id}" aria-pressed="${active}">
+            <img loading="lazy" decoding="async" src="${item.image}" alt="" />
+            <strong>${item.title}</strong>
+            <span>${active ? "✓" : "+"}</span>
+          </button>`;
+        }).join("")}</div>
+      </section>`;
+    return;
+  }
+
+  const folder = homeShortcutFolders.find((item) => item.id === state.homeShortcutFolder);
+  const folderItems = state.homeShortcutFolder === "games"
+    ? homeShortcutCatalog.filter((item) => item.game)
+    : state.homeShortcutFolder === "stories"
+      ? homeShortcutCatalog.filter((item) => item.story)
+      : homeShortcutCatalog.filter((item) => item.poem);
+  title.textContent = folder?.title || "Виберіть";
+  lead.textContent = "Натисніть «＋», щоб додати окремий пункт на головну.";
+  backButton.hidden = false;
+  catalog.innerHTML = `
+    <section class="home-shortcut-group nested">
+      <div>${folderItems.map((item) => {
         const active = selected.has(item.id);
         return `<button type="button" data-home-picker-item="${item.id}" aria-pressed="${active}">
           <img loading="lazy" decoding="async" src="${item.image}" alt="" />
@@ -2059,16 +2111,17 @@ function renderHomeShortcutCatalog() {
           <span>${active ? "✓" : "+"}</span>
         </button>`;
       }).join("")}</div>
-    </section>
-  `).join("");
+    </section>`;
 }
 
 function openHomeShortcutPicker() {
+  state.homeShortcutFolder = null;
   renderHomeShortcutCatalog();
   $("#homeShortcutOverlay").hidden = false;
 }
 
 function closeHomeShortcutPicker() {
+  state.homeShortcutFolder = null;
   $("#homeShortcutOverlay").hidden = true;
   renderHomeShortcuts();
 }
@@ -2097,6 +2150,14 @@ function toggleHomeShortcut(shortcutId) {
 function openHomeShortcut(shortcutId) {
   const shortcut = homeShortcutCatalog.find((item) => item.id === shortcutId);
   if (!shortcut) return;
+  if (shortcut.section === "games") {
+    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
+    if (savedAge) {
+      hideContentScreens();
+      startAge(savedAge);
+    } else showAgePicker();
+    return;
+  }
   if (shortcut.game) {
     const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
     if (!savedAge) {
@@ -3951,6 +4012,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const homePickerFolder = event.target.closest("[data-home-picker-folder]")?.dataset.homePickerFolder;
+  if (homePickerFolder) {
+    state.homeShortcutFolder = homePickerFolder;
+    renderHomeShortcutCatalog();
+    return;
+  }
+
   const section = event.target.closest("[data-section]")?.dataset.section;
   if (section === "games") {
     const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
@@ -4104,6 +4172,11 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeHomeShortcutPicker") {
     closeHomeShortcutPicker();
+    return;
+  }
+  if (action === "backHomeShortcutFolder") {
+    state.homeShortcutFolder = null;
+    renderHomeShortcutCatalog();
     return;
   }
   if (action === "cancelMedicineForm") {

@@ -4876,6 +4876,27 @@ body,
   font-weight: 800;
 }
 
+.home-shortcut-sheet-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-shortcut-sheet-heading .home-shortcut-folder-back {
+  display: grid;
+  flex: 0 0 auto;
+  width: 38px;
+  padding: 0;
+  place-items: center;
+  color: var(--ink);
+  background: #f3ede8;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.home-shortcut-sheet-heading .home-shortcut-folder-back[hidden] {
+  display: none;
+}
+
 .home-shortcut-catalog {
   display: grid;
   gap: 1rem;
@@ -4896,6 +4917,86 @@ body,
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.home-shortcut-folder-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.home-shortcut-folder-list article {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.home-shortcut-folder-open {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 74px;
+  padding: 0.48rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: var(--menu-card-shadow);
+  text-align: left;
+}
+
+.home-shortcut-folder-open img {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.home-shortcut-folder-open > span {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.home-shortcut-folder-open strong {
+  font-size: 0.9rem;
+}
+
+.home-shortcut-folder-open small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.18;
+  font-weight: 700;
+}
+
+.home-shortcut-folder-open b {
+  color: #77727d;
+  font-size: 1.55rem;
+}
+
+.home-shortcut-folder-add {
+  display: grid;
+  min-width: 44px;
+  place-items: center;
+  border: 1px solid rgba(244, 125, 74, 0.16);
+  border-radius: 17px;
+  color: #a45322;
+  background: #fff0e5;
+  box-shadow: none;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.home-shortcut-folder-add[aria-pressed="true"] {
+  color: #34704b;
+  border-color: rgba(117, 201, 138, 0.26);
+  background: #eaf8ee;
+}
+
+.home-shortcut-group.nested {
+  margin-top: 0.1rem;
 }
 
 .home-shortcut-group > div {
