@@ -4831,9 +4831,13 @@ body,
 .home-shortcut-sheet {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   width: min(100%, 430px);
+  min-width: 0;
+  max-width: 100%;
   max-height: min(84dvh, 760px);
   flex-direction: column;
+  overflow: hidden;
   padding: 1.1rem 1rem calc(1rem + var(--tg-safe-area-bottom, 0px));
   border-radius: 30px 30px 0 0;
   background: #fffaf6;
@@ -4899,6 +4903,9 @@ body,
 
 .home-shortcut-catalog {
   display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   gap: 1rem;
   min-height: 0;
   margin-top: 1.05rem;
@@ -4919,8 +4926,21 @@ body,
   text-transform: uppercase;
 }
 
+.home-shortcut-selected,
+.home-shortcut-folder-list,
+.home-shortcut-group {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .home-shortcut-selected > div {
   display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.45rem;
   overflow-x: auto;
   padding: 0 0.1rem 0.25rem;
@@ -4998,6 +5018,8 @@ body,
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
   align-items: stretch;
 }
 
@@ -5007,6 +5029,8 @@ body,
   align-items: center;
   gap: 0.7rem;
   min-height: 74px;
+  width: 100%;
+  min-width: 0;
   padding: 0.48rem;
   border: 1px solid var(--surface-border);
   border-radius: 20px;
@@ -5027,6 +5051,12 @@ body,
   display: grid;
   gap: 0.18rem;
   min-width: 0;
+}
+
+.home-shortcut-folder-open strong,
+.home-shortcut-folder-open small {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .home-shortcut-folder-open strong {
