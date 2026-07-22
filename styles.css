@@ -5182,6 +5182,36 @@ body,
   object-fit: cover;
 }
 
+.quick-log-shortcut-icon {
+  border-color: rgba(244, 125, 74, 0.12);
+  background: linear-gradient(145deg, #fff0df, #fff9f2);
+}
+
+.quick-log-shortcut-icon b {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font-size: 2rem;
+  line-height: 1;
+  filter: saturate(1.08);
+}
+
+.home-shortcut.is-saving .home-shortcut-icon {
+  animation: home-quick-log-pulse 650ms ease-in-out infinite alternate;
+}
+
+.home-shortcut.is-saved .home-shortcut-icon {
+  border-color: rgba(75, 160, 103, 0.28);
+  background: #eaf8ee;
+  box-shadow: 0 8px 18px rgba(75, 160, 103, 0.18);
+  transform: scale(1.04);
+}
+
+@keyframes home-quick-log-pulse {
+  to { transform: scale(0.92); opacity: 0.72; }
+}
+
 .home-shortcut strong {
   display: -webkit-box;
   width: 100%;
@@ -5373,13 +5403,27 @@ body,
   box-shadow: none;
 }
 
-.home-shortcut-selected img {
+.home-shortcut-selected img,
+.home-shortcut-selected-emoji {
   width: 58px;
   height: 58px;
   border: 1px solid rgba(244, 125, 74, 0.12);
   border-radius: 18px;
   object-fit: cover;
   box-shadow: 0 6px 14px rgba(74, 55, 42, 0.08);
+}
+
+.home-shortcut-selected-emoji,
+.home-shortcut-picker-emoji {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #fff0df, #fff9f2);
+  font-style: normal;
+  line-height: 1;
+}
+
+.home-shortcut-selected-emoji {
+  font-size: 1.75rem;
 }
 
 .home-shortcut-selected strong {
@@ -5393,7 +5437,7 @@ body,
   -webkit-line-clamp: 2;
 }
 
-.home-shortcut-selected span {
+.home-shortcut-selected button > span:last-child {
   position: absolute;
   top: 0.18rem;
   right: 0.18rem;
@@ -5544,6 +5588,13 @@ body,
   height: 45px;
   border-radius: 14px;
   object-fit: cover;
+}
+
+.home-shortcut-picker-emoji {
+  width: 45px;
+  height: 45px;
+  border-radius: 14px;
+  font-size: 1.55rem;
 }
 
 .home-shortcut-group strong {

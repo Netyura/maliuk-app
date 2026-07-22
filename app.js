@@ -1690,6 +1690,14 @@ const stories = [
   ...extraStories
 ];
 
+const quickLogHomeShortcutCatalog = [
+  { id: "quicklog:sleep", group: "Швидкий запис", title: "Сон", emoji: "🌙", quickLogType: "sleep", quickLogAction: "Заснув" },
+  { id: "quicklog:feeding", group: "Швидкий запис", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне" },
+  { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", emoji: "🧷", quickLogType: "diaper", quickLogAction: "Мокрий" },
+  { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
+  { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" }
+];
+
 const mainHomeShortcutCatalog = [
   { id: "games", group: "Основне", title: "Розвиваючі ігри", image: "./assets/images/home-games.webp", section: "games" },
   { id: "stories", group: "Основне", title: "Казки", image: "./assets/images/home-stories.webp", section: "stories" },
@@ -1704,13 +1712,14 @@ const mainHomeShortcutCatalog = [
   { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
   { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
   { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
-  { id: "quick-log", group: "Турбота", title: "Швидкий запис", image: "./assets/images/home-quick-log.webp", section: "quick-log" },
+  { id: "quick-log", group: "Турбота", title: "Швидкий запис", image: "./assets/images/home-quick-log-v2.webp", section: "quick-log" },
   { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
   { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
 ];
 
 const homeShortcutCatalog = [
   ...mainHomeShortcutCatalog,
+  ...quickLogHomeShortcutCatalog,
   ...sleepSounds.map((sound) => ({
     id: `sleep:${sound.id}`,
     group: "Сон і звуки",
@@ -1738,7 +1747,8 @@ const homeShortcutFolders = [
   { id: "games", title: "Розвиваючі ігри", lead: "Додайте весь розділ або виберіть конкретну гру", image: "./assets/images/home-games.webp", shortcutId: "games" },
   { id: "stories", title: "Казки", lead: "Додайте розділ або одну улюблену казку", image: "./assets/images/home-stories.webp", shortcutId: "stories" },
   { id: "poems", title: "Віршики", lead: "Додайте розділ або конкретний віршик", image: "./assets/images/home-poems.webp", shortcutId: "poems" },
-  { id: "sleep", title: "Сон і звуки", lead: "Додайте розділ або окремий звук для сну", image: "./assets/images/home-sounds.webp", shortcutId: "sleep" }
+  { id: "sleep", title: "Сон і звуки", lead: "Додайте розділ або окремий звук для сну", image: "./assets/images/home-sounds.webp", shortcutId: "sleep" },
+  { id: "quick-log", title: "Швидкий запис", lead: "Додайте окремі кнопки й записуйте події одним дотиком", image: "./assets/images/home-quick-log-v2.webp", shortcutId: "quick-log" }
 ];
 
 function normalizeHomeShortcutIds(shortcutIds) {
@@ -1807,6 +1817,7 @@ const state = {
   deletingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
   homeShortcutFolder: null,
+  homeQuickLogSaving: null,
   task: null
 };
 
@@ -2054,8 +2065,10 @@ function renderHomeShortcuts() {
     .map((id) => homeShortcutCatalog.find((item) => item.id === id))
     .filter(Boolean);
   grid.innerHTML = shortcuts.map((item) => `
-    <button class="home-shortcut" type="button" data-home-shortcut="${item.id}" aria-label="Відкрити ${item.title}">
-      <span class="home-shortcut-icon"><img loading="lazy" decoding="async" src="${item.image}" alt="" /></span>
+    <button class="home-shortcut${item.quickLogType ? " is-quick-log" : ""}" type="button" data-home-shortcut="${item.id}" aria-label="${item.quickLogType ? "Одразу записати" : "Відкрити"} ${item.title}">
+      <span class="home-shortcut-icon${item.quickLogType ? " quick-log-shortcut-icon" : ""}">${item.emoji
+        ? `<b aria-hidden="true">${item.emoji}</b>`
+        : `<img loading="lazy" decoding="async" src="${item.image}" alt="" />`}</span>
       <strong>${item.title}</strong>
     </button>
   `).join("") + `
@@ -2085,7 +2098,9 @@ function renderHomeShortcutCatalog() {
         <h3>На головній</h3>
         <div>${selectedItems.map((item) => `
           <button type="button" data-home-picker-item="${item.id}" aria-label="Прибрати ${item.title} з головної">
-            <img loading="lazy" decoding="async" src="${item.image}" alt="" />
+            ${item.emoji
+              ? `<span class="home-shortcut-selected-emoji" aria-hidden="true">${item.emoji}</span>`
+              : `<img loading="lazy" decoding="async" src="${item.image}" alt="" />`}
             <strong>${item.title}</strong>
             <span>×</span>
           </button>
@@ -2125,7 +2140,9 @@ function renderHomeShortcutCatalog() {
       ? homeShortcutCatalog.filter((item) => item.story)
       : state.homeShortcutFolder === "poems"
         ? homeShortcutCatalog.filter((item) => item.poem)
-        : homeShortcutCatalog.filter((item) => item.sleepSound);
+        : state.homeShortcutFolder === "quick-log"
+          ? homeShortcutCatalog.filter((item) => item.quickLogType)
+          : homeShortcutCatalog.filter((item) => item.sleepSound);
   title.textContent = folder?.title || "Виберіть";
   lead.textContent = "Натисніть «＋», щоб додати окремий пункт на головну.";
   backButton.hidden = false;
@@ -2134,7 +2151,9 @@ function renderHomeShortcutCatalog() {
       <div>${folderItems.map((item) => {
         const active = selected.has(item.id);
         return `<button type="button" data-home-picker-item="${item.id}" aria-pressed="${active}">
-          <img loading="lazy" decoding="async" src="${item.image}" alt="" />
+          ${item.emoji
+            ? `<b class="home-shortcut-picker-emoji" aria-hidden="true">${item.emoji}</b>`
+            : `<img loading="lazy" decoding="async" src="${item.image}" alt="" />`}
           <strong>${item.title}</strong>
           <span>${active ? "✓" : "+"}</span>
         </button>`;
@@ -2200,6 +2219,7 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "quick-log") return openQuickLogScreen();
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
+  if (shortcut.quickLogType) return saveHomeQuickLog(shortcut);
   if (shortcut.sleepSound) return selectSleepSound(shortcut.sleepSound);
   if (shortcut.story) return showStory(shortcut.story);
   if (shortcut.poem) return showPoemDetail(shortcut.poem);
@@ -2362,6 +2382,44 @@ function openQuickLogScreen() {
   renderQuickLogJournal();
   showMainNavigation("care");
   updateTopBack();
+}
+
+async function saveHomeQuickLog(shortcut) {
+  if (!shortcut?.quickLogType || state.homeQuickLogSaving) return;
+  if (!state.childProfile?.id) {
+    showToast("Спочатку оберіть дитину", "wrong");
+    return;
+  }
+
+  const shortcutButton = document.querySelector(`[data-home-shortcut="${CSS.escape(shortcut.id)}"]`);
+  state.homeQuickLogSaving = shortcut.id;
+  shortcutButton?.classList.add("is-saving");
+  shortcutButton?.setAttribute("aria-busy", "true");
+
+  try {
+    await window.owlJoyAccount.saveCareQuickLog({
+      childId: state.childProfile.id,
+      eventType: shortcut.quickLogType,
+      eventAction: shortcut.quickLogAction,
+      value: null,
+      unit: null,
+      note: "",
+      occurredAt: new Date().toISOString()
+    });
+    state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    renderQuickLogJournal();
+    navigator.vibrate?.(24);
+    shortcutButton?.classList.remove("is-saving");
+    shortcutButton?.classList.add("is-saved");
+    showToast(`${shortcut.title} — записано`, "correct");
+    window.setTimeout(() => shortcutButton?.classList.remove("is-saved"), 700);
+  } catch (error) {
+    shortcutButton?.classList.remove("is-saving");
+    showToast(error.message || "Не вдалося додати запис", "wrong");
+  } finally {
+    shortcutButton?.removeAttribute("aria-busy");
+    state.homeQuickLogSaving = null;
+  }
 }
 
 async function saveQuickLogForm(event) {
