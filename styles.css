@@ -5189,6 +5189,13 @@ body,
   text-align: center;
 }
 
+.home-shortcut[data-home-shortcut] {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .home-shortcut-icon {
   display: grid;
   width: 64px;
@@ -5266,13 +5273,28 @@ body,
 }
 
 .home-shortcut.is-dragging {
-  z-index: 2;
-  opacity: 0.7;
+  z-index: 3;
+  opacity: 0.86;
 }
 
 .home-shortcut.is-dragging .home-shortcut-icon {
-  transform: scale(1.08);
-  box-shadow: 0 14px 28px rgba(74, 55, 42, 0.18);
+  transform: scale(1.1) translateY(-4px);
+  border-color: rgba(244, 125, 74, 0.34);
+  box-shadow: 0 16px 30px rgba(74, 55, 42, 0.2);
+}
+
+.home-shortcut-grid.is-reordering .home-shortcut:not(.is-dragging) .home-shortcut-icon {
+  animation: home-shortcut-ready 440ms ease-in-out infinite alternate;
+}
+
+.is-reordering-home-shortcuts,
+.is-reordering-home-shortcuts * {
+  cursor: grabbing !important;
+}
+
+@keyframes home-shortcut-ready {
+  from { transform: rotate(-0.7deg); }
+  to { transform: rotate(0.7deg); }
 }
 
 .home-shortcut-overlay {

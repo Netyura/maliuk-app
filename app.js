@@ -1822,8 +1822,10 @@ const state = {
 
 const homeShortcutDrag = {
   id: null,
+  pointerId: null,
   timer: null,
   active: false,
+  moved: false,
   startX: 0,
   startY: 0,
   suppressClickUntil: 0
@@ -2060,11 +2062,12 @@ function openMedicineScreen(tabName = state.medicineTab || "today") {
 function renderHomeShortcuts() {
   const grid = $("#homeShortcutGrid");
   if (!grid) return;
+  grid.classList.toggle("is-reordering", homeShortcutDrag.active);
   const shortcuts = state.homeShortcutIds
     .map((id) => homeShortcutCatalog.find((item) => item.id === id))
     .filter(Boolean);
   grid.innerHTML = shortcuts.map((item) => `
-    <button class="home-shortcut${item.quickLogType ? " is-quick-log" : ""}" type="button" data-home-shortcut="${item.id}" aria-label="${item.quickLogType ? "Заповнити" : "Відкрити"} ${item.title}">
+    <button class="home-shortcut${item.quickLogType ? " is-quick-log" : ""}${homeShortcutDrag.active && homeShortcutDrag.id === item.id ? " is-dragging" : ""}" type="button" data-home-shortcut="${item.id}" aria-label="${item.quickLogType ? "Заповнити" : "Відкрити"} ${item.title}. Затисніть, щоб перемістити" aria-grabbed="${homeShortcutDrag.active && homeShortcutDrag.id === item.id}">
       <span class="home-shortcut-icon${item.quickLogType ? " quick-log-shortcut-icon" : ""}">${item.emoji
         ? `<b aria-hidden="true">${item.emoji}</b>`
         : `<img loading="lazy" decoding="async" src="${item.image}" alt="" />`}</span>
@@ -4583,18 +4586,23 @@ document.addEventListener("pointerdown", (event) => {
   if (!shortcut || event.button > 0) return;
   window.clearTimeout(homeShortcutDrag.timer);
   homeShortcutDrag.id = shortcut.dataset.homeShortcut;
+  homeShortcutDrag.pointerId = event.pointerId;
   homeShortcutDrag.active = false;
+  homeShortcutDrag.moved = false;
   homeShortcutDrag.startX = event.clientX;
   homeShortcutDrag.startY = event.clientY;
   homeShortcutDrag.timer = window.setTimeout(() => {
     homeShortcutDrag.active = true;
+    document.body.classList.add("is-reordering-home-shortcuts");
+    $("#homeShortcutGrid")?.classList.add("is-reordering");
     shortcut.classList.add("is-dragging");
+    shortcut.setAttribute("aria-grabbed", "true");
     navigator.vibrate?.(18);
-  }, 320);
+  }, 360);
 });
 
 document.addEventListener("pointermove", (event) => {
-  if (!homeShortcutDrag.id) return;
+  if (!homeShortcutDrag.id || event.pointerId !== homeShortcutDrag.pointerId) return;
   const distance = Math.hypot(event.clientX - homeShortcutDrag.startX, event.clientY - homeShortcutDrag.startY);
   if (!homeShortcutDrag.active && distance > 10) {
     window.clearTimeout(homeShortcutDrag.timer);
@@ -4613,20 +4621,30 @@ document.addEventListener("pointermove", (event) => {
   const [moved] = nextOrder.splice(fromIndex, 1);
   nextOrder.splice(toIndex, 0, moved);
   state.homeShortcutIds = nextOrder;
+  homeShortcutDrag.moved = true;
   renderHomeShortcuts();
-  document.querySelector(`[data-home-shortcut="${CSS.escape(homeShortcutDrag.id)}"]`)?.classList.add("is-dragging");
 }, { passive: false });
 
-function finishHomeShortcutDrag() {
+function finishHomeShortcutDrag(event) {
+  if (event?.pointerId != null && homeShortcutDrag.pointerId != null && event.pointerId !== homeShortcutDrag.pointerId) return;
   window.clearTimeout(homeShortcutDrag.timer);
-  if (homeShortcutDrag.active) {
+  if (homeShortcutDrag.active && homeShortcutDrag.moved) {
     persistHomeShortcuts();
+  }
+  if (homeShortcutDrag.active) {
     homeShortcutDrag.suppressClickUntil = Date.now() + 450;
   }
+  document.body.classList.remove("is-reordering-home-shortcuts");
+  $("#homeShortcutGrid")?.classList.remove("is-reordering");
   document.querySelectorAll(".home-shortcut.is-dragging").forEach((item) => item.classList.remove("is-dragging"));
   homeShortcutDrag.id = null;
+  homeShortcutDrag.pointerId = null;
   homeShortcutDrag.active = false;
+  homeShortcutDrag.moved = false;
 }
 
 document.addEventListener("pointerup", finishHomeShortcutDrag);
 document.addEventListener("pointercancel", finishHomeShortcutDrag);
+document.addEventListener("contextmenu", (event) => {
+  if (event.target.closest(".home-shortcut[data-home-shortcut]")) event.preventDefault();
+});
