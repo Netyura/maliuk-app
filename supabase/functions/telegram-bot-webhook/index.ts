@@ -14,7 +14,27 @@ export default {
     if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+    const cronSecret = Deno.env.get("MEDICINE_CRON_SECRET");
     if (!botToken || !webhookSecret) return new Response("Not configured", { status: 500 });
+
+    const requestUrl = new URL(request.url);
+    if (requestUrl.searchParams.get("setup") === "1") {
+      if (!cronSecret || request.headers.get("Authorization") !== `Bearer ${cronSecret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      if (!supabaseUrl) return new Response("Not configured", { status: 500 });
+      const webhookUrl = `${supabaseUrl}/functions/v1/telegram-bot-webhook`;
+      const result = await telegramRequest(botToken, "setWebhook", {
+        url: webhookUrl,
+        secret_token: webhookSecret,
+        allowed_updates: ["callback_query"],
+        drop_pending_updates: false,
+      });
+      return Response.json(result);
+    }
+
     if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== webhookSecret) {
       return new Response("Unauthorized", { status: 401 });
     }

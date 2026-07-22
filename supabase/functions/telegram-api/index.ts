@@ -359,6 +359,17 @@ export default {
           .select("id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
           .single();
         if (reminderError) throw reminderError;
+
+        // Створення нагадування є явною згодою користувача отримувати його в Telegram.
+        const { error: preferenceError } = await supabase
+          .from("user_preferences")
+          .upsert({
+            user_id: user.id,
+            notifications_enabled: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
+        if (preferenceError) throw preferenceError;
+
         return json({ medicineReminder }, 200, headers);
       }
 
