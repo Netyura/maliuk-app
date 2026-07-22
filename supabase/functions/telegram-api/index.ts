@@ -157,7 +157,7 @@ export default {
       if (error) throw error;
 
       if (body.action === "bootstrap") {
-        const [favoritesResult, childResult, medicineResult, intakeResult] = await Promise.all([
+        const [favoritesResult, childResult, medicineResult, intakeResult, preferencesResult] = await Promise.all([
           supabase
             .from("user_favorites")
             .select("content_id")
@@ -181,15 +181,22 @@ export default {
             .eq("user_id", user.id)
             .order("scheduled_date", { ascending: false })
             .limit(120),
+          supabase
+            .from("user_preferences")
+            .select("home_shortcuts")
+            .eq("user_id", user.id)
+            .maybeSingle(),
         ]);
         const { data: favorites, error: favoritesError } = favoritesResult;
         const { data: childProfiles, error: childError } = childResult;
         const { data: medicineReminders, error: medicineError } = medicineResult;
         const { data: medicineIntakes, error: intakeError } = intakeResult;
+        const { data: preferences, error: preferencesError } = preferencesResult;
         if (favoritesError) throw favoritesError;
         if (childError) throw childError;
         if (medicineError) throw medicineError;
         if (intakeError) throw intakeError;
+        if (preferencesError) throw preferencesError;
 
         return json(
           {
@@ -199,6 +206,7 @@ export default {
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
             medicineReminders: medicineReminders || [],
             medicineIntakes: medicineIntakes || [],
+            homeShortcutIds: preferences?.home_shortcuts || null,
           },
           200,
           headers,
@@ -415,6 +423,27 @@ export default {
           }, { onConflict: "user_id" });
         if (preferenceError) throw preferenceError;
         return json({ ok: true }, 200, headers);
+      }
+
+      if (body.action === "home.shortcuts") {
+        const allowedShortcuts = new Set([
+          "game:animals", "game:objects", "game:colors", "game:families", "game:emotions",
+          "game:dress-up", "game:bubbles", "game:my-face", "game:my-body",
+          "stories", "poems", "sleep", "medicine", "food",
+        ]);
+        const shortcutIds = Array.isArray(body.shortcutIds)
+          ? [...new Set(body.shortcutIds)].filter((id) => typeof id === "string" && allowedShortcuts.has(id)).slice(0, 12)
+          : null;
+        if (!shortcutIds) return json({ error: "Некоректні ярлики головної" }, 400, headers);
+        const { error: shortcutsError } = await supabase
+          .from("user_preferences")
+          .upsert({
+            user_id: user.id,
+            home_shortcuts: shortcutIds,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
+        if (shortcutsError) throw shortcutsError;
+        return json({ ok: true, homeShortcutIds: shortcutIds }, 200, headers);
       }
 
       if (body.action === "favorite.set") {

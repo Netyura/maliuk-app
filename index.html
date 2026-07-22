@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=128" />
+    <link rel="stylesheet" href="./styles.css?v=129" />
   </head>
   <body>
     <main class="app">
@@ -64,29 +64,23 @@
         <section class="home-screen" id="homeScreen" hidden>
           <div class="home-hero">
             <div class="home-hero-copy">
-              <h2>Що будемо робити сьогодні?</h2>
-              <p id="homeChildLead">Ігри, казки, сон, прикорм і турбота відповідно до віку малюка.</p>
+              <span>Усе потрібне поруч</span>
+              <h2>Головна</h2>
+              <p id="homeChildLead">Улюблені заняття й турбота для малюка в одному місці.</p>
             </div>
             <img decoding="async" class="home-owl" src="./assets/images/home-owl.webp" alt="" />
           </div>
 
-          <div class="home-grid today-grid" aria-label="Рекомендації на сьогодні">
-            <button data-section="games">
-              <img loading="lazy" decoding="async" src="./assets/images/home-games.webp" alt="" />
-              <strong>Гра за віком</strong>
-              <span>Коротке розвиваюче заняття</span>
-            </button>
-            <button data-section="stories">
-              <img loading="lazy" decoding="async" src="./assets/images/home-stories.webp" alt="" />
-              <strong>Казка на сьогодні</strong>
-              <span>Тепла історія для спільного читання</span>
-            </button>
-            <button data-section="sleep">
-              <img loading="lazy" decoding="async" src="./assets/images/home-sounds.webp" alt="" />
-              <strong>Час відпочити</strong>
-              <span>Спокійний звук для сну</span>
-            </button>
-          </div>
+          <section class="home-launcher" aria-labelledby="homeLauncherTitle">
+            <div class="home-launcher-heading">
+              <div>
+                <h3 id="homeLauncherTitle">Моя головна</h3>
+                <p>Відкривайте потрібне одним дотиком</p>
+              </div>
+              <button type="button" data-action="openHomeShortcutPicker">Налаштувати</button>
+            </div>
+            <div class="home-shortcut-grid" id="homeShortcutGrid" aria-label="Закріплені розділи"></div>
+          </section>
         </section>
 
         <section class="category-hub-screen" id="developmentHubScreen" hidden>
@@ -603,7 +597,7 @@
         <nav class="bottom-nav" id="bottomNav" aria-label="Основне меню" hidden>
           <button class="active" type="button" data-main-tab="today" aria-current="page">
             <img loading="lazy" decoding="async" src="./assets/images/nav/today.webp" alt="" />
-            <span>Сьогодні</span>
+            <span>Головна</span>
           </button>
           <button type="button" data-main-tab="development">
             <img loading="lazy" decoding="async" src="./assets/images/nav/development.webp" alt="" />
@@ -638,6 +632,20 @@
         <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
       </section>
     </div>
+    <div class="home-shortcut-overlay" id="homeShortcutOverlay" hidden>
+      <button class="home-shortcut-backdrop" type="button" data-action="closeHomeShortcutPicker" aria-label="Закрити налаштування головної"></button>
+      <section class="home-shortcut-sheet" role="dialog" aria-modal="true" aria-labelledby="homeShortcutPickerTitle">
+        <div class="home-shortcut-sheet-heading">
+          <div>
+            <span>Налаштування</span>
+            <h2 id="homeShortcutPickerTitle">Додати на головну</h2>
+            <p>Оберіть до 12 ігор і корисних розділів.</p>
+          </div>
+          <button type="button" data-action="closeHomeShortcutPicker" aria-label="Готово">Готово</button>
+        </div>
+        <div class="home-shortcut-catalog" id="homeShortcutCatalog"></div>
+      </section>
+    </div>
     <div class="profile-delete-overlay" id="profileDeleteOverlay" hidden>
       <button class="profile-delete-backdrop" type="button" data-action="cancelDeleteChild" aria-label="Скасувати видалення"></button>
       <section class="profile-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="profileDeleteTitle" aria-describedby="profileDeleteText">
@@ -669,7 +677,7 @@
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=5"></script>
-    <script src="./app.js?v=115"></script>
+    <script src="./telegram-user.js?v=6"></script>
+    <script src="./app.js?v=116"></script>
   </body>
 </html>

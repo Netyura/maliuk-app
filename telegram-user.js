@@ -11,6 +11,7 @@
     currentChild: null,
     childProfiles: [],
     favoritePoemIds: [],
+    homeShortcutIds: null,
     medicineReminders: [],
     medicineIntakes: [],
     status: "loading",
@@ -68,6 +69,9 @@
       account.currentChild = account.childProfiles[0] || null;
       account.medicineReminders = readPreviewArray(previewMedicineKey);
       account.medicineIntakes = readPreviewArray(previewIntakesKey);
+      account.homeShortcutIds = localStorage.getItem("owljoyHomeShortcuts") === null
+        ? null
+        : readPreviewArray("owljoyHomeShortcuts");
       account.status = "preview";
       return account;
     }
@@ -83,6 +87,7 @@
       account.childProfiles = payload.childProfiles || (payload.childProfile ? [payload.childProfile] : []);
       account.currentChild = account.childProfiles[0] || null;
       account.favoritePoemIds = payload.favoritePoemIds || [];
+      account.homeShortcutIds = Array.isArray(payload.homeShortcutIds) ? payload.homeShortcutIds : null;
       account.medicineReminders = payload.medicineReminders || [];
       account.medicineIntakes = payload.medicineIntakes || [];
       account.status = "authenticated";
@@ -229,6 +234,16 @@
     return { ok: true };
   }
 
+  async function setHomeShortcuts(shortcutIds) {
+    const cleanIds = Array.isArray(shortcutIds) ? shortcutIds.slice(0, 12) : [];
+    account.homeShortcutIds = cleanIds;
+    localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(cleanIds));
+    if (account.status === "authenticated") {
+      return request("home.shortcuts", { shortcutIds: cleanIds });
+    }
+    return { ok: true };
+  }
+
   account.request = request;
   account.saveChildProfile = saveChildProfile;
   account.deleteChildProfile = deleteChildProfile;
@@ -236,6 +251,7 @@
   account.deleteMedicineReminder = deleteMedicineReminder;
   account.logMedicineIntake = logMedicineIntake;
   account.setMedicineNotifications = setMedicineNotifications;
+  account.setHomeShortcuts = setHomeShortcuts;
   account.ready = bootstrap();
   window.owlJoyAccount = account;
 })();

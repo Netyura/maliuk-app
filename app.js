@@ -1690,6 +1690,35 @@ const stories = [
   ...extraStories
 ];
 
+const homeShortcutCatalog = [
+  { id: "game:animals", group: "Ігри", title: "Тварини", image: "./assets/images/cat.webp", game: "animals" },
+  { id: "game:objects", group: "Ігри", title: "Предмети", image: "./assets/images/objects/cube.webp", game: "objects" },
+  { id: "game:colors", group: "Ігри", title: "Кольори", image: "./assets/images/colors/red-apple.webp", game: "colors" },
+  { id: "game:families", group: "Ігри", title: "Мама і малюк", image: "./assets/images/families/chick.webp", game: "families" },
+  { id: "game:emotions", group: "Ігри", title: "Емоції", image: "./assets/images/emotions/happy.webp", game: "emotions" },
+  { id: "game:dress-up", group: "Ігри", title: "Одягни малюка", image: "./assets/images/dress-up/shirt.webp", game: "dress-up" },
+  { id: "game:bubbles", group: "Ігри", title: "Бульбашки", image: "./assets/images/home-games.webp", game: "bubbles" },
+  { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
+  { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
+  { id: "stories", group: "Розвиток", title: "Казки", image: "./assets/images/home-stories.webp", section: "stories" },
+  { id: "poems", group: "Розвиток", title: "Віршики", image: "./assets/images/home-poems.webp", section: "poems" },
+  { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
+  { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
+  { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
+];
+
+function readHomeShortcutIds() {
+  const defaults = ["game:animals", "stories", "sleep", "medicine"];
+  try {
+    const saved = JSON.parse(localStorage.getItem("owljoyHomeShortcuts") || "null");
+    if (!Array.isArray(saved)) return defaults;
+    const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
+    return [...new Set(saved)].filter((id) => allowedIds.has(id)).slice(0, 12);
+  } catch {
+    return defaults;
+  }
+}
+
 const state = {
   childProfile: null,
   childProfiles: [],
@@ -1734,6 +1763,7 @@ const state = {
   medicineTab: "today",
   editingMedicineId: null,
   deletingMedicineId: null,
+  homeShortcutIds: readHomeShortcutIds(),
   task: null
 };
 
@@ -1761,6 +1791,12 @@ localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
 window.owlJoyAccount?.ready.then((account) => {
   state.medicineReminders = [...(account.medicineReminders || [])];
   state.medicineIntakes = [...(account.medicineIntakes || [])];
+  if (Array.isArray(account.homeShortcutIds)) {
+    const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
+    state.homeShortcutIds = account.homeShortcutIds.filter((id) => allowedIds.has(id)).slice(0, 12);
+    localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
+    renderHomeShortcuts();
+  }
   if (account.status === "authenticated") {
     state.favoritePoems = new Set(account.favoritePoemIds.filter((poemId) => poemIds.has(poemId)));
     localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
@@ -1810,7 +1846,7 @@ function applyChildProfile(profile) {
   if (!profile) return;
   state.childProfile = profile;
   localStorage.setItem("owljoyActiveChildId", profile.id);
-  $("#homeChildLead").textContent = "Ігри, казки, сон, прикорм і турбота відповідно до віку малюка.";
+  $("#homeChildLead").textContent = "Улюблені заняття й турбота в одному місці.";
   renderChildSwitcher();
 }
 
@@ -1957,6 +1993,92 @@ function openMedicineScreen(tabName = state.medicineTab || "today") {
   showMainNavigation("care");
   renderMedicineScreen();
   updateTopBack();
+}
+
+function renderHomeShortcuts() {
+  const grid = $("#homeShortcutGrid");
+  if (!grid) return;
+  const shortcuts = state.homeShortcutIds
+    .map((id) => homeShortcutCatalog.find((item) => item.id === id))
+    .filter(Boolean);
+  grid.innerHTML = shortcuts.map((item) => `
+    <button class="home-shortcut" type="button" data-home-shortcut="${item.id}" aria-label="Відкрити ${item.title}">
+      <span class="home-shortcut-icon"><img loading="lazy" decoding="async" src="${item.image}" alt="" /></span>
+      <strong>${item.title}</strong>
+    </button>
+  `).join("") + `
+    <button class="home-shortcut add" type="button" data-action="openHomeShortcutPicker" aria-label="Додати на головну">
+      <span class="home-shortcut-icon">＋</span>
+      <strong>Додати</strong>
+    </button>`;
+}
+
+function renderHomeShortcutCatalog() {
+  const catalog = $("#homeShortcutCatalog");
+  if (!catalog) return;
+  const selected = new Set(state.homeShortcutIds);
+  const groups = [...new Set(homeShortcutCatalog.map((item) => item.group))];
+  catalog.innerHTML = groups.map((group) => `
+    <section class="home-shortcut-group">
+      <h3>${group}</h3>
+      <div>${homeShortcutCatalog.filter((item) => item.group === group).map((item) => {
+        const active = selected.has(item.id);
+        return `<button type="button" data-home-picker-item="${item.id}" aria-pressed="${active}">
+          <img loading="lazy" decoding="async" src="${item.image}" alt="" />
+          <strong>${item.title}</strong>
+          <span>${active ? "✓" : "+"}</span>
+        </button>`;
+      }).join("")}</div>
+    </section>
+  `).join("");
+}
+
+function openHomeShortcutPicker() {
+  renderHomeShortcutCatalog();
+  $("#homeShortcutOverlay").hidden = false;
+}
+
+function closeHomeShortcutPicker() {
+  $("#homeShortcutOverlay").hidden = true;
+  renderHomeShortcuts();
+}
+
+function toggleHomeShortcut(shortcutId) {
+  const selected = new Set(state.homeShortcutIds);
+  if (selected.has(shortcutId)) selected.delete(shortcutId);
+  else if (selected.size >= 12) {
+    showToast("На головній може бути до 12 іконок");
+    return;
+  } else selected.add(shortcutId);
+  state.homeShortcutIds = homeShortcutCatalog.map((item) => item.id).filter((id) => selected.has(id));
+  localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
+  window.owlJoyAccount?.setHomeShortcuts?.(state.homeShortcutIds).catch(() => {
+    showToast("Не вдалося синхронізувати головну", "wrong");
+  });
+  renderHomeShortcutCatalog();
+  renderHomeShortcuts();
+}
+
+function openHomeShortcut(shortcutId) {
+  const shortcut = homeShortcutCatalog.find((item) => item.id === shortcutId);
+  if (!shortcut) return;
+  if (shortcut.game) {
+    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
+    if (!savedAge) {
+      showAgePicker();
+      showToast("Спочатку оберіть вік малюка");
+      return;
+    }
+    hideContentScreens();
+    startAge(savedAge);
+    startGame(shortcut.game);
+    return;
+  }
+  if (shortcut.section === "stories") return showStories();
+  if (shortcut.section === "poems") return showPoemCategories();
+  if (shortcut.section === "sleep") return showSleepScreen();
+  if (shortcut.section === "medicine") return openMedicineScreen();
+  if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
 }
 
 function localDateKey(date = new Date()) {
@@ -2626,6 +2748,7 @@ function hideContentScreens() {
   $("#profileHubScreen").hidden = true;
   $("#medicineScreen").hidden = true;
   $("#medicineFormScreen").hidden = true;
+  if ($("#homeShortcutOverlay")) $("#homeShortcutOverlay").hidden = true;
   $("#agePicker").hidden = true;
   $("#gamePicker").hidden = true;
   $("#gameArea").hidden = true;
@@ -3123,6 +3246,7 @@ function backToHome() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   hideContentScreens();
   $("#homeScreen").hidden = false;
+  renderHomeShortcuts();
   showMainNavigation("today");
   updateTopBack();
 }
@@ -3777,6 +3901,18 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const homeShortcut = event.target.closest("[data-home-shortcut]")?.dataset.homeShortcut;
+  if (homeShortcut) {
+    openHomeShortcut(homeShortcut);
+    return;
+  }
+
+  const homePickerItem = event.target.closest("[data-home-picker-item]")?.dataset.homePickerItem;
+  if (homePickerItem) {
+    toggleHomeShortcut(homePickerItem);
+    return;
+  }
+
   const section = event.target.closest("[data-section]")?.dataset.section;
   if (section === "games") {
     const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
@@ -3922,6 +4058,14 @@ document.addEventListener("click", (event) => {
 
   if (action === "addMedicine") {
     openMedicineForm();
+    return;
+  }
+  if (action === "openHomeShortcutPicker") {
+    openHomeShortcutPicker();
+    return;
+  }
+  if (action === "closeHomeShortcutPicker") {
+    closeHomeShortcutPicker();
     return;
   }
   if (action === "cancelMedicineForm") {
