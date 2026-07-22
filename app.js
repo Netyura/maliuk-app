@@ -2174,11 +2174,7 @@ function openHomeShortcut(shortcutId) {
   const shortcut = homeShortcutCatalog.find((item) => item.id === shortcutId);
   if (!shortcut) return;
   if (shortcut.section === "games") {
-    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
-    if (savedAge) {
-      hideContentScreens();
-      startAge(savedAge);
-    } else showAgePicker();
+    showAgePicker();
     return;
   }
   if (shortcut.game) {
@@ -4045,15 +4041,7 @@ document.addEventListener("click", (event) => {
 
   const section = event.target.closest("[data-section]")?.dataset.section;
   if (section === "games") {
-    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
-    if (savedAge) {
-      hideContentScreens();
-      startAge(savedAge);
-      showMainNavigation("development");
-      updateTopBack();
-    } else {
-      showAgePicker();
-    }
+    showAgePicker();
     return;
   }
 
