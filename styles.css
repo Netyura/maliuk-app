@@ -485,12 +485,25 @@ h1 {
 
 .home-grid button:disabled::after {
   content: "скоро";
-  right: 0.95rem;
+  right: 0.75rem;
+  display: grid;
+  width: 62px;
+  height: 32px;
+  place-items: center;
+  border-radius: 999px;
   color: rgba(139, 136, 150, 0.78);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  background: rgba(255, 253, 250, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(139, 136, 150, 0.06);
+  font-size: 0.62rem;
+  letter-spacing: 0.045em;
+  line-height: 1;
   text-transform: uppercase;
   transform: translateY(-50%);
+}
+
+.home-grid button:disabled strong,
+.home-grid button:disabled span {
+  padding-right: 4.7rem;
 }
 
 .home-grid img {
@@ -517,6 +530,340 @@ h1 {
   font-size: 0.86rem;
   line-height: 1.18;
   font-weight: 800;
+}
+
+.quick-log-screen {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.78rem;
+  overflow-y: auto;
+  padding-bottom: 0.45rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-log-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-log-hero {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #fff1e7, #fffaf5);
+  box-shadow: var(--menu-hero-shadow);
+}
+
+.quick-log-hero > div > span,
+.quick-log-journal > div:first-child > span {
+  color: #a45322;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.quick-log-hero h2,
+.quick-log-hero p,
+.quick-log-journal h3 {
+  margin: 0;
+}
+
+.quick-log-hero h2 {
+  margin-top: 0.28rem;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.quick-log-hero p {
+  margin-top: 0.42rem;
+  color: #625d6d;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.quick-log-hero img {
+  width: 88px;
+  height: 88px;
+  border-radius: 25px;
+  object-fit: cover;
+  box-shadow: 0 9px 20px rgba(74, 55, 42, 0.1);
+}
+
+.quick-log-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.52rem;
+}
+
+.quick-log-actions button {
+  display: grid;
+  min-width: 0;
+  min-height: 84px;
+  place-items: center;
+  align-content: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.3rem;
+  border: 1px solid rgba(23, 21, 31, 0.05);
+  border-radius: 21px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--menu-card-shadow);
+}
+
+.quick-log-actions button:nth-child(1) { background: linear-gradient(145deg, #eef7ff, #fff); }
+.quick-log-actions button:nth-child(2) { background: linear-gradient(145deg, #fff2e7, #fff); }
+.quick-log-actions button:nth-child(3) { background: linear-gradient(145deg, #f3f8ed, #fff); }
+.quick-log-actions button:nth-child(4) { background: linear-gradient(145deg, #eef6ff, #fff); }
+.quick-log-actions button:nth-child(5) { background: linear-gradient(145deg, #fff0ed, #fff); }
+
+.quick-log-actions button > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 1.35rem;
+}
+
+.quick-log-actions strong {
+  min-width: 0;
+  font-size: 0.72rem;
+  line-height: 1.05;
+}
+
+.quick-log-composer,
+.quick-log-journal {
+  padding: 0.9rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--menu-card-shadow);
+}
+
+.quick-log-composer {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quick-log-composer-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.quick-log-composer-heading span {
+  color: #a45322;
+  font-size: 0.63rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.quick-log-composer-heading h3 {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+}
+
+.quick-log-composer-heading button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border-radius: 12px;
+  color: #756f79;
+  background: #f5f0eb;
+  box-shadow: none;
+  font-size: 1.25rem;
+}
+
+.quick-log-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.quick-log-choice-list button {
+  min-height: 36px;
+  padding: 0.46rem 0.68rem;
+  border: 1px solid rgba(244, 117, 64, 0.12);
+  border-radius: 13px;
+  color: #716a75;
+  background: #faf5f0;
+  box-shadow: none;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.quick-log-choice-list button[aria-pressed="true"] {
+  color: #a45322;
+  border-color: rgba(244, 117, 64, 0.28);
+  background: #ffeade;
+}
+
+.quick-log-composer label {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.quick-log-composer label > span {
+  color: #514b57;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.quick-log-composer label > span small {
+  color: #98919b;
+  font-weight: 700;
+}
+
+.quick-log-composer input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.7rem 0.78rem;
+  border: 1px solid rgba(39, 34, 47, 0.12);
+  border-radius: 16px;
+  color: var(--ink);
+  background: #fffdfa;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  outline: none;
+}
+
+.quick-log-value-field > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.quick-log-value-field b {
+  min-width: 42px;
+  color: #625d6d;
+  font-size: 0.78rem;
+}
+
+.quick-log-error {
+  margin: 0;
+  padding: 0.65rem;
+  border-radius: 14px;
+  color: #a63c2d;
+  background: #fff0eb;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.quick-log-save {
+  min-height: 48px;
+  border-radius: 16px;
+  color: #fff;
+  background: var(--orange);
+  box-shadow: 0 8px 18px rgba(226, 101, 48, 0.18);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.quick-log-journal {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.quick-log-journal h3 {
+  margin-top: 0.16rem;
+  font-size: 1.12rem;
+}
+
+.quick-log-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.quick-log-date {
+  margin: 0.18rem 0 0 0.12rem;
+  color: #8a838e;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.quick-log-entry {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border-radius: 18px;
+  background: #fbf7f3;
+}
+
+.quick-log-entry-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 10px rgba(74, 55, 42, 0.06);
+}
+
+.quick-log-entry-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.quick-log-entry-copy strong {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-log-entry-copy span {
+  color: #837c87;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.quick-log-entry > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  border-radius: 11px;
+  color: #a05b54;
+  background: #fff;
+  box-shadow: none;
+  font-size: 1rem;
+}
+
+.quick-log-empty {
+  margin: 0;
+  padding: 1rem 0.5rem;
+  color: #918a94;
+  font-size: 0.74rem;
+  font-weight: 750;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .age-picker {
@@ -3722,6 +4069,22 @@ html.telegram-mini-app body {
   outline: none;
 }
 
+.medicine-form input::placeholder,
+.medicine-form textarea::placeholder {
+  color: #9b959e;
+  opacity: 1;
+}
+
+.medicine-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.8rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2327212f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+}
+
 .medicine-form textarea {
   min-height: 84px;
   resize: vertical;
@@ -3734,11 +4097,21 @@ html.telegram-mini-app body {
   box-shadow: 0 0 0 3px rgba(244, 117, 64, 0.09);
 }
 
-.medicine-dose-row,
-.medicine-date-row {
+.medicine-dose-row {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 0.68rem;
+}
+
+.medicine-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.68rem;
+}
+
+.medicine-date-row label,
+.medicine-date-row input {
+  min-width: 0;
 }
 
 .medicine-days {
@@ -3779,14 +4152,48 @@ html.telegram-mini-app body {
 }
 
 .medicine-extra summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   color: #6d6672;
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 850;
 }
 
+.medicine-extra summary > span {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.medicine-extra summary b {
+  color: #514b57;
+  font-size: 0.8rem;
+}
+
+.medicine-extra summary small {
+  color: #928b96;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
 .medicine-extra[open] summary {
   margin-bottom: 0.72rem;
+}
+
+.medicine-extra-description {
+  margin: 0 0 0.72rem;
+  color: #817a86;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@media (max-width: 520px) {
+  .medicine-date-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .medicine-form-error {
@@ -4954,22 +5361,25 @@ body,
 .home-shortcut-selected button {
   position: relative;
   display: grid;
-  flex: 0 0 74px;
+  flex: 0 0 72px;
   justify-items: center;
   gap: 0.3rem;
-  padding: 0.35rem 0.2rem 0.45rem;
-  border: 1px solid rgba(244, 125, 74, 0.14);
-  border-radius: 18px;
+  align-content: start;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: var(--ink);
-  background: #fff5ed;
+  background: transparent;
   box-shadow: none;
 }
 
 .home-shortcut-selected img {
-  width: 48px;
-  height: 48px;
-  border-radius: 15px;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(244, 125, 74, 0.12);
+  border-radius: 18px;
   object-fit: cover;
+  box-shadow: 0 6px 14px rgba(74, 55, 42, 0.08);
 }
 
 .home-shortcut-selected strong {
@@ -5020,7 +5430,7 @@ body,
   gap: 0.45rem;
   width: 100%;
   min-width: 0;
-  align-items: stretch;
+  align-items: center;
 }
 
 .home-shortcut-folder-open {
@@ -5077,10 +5487,15 @@ body,
 
 .home-shortcut-folder-add {
   display: grid;
+  align-self: center;
+  width: 44px;
+  height: 44px;
   min-width: 44px;
+  min-height: 44px;
+  padding: 0;
   place-items: center;
   border: 1px solid rgba(244, 125, 74, 0.16);
-  border-radius: 17px;
+  border-radius: 15px;
   color: #a45322;
   background: #fff0e5;
   box-shadow: none;

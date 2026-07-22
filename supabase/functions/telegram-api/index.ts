@@ -157,7 +157,7 @@ export default {
       if (error) throw error;
 
       if (body.action === "bootstrap") {
-        const [favoritesResult, childResult, medicineResult, intakeResult, preferencesResult] = await Promise.all([
+        const [favoritesResult, childResult, medicineResult, intakeResult, preferencesResult, quickLogsResult] = await Promise.all([
           supabase
             .from("user_favorites")
             .select("content_id")
@@ -186,17 +186,25 @@ export default {
             .select("home_shortcuts")
             .eq("user_id", user.id)
             .maybeSingle(),
+          supabase
+            .from("care_quick_logs")
+            .select("id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
+            .eq("user_id", user.id)
+            .order("occurred_at", { ascending: false })
+            .limit(200),
         ]);
         const { data: favorites, error: favoritesError } = favoritesResult;
         const { data: childProfiles, error: childError } = childResult;
         const { data: medicineReminders, error: medicineError } = medicineResult;
         const { data: medicineIntakes, error: intakeError } = intakeResult;
         const { data: preferences, error: preferencesError } = preferencesResult;
+        const { data: careQuickLogs, error: quickLogsError } = quickLogsResult;
         if (favoritesError) throw favoritesError;
         if (childError) throw childError;
         if (medicineError) throw medicineError;
         if (intakeError) throw intakeError;
         if (preferencesError) throw preferencesError;
+        if (quickLogsError) throw quickLogsError;
 
         return json(
           {
@@ -206,6 +214,7 @@ export default {
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
             medicineReminders: medicineReminders || [],
             medicineIntakes: medicineIntakes || [],
+            careQuickLogs: careQuickLogs || [],
             homeShortcutIds: preferences?.home_shortcuts || null,
           },
           200,
@@ -294,6 +303,69 @@ export default {
         if (!deletedProfile) return json({ error: "Профіль не знайдено" }, 404, headers);
 
         return json({ ok: true, deletedChildId: childId }, 200, headers);
+      }
+
+      if (body.action === "quicklog.save") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const eventType = typeof body.eventType === "string" ? body.eventType : "";
+        const eventAction = typeof body.eventAction === "string" ? body.eventAction.trim() : "";
+        const note = typeof body.note === "string" ? body.note.trim() : "";
+        const unit = typeof body.unit === "string" ? body.unit.trim() : "";
+        const occurredAt = typeof body.occurredAt === "string" ? new Date(body.occurredAt) : new Date();
+        const numericValue = body.value === "" || body.value === null || body.value === undefined
+          ? null
+          : Number(body.value);
+        const allowedTypes = ["sleep", "feeding", "diaper", "medicine", "temperature"];
+
+        if (
+          !childId || !allowedTypes.includes(eventType) || !eventAction || eventAction.length > 80 ||
+          note.length > 300 || unit.length > 20 || Number.isNaN(occurredAt.getTime()) ||
+          occurredAt.getTime() > Date.now() + 5 * 60 * 1000 ||
+          (numericValue !== null && (!Number.isFinite(numericValue) || numericValue < 0 || numericValue > 10000))
+        ) {
+          return json({ error: "Перевірте дані швидкого запису" }, 400, headers);
+        }
+
+        const { data: ownedChild, error: childLookupError } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("id", childId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (childLookupError) throw childLookupError;
+        if (!ownedChild) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+
+        const { data: careQuickLog, error: quickLogError } = await supabase
+          .from("care_quick_logs")
+          .insert({
+            user_id: user.id,
+            child_id: childId,
+            event_type: eventType,
+            event_action: eventAction,
+            value: numericValue,
+            unit: unit || null,
+            note: note || null,
+            occurred_at: occurredAt.toISOString(),
+          })
+          .select("id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
+          .single();
+        if (quickLogError) throw quickLogError;
+        return json({ careQuickLog }, 200, headers);
+      }
+
+      if (body.action === "quicklog.delete") {
+        const quickLogId = typeof body.quickLogId === "string" ? body.quickLogId : "";
+        if (!quickLogId) return json({ error: "Запис не вказано" }, 400, headers);
+        const { data: deletedQuickLog, error: deleteError } = await supabase
+          .from("care_quick_logs")
+          .delete()
+          .eq("id", quickLogId)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (deleteError) throw deleteError;
+        if (!deletedQuickLog) return json({ error: "Запис не знайдено" }, 404, headers);
+        return json({ ok: true }, 200, headers);
       }
 
       if (body.action === "medicine.save") {

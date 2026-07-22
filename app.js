@@ -1704,6 +1704,7 @@ const mainHomeShortcutCatalog = [
   { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
   { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
   { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
+  { id: "quick-log", group: "Турбота", title: "Швидкий запис", image: "./assets/images/home-quick-log.webp", section: "quick-log" },
   { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
   { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
 ];
@@ -1798,6 +1799,9 @@ const state = {
   },
   medicineReminders: [],
   medicineIntakes: [],
+  careQuickLogs: [],
+  quickLogType: null,
+  quickLogAction: null,
   medicineTab: "today",
   editingMedicineId: null,
   deletingMedicineId: null,
@@ -1839,6 +1843,7 @@ localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
 window.owlJoyAccount?.ready.then((account) => {
   state.medicineReminders = [...(account.medicineReminders || [])];
   state.medicineIntakes = [...(account.medicineIntakes || [])];
+  state.careQuickLogs = [...(account.careQuickLogs || [])];
   if (Array.isArray(account.homeShortcutIds)) {
     state.homeShortcutIds = normalizeHomeShortcutIds(account.homeShortcutIds);
     localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
@@ -2192,6 +2197,7 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "stories") return showStories();
   if (shortcut.section === "poems") return showPoemCategories();
   if (shortcut.section === "sleep") return showSleepScreen();
+  if (shortcut.section === "quick-log") return openQuickLogScreen();
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
   if (shortcut.sleepSound) return selectSleepSound(shortcut.sleepSound);
@@ -2221,6 +2227,208 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+const quickLogTypes = {
+  sleep: { label: "Сон", icon: "🌙", actions: ["Заснув", "Прокинувся"] },
+  feeding: { label: "Годування", icon: "🍼", actions: ["Грудне", "Пляшечка", "Прикорм"] },
+  diaper: { label: "Підгузок", icon: "🧷", actions: ["Мокрий", "Брудний", "Обидва"] },
+  medicine: { label: "Ліки", icon: "💊", actions: ["Ліки дано"] },
+  temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] }
+};
+
+function localDateTimeValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function quickLogActionsForType(type) {
+  if (type !== "medicine") return quickLogTypes[type]?.actions || [];
+  const medicineTitles = activeChildMedicineReminders()
+    .map((item) => item.title)
+    .filter(Boolean);
+  return medicineTitles.length ? [...new Set(medicineTitles)] : quickLogTypes.medicine.actions;
+}
+
+function quickLogDateLabel(date) {
+  const today = localDateKey();
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const dateKey = localDateKey(date);
+  if (dateKey === today) return "Сьогодні";
+  if (dateKey === localDateKey(yesterdayDate)) return "Учора";
+  return new Intl.DateTimeFormat("uk-UA", { day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
+function activeChildQuickLogs() {
+  const childId = state.childProfile?.id;
+  return state.careQuickLogs
+    .filter((item) => !childId || item.child_id === childId || item.childId === childId)
+    .sort((left, right) => new Date(right.occurred_at || right.occurredAt) - new Date(left.occurred_at || left.occurredAt));
+}
+
+function renderQuickLogJournal() {
+  const list = $("#quickLogList");
+  if (!list) return;
+  const logs = activeChildQuickLogs();
+  if (!logs.length) {
+    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки й температуру.</p>';
+    return;
+  }
+
+  let currentDateKey = "";
+  list.innerHTML = logs.map((item) => {
+    const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія", icon: "•" };
+    const occurredAt = new Date(item.occurred_at || item.occurredAt);
+    const dateKey = localDateKey(occurredAt);
+    const dateHeading = dateKey !== currentDateKey
+      ? `<h4 class="quick-log-date">${escapeHtml(quickLogDateLabel(occurredAt))}</h4>`
+      : "";
+    currentDateKey = dateKey;
+    const value = item.value !== null && item.value !== undefined && item.value !== ""
+      ? `${item.value} ${item.unit || ""}`.trim()
+      : "";
+    const details = [
+      occurredAt.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
+      value,
+      item.note
+    ].filter(Boolean).join(" · ");
+    return `${dateHeading}<article class="quick-log-entry">
+      <span class="quick-log-entry-icon" aria-hidden="true">${type.icon}</span>
+      <span class="quick-log-entry-copy">
+        <strong>${escapeHtml(type.label)} · ${escapeHtml(item.event_action || item.eventAction)}</strong>
+        <span>${escapeHtml(details)}</span>
+      </span>
+      <button type="button" data-quick-log-delete="${escapeHtml(item.id)}" aria-label="Видалити запис">×</button>
+    </article>`;
+  }).join("");
+}
+
+function updateQuickLogValueField() {
+  const field = $("#quickLogValueField");
+  const valueInput = $("#quickLogValue");
+  const valueLabel = $("#quickLogValueLabel");
+  const valueUnit = $("#quickLogValueUnit");
+  const temperature = state.quickLogType === "temperature";
+  const bottle = state.quickLogType === "feeding" && state.quickLogAction === "Пляшечка";
+  field.hidden = !(temperature || bottle);
+  valueInput.required = temperature;
+  valueLabel.textContent = temperature ? "Температура" : "Кількість";
+  valueUnit.textContent = temperature ? "°C" : "мл";
+  valueInput.placeholder = temperature ? "Наприклад, 36,6" : "Наприклад, 120";
+}
+
+function renderQuickLogComposer() {
+  const type = quickLogTypes[state.quickLogType];
+  if (!type) return;
+  const actions = quickLogActionsForType(state.quickLogType);
+  if (!actions.includes(state.quickLogAction)) state.quickLogAction = actions[0] || "";
+  $("#quickLogComposerTitle").textContent = type.label;
+  $("#quickLogChoiceList").innerHTML = actions.map((action) =>
+    `<button type="button" data-quick-log-choice="${escapeHtml(action)}" aria-pressed="${action === state.quickLogAction}">${escapeHtml(action)}</button>`
+  ).join("");
+  updateQuickLogValueField();
+}
+
+function openQuickLogComposer(type) {
+  if (!quickLogTypes[type]) return;
+  state.quickLogType = type;
+  state.quickLogAction = quickLogActionsForType(type)[0] || "";
+  $("#quickLogComposer").hidden = false;
+  $("#quickLogOccurredAt").value = localDateTimeValue();
+  $("#quickLogValue").value = "";
+  $("#quickLogNote").value = "";
+  $("#quickLogError").hidden = true;
+  renderQuickLogComposer();
+  $("#quickLogComposer").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeQuickLogComposer() {
+  state.quickLogType = null;
+  state.quickLogAction = null;
+  $("#quickLogComposer").hidden = true;
+  $("#quickLogError").hidden = true;
+}
+
+function openQuickLogScreen() {
+  hideContentScreens();
+  closeQuickLogComposer();
+  $("#quickLogChildName").textContent = state.childProfile?.nickname || "малюка";
+  $("#quickLogScreen").hidden = false;
+  renderQuickLogJournal();
+  showMainNavigation("care");
+  updateTopBack();
+}
+
+async function saveQuickLogForm(event) {
+  event.preventDefault();
+  const error = $("#quickLogError");
+  const occurredAtValue = $("#quickLogOccurredAt").value;
+  const occurredAt = new Date(occurredAtValue);
+  const rawValue = $("#quickLogValue").value.trim().replace(",", ".");
+  const needsTemperature = state.quickLogType === "temperature";
+  const numberValue = rawValue ? Number(rawValue) : null;
+
+  if (!state.childProfile?.id || !state.quickLogType || !state.quickLogAction || Number.isNaN(occurredAt.getTime())) {
+    error.textContent = "Оберіть подію та перевірте час запису.";
+    error.hidden = false;
+    return;
+  }
+  if (occurredAt.getTime() > Date.now() + 5 * 60 * 1000) {
+    error.textContent = "Час запису не може бути в майбутньому.";
+    error.hidden = false;
+    return;
+  }
+  if (needsTemperature && (numberValue === null || numberValue < 30 || numberValue > 45)) {
+    error.textContent = "Вкажіть температуру від 30 до 45 °C.";
+    error.hidden = false;
+    return;
+  }
+  if (numberValue !== null && (!Number.isFinite(numberValue) || numberValue < 0 || numberValue > 10000)) {
+    error.textContent = "Перевірте введене значення.";
+    error.hidden = false;
+    return;
+  }
+
+  error.hidden = true;
+  $("#quickLogSaveButton").disabled = true;
+  try {
+    const unit = needsTemperature ? "°C" : state.quickLogType === "feeding" && state.quickLogAction === "Пляшечка" ? "мл" : null;
+    await window.owlJoyAccount.saveCareQuickLog({
+      childId: state.childProfile.id,
+      eventType: state.quickLogType,
+      eventAction: state.quickLogAction,
+      value: numberValue,
+      unit,
+      note: $("#quickLogNote").value.trim(),
+      occurredAt: occurredAt.toISOString()
+    });
+    state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    closeQuickLogComposer();
+    renderQuickLogJournal();
+    showToast("Запис додано", "correct");
+  } catch (saveError) {
+    error.textContent = saveError.message || "Не вдалося зберегти запис.";
+    error.hidden = false;
+  } finally {
+    $("#quickLogSaveButton").disabled = false;
+  }
+}
+
+async function deleteQuickLog(quickLogId) {
+  if (!window.confirm("Видалити цей запис із журналу?")) return;
+  try {
+    await window.owlJoyAccount.deleteCareQuickLog(quickLogId);
+    state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    renderQuickLogJournal();
+    showToast("Запис видалено");
+  } catch (error) {
+    showToast(error.message || "Не вдалося видалити запис", "wrong");
+  }
 }
 
 function medicineDateLabel(dateKey, style = "long") {
@@ -2759,6 +2967,7 @@ async function saveOnboardingProfile(event) {
 
 $("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
 $("#medicineForm").addEventListener("submit", saveMedicineForm);
+$("#quickLogComposer").addEventListener("submit", saveQuickLogForm);
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -2864,6 +3073,7 @@ function hideContentScreens() {
   $("#developmentHubScreen").hidden = true;
   $("#careHubScreen").hidden = true;
   $("#profileHubScreen").hidden = true;
+  $("#quickLogScreen").hidden = true;
   $("#medicineScreen").hidden = true;
   $("#medicineFormScreen").hidden = true;
   if ($("#homeShortcutOverlay")) $("#homeShortcutOverlay").hidden = true;
@@ -3396,6 +3606,11 @@ function backToGames() {
 }
 
 function goBack() {
+  if (!$("#quickLogScreen").hidden) {
+    openCareTab();
+    return;
+  }
+
   if (!$("#medicineFormScreen").hidden) {
     state.editingMedicineId = null;
     openMedicineScreen(state.medicineTab);
@@ -3942,6 +4157,26 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const quickLogType = event.target.closest("[data-quick-log-type]")?.dataset.quickLogType;
+  if (quickLogType) {
+    openQuickLogComposer(quickLogType);
+    return;
+  }
+
+  const quickLogChoice = event.target.closest("[data-quick-log-choice]")?.dataset.quickLogChoice;
+  if (quickLogChoice) {
+    state.quickLogAction = quickLogChoice;
+    $("#quickLogValue").value = "";
+    renderQuickLogComposer();
+    return;
+  }
+
+  const quickLogDelete = event.target.closest("[data-quick-log-delete]")?.dataset.quickLogDelete;
+  if (quickLogDelete) {
+    deleteQuickLog(quickLogDelete);
+    return;
+  }
+
   const medicineTab = event.target.closest("[data-medicine-tab]")?.dataset.medicineTab;
   if (medicineTab) {
     state.medicineTab = medicineTab;
@@ -4047,6 +4282,11 @@ document.addEventListener("click", (event) => {
 
   if (section === "sleep") {
     showSleepScreen();
+    return;
+  }
+
+  if (section === "quick-log") {
+    openQuickLogScreen();
     return;
   }
 
@@ -4176,6 +4416,10 @@ document.addEventListener("click", (event) => {
 
   if (action === "addMedicine") {
     openMedicineForm();
+    return;
+  }
+  if (action === "cancelQuickLog") {
+    closeQuickLogComposer();
     return;
   }
   if (action === "openHomeShortcutPicker") {

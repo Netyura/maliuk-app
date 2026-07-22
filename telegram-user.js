@@ -5,6 +5,7 @@
   const previewChildrenKey = "owljoyChildProfiles";
   const previewMedicineKey = "owljoyMedicineReminders";
   const previewIntakesKey = "owljoyMedicineIntakes";
+  const previewQuickLogsKey = "owljoyCareQuickLogs";
 
   const account = {
     currentUser: null,
@@ -14,6 +15,7 @@
     homeShortcutIds: null,
     medicineReminders: [],
     medicineIntakes: [],
+    careQuickLogs: [],
     status: "loading",
     error: null,
     ready: null,
@@ -69,6 +71,7 @@
       account.currentChild = account.childProfiles[0] || null;
       account.medicineReminders = readPreviewArray(previewMedicineKey);
       account.medicineIntakes = readPreviewArray(previewIntakesKey);
+      account.careQuickLogs = readPreviewArray(previewQuickLogsKey);
       account.homeShortcutIds = localStorage.getItem("owljoyHomeShortcuts") === null
         ? null
         : readPreviewArray("owljoyHomeShortcuts");
@@ -90,6 +93,7 @@
       account.homeShortcutIds = Array.isArray(payload.homeShortcutIds) ? payload.homeShortcutIds : null;
       account.medicineReminders = payload.medicineReminders || [];
       account.medicineIntakes = payload.medicineIntakes || [];
+      account.careQuickLogs = payload.careQuickLogs || [];
       account.status = "authenticated";
     } catch (error) {
       account.status = "error";
@@ -234,6 +238,44 @@
     return { ok: true };
   }
 
+  async function saveCareQuickLog(values) {
+    if (account.status === "authenticated") {
+      const payload = await request("quicklog.save", values);
+      account.careQuickLogs.unshift(payload.careQuickLog);
+      account.careQuickLogs = account.careQuickLogs.slice(0, 200);
+      return payload.careQuickLog;
+    }
+    if (account.status === "error") throw account.error || new Error("Не вдалося підключитися до OwlJoy");
+
+    const careQuickLog = {
+      id: `preview-quick-log-${Date.now()}`,
+      child_id: values.childId,
+      event_type: values.eventType,
+      event_action: values.eventAction,
+      value: values.value === "" || values.value === null ? null : Number(values.value),
+      unit: values.unit || null,
+      note: values.note || null,
+      occurred_at: values.occurredAt || new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+    account.careQuickLogs.unshift(careQuickLog);
+    account.careQuickLogs = account.careQuickLogs.slice(0, 200);
+    localStorage.setItem(previewQuickLogsKey, JSON.stringify(account.careQuickLogs));
+    return careQuickLog;
+  }
+
+  async function deleteCareQuickLog(quickLogId) {
+    if (account.status === "authenticated") {
+      await request("quicklog.delete", { quickLogId });
+    } else if (account.status === "error") {
+      throw account.error || new Error("Не вдалося підключитися до OwlJoy");
+    }
+    account.careQuickLogs = account.careQuickLogs.filter((item) => item.id !== quickLogId);
+    if (account.status !== "authenticated") {
+      localStorage.setItem(previewQuickLogsKey, JSON.stringify(account.careQuickLogs));
+    }
+  }
+
   async function setHomeShortcuts(shortcutIds) {
     const cleanIds = Array.isArray(shortcutIds) ? shortcutIds.slice(0, 12) : [];
     account.homeShortcutIds = cleanIds;
@@ -251,6 +293,8 @@
   account.deleteMedicineReminder = deleteMedicineReminder;
   account.logMedicineIntake = logMedicineIntake;
   account.setMedicineNotifications = setMedicineNotifications;
+  account.saveCareQuickLog = saveCareQuickLog;
+  account.deleteCareQuickLog = deleteCareQuickLog;
   account.setHomeShortcuts = setHomeShortcuts;
   account.ready = bootstrap();
   window.owlJoyAccount = account;
