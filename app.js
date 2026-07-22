@@ -1733,6 +1733,7 @@ const state = {
   medicineIntakes: [],
   medicineTab: "today",
   editingMedicineId: null,
+  deletingMedicineId: null,
   task: null
 };
 
@@ -2248,23 +2249,38 @@ async function saveMedicineForm(event) {
   }
 }
 
-function confirmMedicineDelete() {
-  if (telegramApp?.showConfirm) {
-    return new Promise((resolve) => telegramApp.showConfirm("Видалити це нагадування? Історія прийомів також буде стерта.", resolve));
-  }
-  return Promise.resolve(window.confirm("Видалити це нагадування? Історія прийомів також буде стерта."));
+function openMedicineDeleteDialog(reminderId) {
+  const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  if (!reminder) return;
+  state.deletingMedicineId = reminderId;
+  $("#medicineDeleteTitle").textContent = `Видалити «${reminder.title}»?`;
+  $("#medicineDeleteOverlay").hidden = false;
+  $("#confirmDeleteMedicine").focus();
 }
 
-async function deleteMedicineReminder(reminderId) {
-  if (!(await confirmMedicineDelete())) return;
+function closeMedicineDeleteDialog() {
+  state.deletingMedicineId = null;
+  $("#medicineDeleteOverlay").hidden = true;
+}
+
+async function confirmMedicineDelete() {
+  const reminderId = state.deletingMedicineId;
+  if (!reminderId) return closeMedicineDeleteDialog();
+  const confirmButton = $("#confirmDeleteMedicine");
+  confirmButton.disabled = true;
+  confirmButton.textContent = "Видаляємо…";
   try {
     await window.owlJoyAccount.deleteMedicineReminder(reminderId);
     state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
     state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+    closeMedicineDeleteDialog();
     renderMedicineScreen();
     showToast("Нагадування видалено");
   } catch (error) {
     showToast(error.message || "Не вдалося видалити", "wrong");
+  } finally {
+    confirmButton.disabled = false;
+    confirmButton.textContent = "Видалити";
   }
 }
 
@@ -3717,7 +3733,7 @@ document.addEventListener("click", (event) => {
 
   const medicineDelete = event.target.closest("[data-medicine-delete]")?.dataset.medicineDelete;
   if (medicineDelete) {
-    deleteMedicineReminder(medicineDelete);
+    openMedicineDeleteDialog(medicineDelete);
     return;
   }
 
@@ -3941,6 +3957,14 @@ document.addEventListener("click", (event) => {
   }
   if (action === "confirmDeleteChild") {
     confirmDeleteChildProfile();
+    return;
+  }
+  if (action === "cancelDeleteMedicine") {
+    closeMedicineDeleteDialog();
+    return;
+  }
+  if (action === "confirmDeleteMedicine") {
+    confirmMedicineDelete();
     return;
   }
   if (action === "cancelAddChild") {
