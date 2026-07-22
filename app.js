@@ -2072,7 +2072,20 @@ function renderHomeShortcutCatalog() {
     title.textContent = "Додати на головну";
     lead.textContent = "Додайте розділ або відкрийте його й виберіть щось конкретне.";
     backButton.hidden = true;
+    const selectedItems = state.homeShortcutIds
+      .map((id) => homeShortcutCatalog.find((item) => item.id === id))
+      .filter(Boolean);
     catalog.innerHTML = `
+      ${selectedItems.length ? `<section class="home-shortcut-selected">
+        <h3>На головній</h3>
+        <div>${selectedItems.map((item) => `
+          <button type="button" data-home-picker-item="${item.id}" aria-label="Прибрати ${item.title} з головної">
+            <img loading="lazy" decoding="async" src="${item.image}" alt="" />
+            <strong>${item.title}</strong>
+            <span>×</span>
+          </button>
+        `).join("")}</div>
+      </section>` : ""}
       <section class="home-shortcut-folder-list">
         ${homeShortcutFolders.map((folder) => {
           const active = selected.has(folder.shortcutId);

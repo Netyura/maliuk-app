@@ -4911,6 +4911,75 @@ body,
   display: none;
 }
 
+.home-shortcut-selected h3 {
+  margin: 0 0 0.5rem 0.15rem;
+  color: #706a76;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.home-shortcut-selected > div {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0 0.1rem 0.25rem;
+  scrollbar-width: none;
+}
+
+.home-shortcut-selected > div::-webkit-scrollbar {
+  display: none;
+}
+
+.home-shortcut-selected button {
+  position: relative;
+  display: grid;
+  flex: 0 0 74px;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.2rem 0.45rem;
+  border: 1px solid rgba(244, 125, 74, 0.14);
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fff5ed;
+  box-shadow: none;
+}
+
+.home-shortcut-selected img {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  object-fit: cover;
+}
+
+.home-shortcut-selected strong {
+  display: -webkit-box;
+  width: 100%;
+  min-height: 2em;
+  overflow: hidden;
+  font-size: 0.65rem;
+  line-height: 1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.home-shortcut-selected span {
+  position: absolute;
+  top: 0.18rem;
+  right: 0.18rem;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 8px;
+  color: #a74742;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(74, 55, 42, 0.1);
+  font-size: 0.92rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
 .home-shortcut-group h3 {
   margin: 0 0 0.5rem 0.15rem;
   color: #706a76;
