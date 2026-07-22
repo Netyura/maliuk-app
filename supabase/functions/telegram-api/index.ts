@@ -429,10 +429,16 @@ export default {
         const allowedShortcuts = new Set([
           "game:animals", "game:objects", "game:colors", "game:families", "game:emotions",
           "game:dress-up", "game:bubbles", "game:my-face", "game:my-body",
-          "stories", "poems", "sleep", "medicine", "food",
+          "sleep", "medicine", "food",
         ]);
         const shortcutIds = Array.isArray(body.shortcutIds)
-          ? [...new Set(body.shortcutIds)].filter((id) => typeof id === "string" && allowedShortcuts.has(id)).slice(0, 12)
+          ? [...new Set(body.shortcutIds)].filter((id) =>
+            typeof id === "string" && (
+              allowedShortcuts.has(id) ||
+              /^story:[a-z0-9-]{1,120}$/.test(id) ||
+              /^poem:[a-z0-9-]{1,120}$/.test(id)
+            )
+          ).slice(0, 12)
           : null;
         if (!shortcutIds) return json({ error: "Некоректні ярлики головної" }, 400, headers);
         const { error: shortcutsError } = await supabase

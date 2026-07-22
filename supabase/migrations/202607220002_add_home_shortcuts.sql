@@ -1,7 +1,7 @@
 alter table public.user_preferences
   add column if not exists home_shortcuts text[] not null default array[
     'game:animals',
-    'stories',
+    'story:kolobok',
     'sleep',
     'medicine'
   ]::text[];

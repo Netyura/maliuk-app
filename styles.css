@@ -4691,11 +4691,7 @@ body,
 
 /* Головна у форматі екрана телефона */
 .home-launcher {
-  padding: 1rem 0.85rem 1.1rem;
-  border: 1px solid var(--surface-border);
-  border-radius: 28px;
-  background: rgba(255, 253, 250, 0.76);
-  box-shadow: var(--menu-hero-shadow);
+  padding: 0.2rem 0.1rem 0.9rem;
 }
 
 .home-launcher-heading,
@@ -4735,9 +4731,8 @@ body,
 
 .home-shortcut-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem 0.55rem;
-  margin-top: 1.05rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem 0.42rem;
 }
 
 .home-shortcut {
@@ -4754,11 +4749,11 @@ body,
 
 .home-shortcut-icon {
   display: grid;
-  width: 70px;
-  height: 70px;
+  width: 64px;
+  height: 64px;
   place-items: center;
   border: 1px solid rgba(23, 21, 31, 0.045);
-  border-radius: 23px;
+  border-radius: 21px;
   overflow: hidden;
   color: #a45322;
   background: linear-gradient(145deg, #fff5ed, #fff);
@@ -4785,7 +4780,7 @@ body,
   width: 100%;
   min-height: 2.1em;
   overflow: hidden;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   line-height: 1.05;
   font-weight: 800;
   -webkit-box-orient: vertical;
@@ -4796,6 +4791,16 @@ body,
   border: 1px dashed rgba(164, 83, 34, 0.32);
   background: rgba(255, 240, 229, 0.56);
   box-shadow: none;
+}
+
+.home-shortcut.is-dragging {
+  z-index: 2;
+  opacity: 0.7;
+}
+
+.home-shortcut.is-dragging .home-shortcut-icon {
+  transform: scale(1.08);
+  box-shadow: 0 14px 28px rgba(74, 55, 42, 0.18);
 }
 
 .home-shortcut-overlay {
@@ -4946,9 +4951,9 @@ body,
 
 @media (max-width: 370px) {
   .home-shortcut-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 21px;
+    width: 58px;
+    height: 58px;
+    border-radius: 19px;
   }
 
   .home-shortcut-group > div {

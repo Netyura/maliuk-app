@@ -1690,7 +1690,7 @@ const stories = [
   ...extraStories
 ];
 
-const homeShortcutCatalog = [
+const mainHomeShortcutCatalog = [
   { id: "game:animals", group: "Ігри", title: "Тварини", image: "./assets/images/cat.webp", game: "animals" },
   { id: "game:objects", group: "Ігри", title: "Предмети", image: "./assets/images/objects/cube.webp", game: "objects" },
   { id: "game:colors", group: "Ігри", title: "Кольори", image: "./assets/images/colors/red-apple.webp", game: "colors" },
@@ -1700,20 +1700,42 @@ const homeShortcutCatalog = [
   { id: "game:bubbles", group: "Ігри", title: "Бульбашки", image: "./assets/images/home-games.webp", game: "bubbles" },
   { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
   { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
-  { id: "stories", group: "Розвиток", title: "Казки", image: "./assets/images/home-stories.webp", section: "stories" },
-  { id: "poems", group: "Розвиток", title: "Віршики", image: "./assets/images/home-poems.webp", section: "poems" },
   { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
   { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
   { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
 ];
 
+const homeShortcutCatalog = [
+  ...mainHomeShortcutCatalog,
+  ...stories.map((story) => ({
+    id: `story:${story.id}`,
+    group: "Казки",
+    title: story.title,
+    image: `./assets/images/${story.image.replace(/\.png$/i, ".webp")}`,
+    story: story.id
+  })),
+  ...poems.map((poem) => ({
+    id: `poem:${poem.id}`,
+    group: "Віршики",
+    title: poem.title,
+    image: poem.image ? `./assets/images/${poem.image.replace(/\.png$/i, ".webp")}` : "./assets/images/home-poems.webp",
+    poem: poem.id
+  }))
+];
+
+function normalizeHomeShortcutIds(shortcutIds) {
+  if (!Array.isArray(shortcutIds)) return null;
+  const migrated = shortcutIds.map((id) => id === "stories" ? "story:kolobok" : id === "poems" ? "poem:bath-kotyku-vorkotyku" : id);
+  const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
+  return [...new Set(migrated)].filter((id) => allowedIds.has(id)).slice(0, 12);
+}
+
 function readHomeShortcutIds() {
-  const defaults = ["game:animals", "stories", "sleep", "medicine"];
+  const defaults = ["game:animals", "story:kolobok", "sleep", "medicine"];
   try {
     const saved = JSON.parse(localStorage.getItem("owljoyHomeShortcuts") || "null");
     if (!Array.isArray(saved)) return defaults;
-    const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
-    return [...new Set(saved)].filter((id) => allowedIds.has(id)).slice(0, 12);
+    return normalizeHomeShortcutIds(saved);
   } catch {
     return defaults;
   }
@@ -1767,6 +1789,15 @@ const state = {
   task: null
 };
 
+const homeShortcutDrag = {
+  id: null,
+  timer: null,
+  active: false,
+  startX: 0,
+  startY: 0,
+  suppressClickUntil: 0
+};
+
 const $ = (selector) => document.querySelector(selector);
 const asset = (name) => {
   const optimizedName = name.replace(/\.png$/i, ".webp");
@@ -1792,8 +1823,7 @@ window.owlJoyAccount?.ready.then((account) => {
   state.medicineReminders = [...(account.medicineReminders || [])];
   state.medicineIntakes = [...(account.medicineIntakes || [])];
   if (Array.isArray(account.homeShortcutIds)) {
-    const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
-    state.homeShortcutIds = account.homeShortcutIds.filter((id) => allowedIds.has(id)).slice(0, 12);
+    state.homeShortcutIds = normalizeHomeShortcutIds(account.homeShortcutIds);
     localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
     renderHomeShortcuts();
   }
@@ -1846,7 +1876,7 @@ function applyChildProfile(profile) {
   if (!profile) return;
   state.childProfile = profile;
   localStorage.setItem("owljoyActiveChildId", profile.id);
-  $("#homeChildLead").textContent = "Улюблені заняття й турбота в одному місці.";
+  $("#homeChildLead").textContent = "Додавайте потрібне через «＋». Іконки можна затискати й перетягувати.";
   renderChildSwitcher();
 }
 
@@ -2043,18 +2073,23 @@ function closeHomeShortcutPicker() {
   renderHomeShortcuts();
 }
 
-function toggleHomeShortcut(shortcutId) {
-  const selected = new Set(state.homeShortcutIds);
-  if (selected.has(shortcutId)) selected.delete(shortcutId);
-  else if (selected.size >= 12) {
-    showToast("На головній може бути до 12 іконок");
-    return;
-  } else selected.add(shortcutId);
-  state.homeShortcutIds = homeShortcutCatalog.map((item) => item.id).filter((id) => selected.has(id));
+function persistHomeShortcuts() {
   localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
   window.owlJoyAccount?.setHomeShortcuts?.(state.homeShortcutIds).catch(() => {
     showToast("Не вдалося синхронізувати головну", "wrong");
   });
+}
+
+function toggleHomeShortcut(shortcutId) {
+  if (state.homeShortcutIds.includes(shortcutId)) {
+    state.homeShortcutIds = state.homeShortcutIds.filter((id) => id !== shortcutId);
+  } else if (state.homeShortcutIds.length >= 12) {
+    showToast("На головній може бути до 12 іконок");
+    return;
+  } else {
+    state.homeShortcutIds = [...state.homeShortcutIds, shortcutId];
+  }
+  persistHomeShortcuts();
   renderHomeShortcutCatalog();
   renderHomeShortcuts();
 }
@@ -2079,6 +2114,8 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "sleep") return showSleepScreen();
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
+  if (shortcut.story) return showStory(shortcut.story);
+  if (shortcut.poem) return showPoemDetail(shortcut.poem);
 }
 
 function localDateKey(date = new Date()) {
@@ -3903,6 +3940,7 @@ document.addEventListener("click", (event) => {
 
   const homeShortcut = event.target.closest("[data-home-shortcut]")?.dataset.homeShortcut;
   if (homeShortcut) {
+    if (Date.now() < homeShortcutDrag.suppressClickUntil) return;
     openHomeShortcut(homeShortcut);
     return;
   }
@@ -4156,3 +4194,56 @@ document.addEventListener("click", (event) => {
     return;
   }
 });
+
+document.addEventListener("pointerdown", (event) => {
+  const shortcut = event.target.closest(".home-shortcut[data-home-shortcut]");
+  if (!shortcut || event.button > 0) return;
+  window.clearTimeout(homeShortcutDrag.timer);
+  homeShortcutDrag.id = shortcut.dataset.homeShortcut;
+  homeShortcutDrag.active = false;
+  homeShortcutDrag.startX = event.clientX;
+  homeShortcutDrag.startY = event.clientY;
+  homeShortcutDrag.timer = window.setTimeout(() => {
+    homeShortcutDrag.active = true;
+    shortcut.classList.add("is-dragging");
+    navigator.vibrate?.(18);
+  }, 320);
+});
+
+document.addEventListener("pointermove", (event) => {
+  if (!homeShortcutDrag.id) return;
+  const distance = Math.hypot(event.clientX - homeShortcutDrag.startX, event.clientY - homeShortcutDrag.startY);
+  if (!homeShortcutDrag.active && distance > 10) {
+    window.clearTimeout(homeShortcutDrag.timer);
+    homeShortcutDrag.id = null;
+    return;
+  }
+  if (!homeShortcutDrag.active) return;
+  event.preventDefault();
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".home-shortcut[data-home-shortcut]");
+  const targetId = target?.dataset.homeShortcut;
+  if (!targetId || targetId === homeShortcutDrag.id) return;
+  const fromIndex = state.homeShortcutIds.indexOf(homeShortcutDrag.id);
+  const toIndex = state.homeShortcutIds.indexOf(targetId);
+  if (fromIndex < 0 || toIndex < 0) return;
+  const nextOrder = [...state.homeShortcutIds];
+  const [moved] = nextOrder.splice(fromIndex, 1);
+  nextOrder.splice(toIndex, 0, moved);
+  state.homeShortcutIds = nextOrder;
+  renderHomeShortcuts();
+  document.querySelector(`[data-home-shortcut="${CSS.escape(homeShortcutDrag.id)}"]`)?.classList.add("is-dragging");
+}, { passive: false });
+
+function finishHomeShortcutDrag() {
+  window.clearTimeout(homeShortcutDrag.timer);
+  if (homeShortcutDrag.active) {
+    persistHomeShortcuts();
+    homeShortcutDrag.suppressClickUntil = Date.now() + 450;
+  }
+  document.querySelectorAll(".home-shortcut.is-dragging").forEach((item) => item.classList.remove("is-dragging"));
+  homeShortcutDrag.id = null;
+  homeShortcutDrag.active = false;
+}
+
+document.addEventListener("pointerup", finishHomeShortcutDrag);
+document.addEventListener("pointercancel", finishHomeShortcutDrag);
