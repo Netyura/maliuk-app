@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=144" />
+    <link rel="stylesheet" href="./styles.css?v=145" />
   </head>
   <body>
     <main class="app">
@@ -138,15 +138,6 @@
         </section>
 
         <section class="quick-log-screen" id="quickLogScreen" hidden>
-          <div class="quick-log-hero journal-hero">
-            <div>
-              <span>Історія турботи</span>
-              <h2>Журнал</h2>
-              <p>Усі швидкі дії для <b id="quickLogChildName">малюка</b> зберігаються тут.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/home-journal-v1.webp" alt="" />
-          </div>
-
           <form class="quick-log-composer" id="quickLogComposer" hidden novalidate>
             <div class="quick-log-composer-heading">
               <div>
@@ -755,6 +746,16 @@
         <button class="home-quick-log-save" id="homeQuickLogSave" type="submit" hidden>Зберегти</button>
       </form>
     </div>
+    <div class="journal-intro-overlay" id="journalIntroOverlay" hidden>
+      <button class="journal-intro-backdrop" type="button" data-action="closeJournalIntro" aria-label="Закрити пояснення журналу"></button>
+      <section class="journal-intro-dialog" role="dialog" aria-modal="true" aria-labelledby="journalIntroTitle" aria-describedby="journalIntroText">
+        <img loading="lazy" decoding="async" src="./assets/images/home-journal-v1.webp" alt="" />
+        <span>Коротко про журнал</span>
+        <h2 id="journalIntroTitle">Усе важливе в одному місці</h2>
+        <p id="journalIntroText">Тут автоматично зберігаються сон, годування, ліки, температура та інші швидкі дії. Записи можна знайти через пошук або вибрати потрібну дату.</p>
+        <button type="button" data-action="closeJournalIntro">Зрозуміло</button>
+      </section>
+    </div>
     <div class="profile-delete-overlay" id="profileDeleteOverlay" hidden>
       <button class="profile-delete-backdrop" type="button" data-action="cancelDeleteChild" aria-label="Скасувати видалення"></button>
       <section class="profile-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="profileDeleteTitle" aria-describedby="profileDeleteText">
@@ -787,6 +788,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=135"></script>
+    <script src="./app.js?v=136"></script>
   </body>
 </html>

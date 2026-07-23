@@ -2655,12 +2655,21 @@ function selectHomeQuickLogBreastSide(side) {
 function openQuickLogScreen() {
   hideContentScreens();
   closeQuickLogComposer();
-  $("#quickLogChildName").textContent = state.childProfile?.nickname || "малюка";
   $("#journalSearch").value = state.journalSearch;
   $("#quickLogScreen").hidden = false;
   renderQuickLogJournal();
   showMainNavigation("care");
   updateTopBack();
+  if (localStorage.getItem("owljoyJournalIntroSeen") !== "1") {
+    window.requestAnimationFrame(() => {
+      $("#journalIntroOverlay").hidden = false;
+    });
+  }
+}
+
+function closeJournalIntro() {
+  localStorage.setItem("owljoyJournalIntroSeen", "1");
+  $("#journalIntroOverlay").hidden = true;
 }
 
 async function saveQuickLogForm(event) {
@@ -4819,6 +4828,10 @@ document.addEventListener("click", (event) => {
   }
   if (action === "openQuickActionsPicker") {
     openHomeShortcutPicker("quick-actions");
+    return;
+  }
+  if (action === "closeJournalIntro") {
+    closeJournalIntro();
     return;
   }
   if (action === "closeHomeShortcutPicker") {
