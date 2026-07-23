@@ -1922,7 +1922,6 @@ function applyChildProfile(profile) {
   if (!profile) return;
   state.childProfile = profile;
   localStorage.setItem("owljoyActiveChildId", profile.id);
-  $("#homeChildLead").textContent = "Додавайте потрібне через «＋». Іконки можна затискати й перетягувати.";
   renderChildSwitcher();
 }
 
@@ -2727,6 +2726,18 @@ function openQuickLogScreen() {
 function closeJournalIntro() {
   localStorage.setItem("owljoyJournalIntroSeen", "1");
   $("#journalIntroOverlay").hidden = true;
+}
+
+function showHomeIntroIfNeeded() {
+  if (localStorage.getItem("owljoyHomeIntroSeen") === "1") return;
+  window.requestAnimationFrame(() => {
+    $("#homeIntroOverlay").hidden = false;
+  });
+}
+
+function closeHomeIntro() {
+  localStorage.setItem("owljoyHomeIntroSeen", "1");
+  $("#homeIntroOverlay").hidden = true;
 }
 
 async function saveQuickLogForm(event) {
@@ -3989,6 +4000,7 @@ function backToHome() {
   renderHomeShortcuts();
   showMainNavigation("today");
   updateTopBack();
+  showHomeIntroIfNeeded();
 }
 
 function backToGames() {
@@ -4900,6 +4912,10 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeJournalIntro") {
     closeJournalIntro();
+    return;
+  }
+  if (action === "closeHomeIntro") {
+    closeHomeIntro();
     return;
   }
   if (action === "openJournalCalendar") {

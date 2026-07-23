@@ -62,15 +62,6 @@
         </section>
 
         <section class="home-screen" id="homeScreen" hidden>
-          <div class="home-hero">
-            <div class="home-hero-copy">
-              <span>Усе потрібне поруч</span>
-              <h2>Головна</h2>
-              <p id="homeChildLead">Додавайте потрібне через «＋». Іконки можна затискати й перетягувати.</p>
-            </div>
-            <img decoding="async" class="home-owl" src="./assets/images/home-owl.webp" alt="" />
-          </div>
-
           <section class="home-launcher" aria-label="Іконки головної">
             <div class="home-shortcut-grid" id="homeShortcutGrid" aria-label="Закріплені розділи"></div>
           </section>
@@ -755,6 +746,16 @@
         <button type="button" data-action="closeJournalIntro">Зрозуміло</button>
       </section>
     </div>
+    <div class="journal-intro-overlay" id="homeIntroOverlay" hidden>
+      <button class="journal-intro-backdrop" type="button" data-action="closeHomeIntro" aria-label="Закрити пояснення головної"></button>
+      <section class="journal-intro-dialog" role="dialog" aria-modal="true" aria-labelledby="homeIntroTitle" aria-describedby="homeIntroText">
+        <img decoding="async" src="./assets/images/home-owl.webp" alt="" />
+        <span>Ваша головна</span>
+        <h2 id="homeIntroTitle">Усе потрібне під рукою</h2>
+        <p id="homeIntroText">Натисніть «＋», щоб додати гру, казку або швидку дію. Затисніть іконку пальцем, щоб пересунути її.</p>
+        <button type="button" data-action="closeHomeIntro">Зрозуміло</button>
+      </section>
+    </div>
     <div class="journal-calendar-overlay" id="journalCalendarOverlay" hidden>
       <button class="journal-calendar-backdrop" type="button" data-action="closeJournalCalendar" aria-label="Закрити календар"></button>
       <section class="journal-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="journalCalendarTitle">
@@ -809,6 +810,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=139"></script>
+    <script src="./app.js?v=140"></script>
   </body>
 </html>
