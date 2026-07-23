@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=147" />
+    <link rel="stylesheet" href="./styles.css?v=149" />
   </head>
   <body>
     <main class="app">
@@ -226,25 +226,34 @@
               <span>Назва препарату</span>
               <input id="medicineTitle" type="text" maxlength="120" autocomplete="off" placeholder="Наприклад, Вітамін D" required />
             </label>
-            <div class="medicine-dose-row">
-              <label>
-                <span>Кількість</span>
-                <input id="medicineDose" type="text" inputmode="decimal" maxlength="20" placeholder="Вкажіть" required />
-              </label>
-              <label>
-                <span>Одиниця</span>
-                <select id="medicineUnit" required>
-                  <option value="краплі">краплі</option>
-                  <option value="мл">мл</option>
-                  <option value="таблетка">таблетка</option>
-                  <option value="мірна ложка">мірна ложка</option>
-                  <option value="доза">доза</option>
-                </select>
-              </label>
-            </div>
             <label>
-              <span>Час нагадування</span>
-              <input id="medicineTime" type="time" required />
+              <span>Одиниця</span>
+              <select id="medicineUnit" required>
+                <option value="краплі">краплі</option>
+                <option value="мл">мл</option>
+                <option value="таблетка">таблетка</option>
+                <option value="мірна ложка">мірна ложка</option>
+                <option value="доза">доза</option>
+              </select>
+            </label>
+            <fieldset class="medicine-frequency">
+              <legend>Скільки разів на день?</legend>
+              <div aria-label="Кількість прийомів на день">
+                <button type="button" data-medicine-frequency="1" aria-pressed="true">1 раз</button>
+                <button type="button" data-medicine-frequency="2" aria-pressed="false">2 рази</button>
+                <button type="button" data-medicine-frequency="3" aria-pressed="false">3 рази</button>
+                <button type="button" data-medicine-frequency="4" aria-pressed="false">4 рази</button>
+              </div>
+            </fieldset>
+            <div class="medicine-schedule-list" id="medicineScheduleList" aria-label="Час і кількість кожного прийому"></div>
+            <label>
+              <span>Як давати відносно їжі?</span>
+              <select id="medicineMealRelation">
+                <option value="none">Неважливо</option>
+                <option value="before">До їди</option>
+                <option value="with">Під час їди</option>
+                <option value="after">Після їди</option>
+              </select>
             </label>
             <fieldset class="medicine-days">
               <legend>У які дні?</legend>
@@ -265,7 +274,7 @@
                   <small>Необов’язкові дані</small>
                 </span>
               </summary>
-              <p class="medicine-extra-description">Вкажіть період приймання та важливе уточнення, наприклад «після їжі». Дату завершення можна не вказувати.</p>
+              <p class="medicine-extra-description">Вкажіть період приймання та додаткове уточнення лікаря. Дату завершення можна не вказувати.</p>
               <div class="medicine-date-row">
                 <label>
                   <span>Дата початку</span>
@@ -278,7 +287,7 @@
               </div>
               <label>
                 <span>Примітка</span>
-                <textarea id="medicineNote" maxlength="500" rows="3" placeholder="Наприклад, після їжі"></textarea>
+                <textarea id="medicineNote" maxlength="500" rows="3" placeholder="Наприклад, запити водою"></textarea>
               </label>
             </details>
             <p class="medicine-form-error" id="medicineFormError" role="alert" hidden></p>
@@ -766,6 +775,15 @@
           </div>
           <button type="button" data-action="closeJournalCalendar" aria-label="Закрити">×</button>
         </div>
+        <div class="journal-calendar-mode" role="group" aria-label="Тип вибору дати">
+          <button type="button" data-journal-calendar-mode="day" aria-pressed="true">Один день</button>
+          <button type="button" data-journal-calendar-mode="range" aria-pressed="false">Період</button>
+        </div>
+        <div class="journal-calendar-range" id="journalCalendarRange" hidden>
+          <span><small>Від</small><strong id="journalCalendarFrom">Оберіть</strong></span>
+          <b aria-hidden="true">→</b>
+          <span><small>До</small><strong id="journalCalendarTo">Оберіть</strong></span>
+        </div>
         <div class="journal-calendar-month">
           <button type="button" data-journal-calendar-nav="-1" aria-label="Попередній місяць">‹</button>
           <strong id="journalCalendarMonth"></strong>
@@ -775,6 +793,7 @@
           <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
         </div>
         <div class="journal-calendar-grid" id="journalCalendarGrid" role="grid" aria-label="Дні місяця"></div>
+        <button class="journal-calendar-apply" id="journalCalendarApply" type="button" data-action="applyJournalDateRange" hidden disabled>Показати записи за період</button>
         <button class="journal-calendar-all" type="button" data-action="showAllJournalDates">Показати всі записи</button>
       </section>
     </div>
@@ -809,7 +828,7 @@
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=141"></script>
+    <script src="./telegram-user.js?v=8"></script>
+    <script src="./app.js?v=143"></script>
   </body>
 </html>
