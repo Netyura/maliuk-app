@@ -1117,6 +1117,75 @@ h1 {
   font-size: 1.3rem;
 }
 
+.journal-calendar-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.32rem;
+  margin-top: 0.85rem;
+  padding: 0.25rem;
+  border-radius: 15px;
+  background: #f5efea;
+}
+
+.journal-calendar-mode > button {
+  min-height: 38px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 12px;
+  color: #77707a;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.69rem;
+  font-weight: 850;
+}
+
+.journal-calendar-mode > button[aria-pressed="true"] {
+  color: #a45322;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(65, 47, 39, 0.07);
+}
+
+.journal-calendar-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.journal-calendar-range[hidden] {
+  display: none;
+}
+
+.journal-calendar-range > span {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+  padding: 0.48rem 0.65rem;
+  border: 1px solid rgba(244, 117, 64, 0.16);
+  border-radius: 13px;
+  background: #fff7f1;
+}
+
+.journal-calendar-range small {
+  color: #938b95;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.journal-calendar-range strong {
+  overflow: hidden;
+  color: #4c454e;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journal-calendar-range > b {
+  color: #a79fa8;
+  font-size: 0.8rem;
+}
+
 .journal-calendar-heading > button,
 .journal-calendar-month > button {
   display: grid;
@@ -1187,10 +1256,16 @@ h1 {
   background: var(--orange);
 }
 
+.journal-calendar-grid > button.in-range {
+  color: #a45322;
+  background: #ffe9dc;
+}
+
 .journal-calendar-grid > button:disabled {
   opacity: 0.24;
 }
 
+.journal-calendar-apply,
 .journal-calendar-all {
   width: 100%;
   min-height: 46px;
@@ -1201,6 +1276,20 @@ h1 {
   box-shadow: none;
   font-size: 0.76rem;
   font-weight: 850;
+}
+
+.journal-calendar-apply {
+  color: #fff;
+  background: var(--orange);
+  box-shadow: 0 8px 18px rgba(226, 101, 48, 0.17);
+}
+
+.journal-calendar-apply:disabled {
+  opacity: 0.38;
+}
+
+.journal-calendar-apply + .journal-calendar-all {
+  margin-top: 0.38rem;
 }
 
 .quick-log-journal h3 {
@@ -4529,6 +4618,79 @@ html.telegram-mini-app body {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 0.68rem;
+}
+
+.medicine-frequency {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.medicine-frequency legend {
+  color: #4d4853;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.medicine-frequency > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin-top: 0.48rem;
+}
+
+.medicine-frequency button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0.38rem 0.18rem;
+  border-radius: 14px;
+  color: #807985;
+  background: #f5f0ea;
+  box-shadow: none;
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+.medicine-frequency button[aria-pressed="true"] {
+  color: #a24e24;
+  background: #ffe8da;
+}
+
+.medicine-schedule-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.medicine-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(244, 117, 64, 0.13);
+  border-radius: 19px;
+  background: #fff8f3;
+}
+
+.medicine-schedule-row > strong {
+  grid-column: 1 / -1;
+  color: #6d6672;
+  font-size: 0.7rem;
+}
+
+.medicine-schedule-row label {
+  min-width: 0;
+}
+
+.medicine-schedule-row input {
+  min-width: 0;
+  background: #fff;
+}
+
+.medicine-schedule-row small {
+  color: #8b8490;
+  font-size: 0.6rem;
+  font-weight: 750;
 }
 
 .medicine-date-row {
