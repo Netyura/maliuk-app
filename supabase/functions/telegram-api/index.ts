@@ -30,6 +30,53 @@ function json(body: unknown, status: number, headers: Record<string, string>) {
   });
 }
 
+async function telegramJsonRequest(
+  botToken: string,
+  method: string,
+  body: unknown,
+) {
+  const response = await fetch(
+    `https://api.telegram.org/bot${botToken}/${method}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.description || `TELEGRAM_${method.toUpperCase()}_FAILED`);
+  }
+  return payload.result;
+}
+
+function decodePdfBase64(value: string) {
+  const cleanValue = value.replace(/^data:application\/pdf;base64,/, "");
+  if (
+    !cleanValue ||
+    cleanValue.length > 4_000_000 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanValue)
+  ) {
+    throw new Error("INVALID_REPORT_PDF");
+  }
+  const binary = atob(cleanValue);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  if (
+    bytes.length < 5 ||
+    bytes[0] !== 0x25 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x44 ||
+    bytes[3] !== 0x46 ||
+    bytes[4] !== 0x2d
+  ) {
+    throw new Error("INVALID_REPORT_PDF");
+  }
+  return bytes;
+}
+
 function toHex(bytes: ArrayBuffer) {
   return [...new Uint8Array(bytes)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -562,6 +609,82 @@ Deno.serve(async (request) => {
           }, { onConflict: "user_id" });
         if (shortcutsError) throw shortcutsError;
         return json({ ok: true, homeShortcutIds: shortcutIds }, 200, headers);
+      }
+
+      if (body.action === "report.prepareShare") {
+        const pdfBase64 =
+          typeof body.pdfBase64 === "string" ? body.pdfBase64 : "";
+        const rawFileName =
+          typeof body.fileName === "string" ? body.fileName.trim() : "";
+        const caption =
+          typeof body.caption === "string" ? body.caption.trim() : "";
+        if (rawFileName.length > 140 || caption.length > 500) {
+          return json({ error: "Некоректні дані звіту" }, 400, headers);
+        }
+
+        const pdfBytes = decodePdfBase64(pdfBase64);
+        const fileName = (rawFileName || "OwlJoy-report.pdf")
+          .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 140);
+        const form = new FormData();
+        form.set("chat_id", String(telegramUser.id));
+        form.set("document", new Blob([pdfBytes], {
+          type: "application/pdf",
+        }), fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`);
+        form.set("caption", caption || "Звіт OwlJoy для лікаря");
+        form.set("disable_notification", "true");
+
+        const uploadResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/sendDocument`,
+          { method: "POST", body: form },
+        );
+        const uploadPayload = await uploadResponse.json().catch(() => ({}));
+        if (!uploadResponse.ok || !uploadPayload.ok) {
+          throw new Error(
+            uploadPayload.description || "TELEGRAM_REPORT_UPLOAD_FAILED",
+          );
+        }
+        const fileId = uploadPayload.result?.document?.file_id;
+        const temporaryMessageId = uploadPayload.result?.message_id;
+        if (!fileId) throw new Error("TELEGRAM_REPORT_FILE_MISSING");
+
+        const preparedMessage = await telegramJsonRequest(
+          botToken,
+          "savePreparedInlineMessage",
+          {
+            user_id: telegramUser.id,
+            result: {
+              type: "document",
+              id: crypto.randomUUID(),
+              title: "Звіт OwlJoy для лікаря",
+              description: caption || "Журнал турботи та історія ліків",
+              document_file_id: fileId,
+              caption: caption || "Звіт OwlJoy для лікаря",
+            },
+            allow_user_chats: true,
+            allow_bot_chats: true,
+            allow_group_chats: true,
+          },
+        );
+
+        if (temporaryMessageId) {
+          telegramJsonRequest(botToken, "deleteMessage", {
+            chat_id: telegramUser.id,
+            message_id: temporaryMessageId,
+          }).catch((error) =>
+            console.warn("report temporary message cleanup", error)
+          );
+        }
+
+        return json(
+          {
+            preparedMessageId: preparedMessage.id,
+            expiresAt: preparedMessage.expiration_date || null,
+          },
+          200,
+          headers,
+        );
       }
 
       if (body.action === "favorite.set") {

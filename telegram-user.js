@@ -304,6 +304,13 @@
     return { ok: true };
   }
 
+  async function prepareReportShare(values) {
+    if (account.status !== "authenticated") {
+      throw account.error || new Error("Надсилання через Telegram доступне лише в боті");
+    }
+    return request("report.prepareShare", values);
+  }
+
   account.request = request;
   account.saveChildProfile = saveChildProfile;
   account.deleteChildProfile = deleteChildProfile;
@@ -315,6 +322,7 @@
   account.saveCareQuickLog = saveCareQuickLog;
   account.deleteCareQuickLog = deleteCareQuickLog;
   account.setHomeShortcuts = setHomeShortcuts;
+  account.prepareReportShare = prepareReportShare;
   account.ready = bootstrap();
   window.owlJoyAccount = account;
 })();

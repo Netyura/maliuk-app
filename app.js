@@ -1833,6 +1833,8 @@ const state = {
   reportDateTo: "",
   reportPdfBlob: null,
   reportPdfSignature: "",
+  reportTelegramPreparedId: "",
+  reportTelegramSignature: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -3515,6 +3517,8 @@ function reportSignature() {
 function invalidateReportPdf() {
   state.reportPdfBlob = null;
   state.reportPdfSignature = "";
+  state.reportTelegramPreparedId = "";
+  state.reportTelegramSignature = "";
 }
 
 function setReportPreparing(preparing) {
@@ -3810,14 +3814,7 @@ function showReportError(error) {
   errorBox.hidden = false;
 }
 
-function shareReport() {
-  $("#reportError").hidden = true;
-  const blob = state.reportPdfBlob;
-  if (!blob || state.reportPdfSignature !== reportSignature()) {
-    scheduleReportPreparation();
-    showToast("PDF ще готується — зачекайте мить");
-    return;
-  }
+function shareReportViaSystem(blob) {
   const file = new File([blob], reportFileName(), { type: "application/pdf" });
   const shareData = {
     files: [file],
@@ -3830,19 +3827,75 @@ function shareReport() {
   } catch {
     canShareFile = false;
   }
-  if (canShareFile) {
-    const sharing = navigator.share(shareData);
-    setReportPreparing(true);
-    sharing.then(() => {
-      showToast("Звіт передано у вікно надсилання", "correct");
-      closeReport();
-    }).catch((error) => {
-      if (error?.name !== "AbortError") showReportError(error);
-    }).finally(() => setReportPreparing(false));
+  if (!canShareFile) {
+    saveReportBlob(blob);
+    showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
     return;
   }
-  saveReportBlob(blob);
-  showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
+  const sharing = navigator.share(shareData);
+  setReportPreparing(true);
+  sharing.then(() => {
+    showToast("Звіт передано у вікно надсилання", "correct");
+    closeReport();
+  }).catch((error) => {
+    if (error?.name !== "AbortError") showReportError(error);
+  }).finally(() => setReportPreparing(false));
+}
+
+async function shareReportViaTelegram(blob) {
+  setReportPreparing(true);
+  $("#reportShareButton span").textContent = "Готуємо в Telegram…";
+  try {
+    const signature = reportSignature();
+    if (
+      !state.reportTelegramPreparedId ||
+      state.reportTelegramSignature !== signature
+    ) {
+      const pdfBase64 = arrayBufferToBase64(await blob.arrayBuffer());
+      const payload = await window.owlJoyAccount.prepareReportShare({
+        pdfBase64,
+        fileName: reportFileName(),
+        caption: `Звіт OwlJoy · ${state.childProfile?.nickname || "Малюк"} · ${reportPeriodText()}`
+      });
+      state.reportTelegramPreparedId = payload.preparedMessageId;
+      state.reportTelegramSignature = signature;
+    }
+
+    telegramApp.HapticFeedback?.impactOccurred?.("light");
+    telegramApp.shareMessage(state.reportTelegramPreparedId, (sent) => {
+      setReportPreparing(false);
+      if (sent) {
+        showToast("Звіт надіслано", "correct");
+        closeReport();
+      }
+    });
+  } catch (error) {
+    setReportPreparing(false);
+    showReportError(new Error(
+      error?.message || "Telegram не зміг підготувати звіт. Скористайтеся кнопкою «Зберегти PDF»."
+    ));
+  }
+}
+
+function shareReport() {
+  $("#reportError").hidden = true;
+  const blob = state.reportPdfBlob;
+  if (!blob || state.reportPdfSignature !== reportSignature()) {
+    scheduleReportPreparation();
+    showToast("PDF ще готується — зачекайте мить");
+    return;
+  }
+  const nativeTelegramShare = Boolean(
+    telegramApp?.initData &&
+    telegramApp?.shareMessage &&
+    (!telegramApp.isVersionAtLeast || telegramApp.isVersionAtLeast("8.0")) &&
+    window.owlJoyAccount?.prepareReportShare
+  );
+  if (nativeTelegramShare) {
+    shareReportViaTelegram(blob);
+    return;
+  }
+  shareReportViaSystem(blob);
 }
 
 function saveReportBlob(blob) {
