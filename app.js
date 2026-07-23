@@ -1846,6 +1846,7 @@ const state = {
   skippingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
   homeShortcutFolder: null,
+  pendingGameId: null,
   task: null
 };
 
@@ -2240,15 +2241,7 @@ function openHomeShortcut(shortcutId) {
     return;
   }
   if (shortcut.game) {
-    const savedAge = ageProfileKeyForBirthDate(state.childProfile?.birth_date);
-    if (!savedAge) {
-      showAgePicker();
-      showToast("Спочатку оберіть вік малюка");
-      return;
-    }
-    hideContentScreens();
-    startAge(savedAge);
-    startGame(shortcut.game);
+    showAgePicker(shortcut.game);
     return;
   }
   if (shortcut.section === "stories") return showStories();
@@ -5073,7 +5066,8 @@ function changeStoryPage(direction) {
   renderStoryPage();
 }
 
-function showAgePicker() {
+function showAgePicker(gameId = null) {
+  state.pendingGameId = gameId;
   hideContentScreens();
   $("#agePicker").hidden = false;
   showMainNavigation("development");
@@ -6443,7 +6437,10 @@ document.addEventListener("click", (event) => {
 
   const age = event.target.closest("[data-age]")?.dataset.age;
   if (age) {
+    const pendingGameId = state.pendingGameId;
+    state.pendingGameId = null;
     startAge(age);
+    if (pendingGameId) startGame(pendingGameId);
     return;
   }
 
