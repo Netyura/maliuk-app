@@ -2073,7 +2073,7 @@ function renderHomeShortcuts() {
     <button class="home-shortcut${item.quickLogType ? " is-quick-log" : ""}${homeShortcutDrag.active && homeShortcutDrag.id === item.id ? " is-dragging" : ""}" type="button" data-home-shortcut="${item.id}" aria-label="${item.quickLogType ? "Заповнити" : "Відкрити"} ${item.title}. Затисніть, щоб перемістити" aria-grabbed="${homeShortcutDrag.active && homeShortcutDrag.id === item.id}">
       <span class="home-shortcut-icon${item.quickLogType ? " quick-log-shortcut-icon" : ""}">${item.emoji
         ? `<b aria-hidden="true">${item.emoji}</b>`
-        : `<img loading="lazy" decoding="async" src="${item.image}" alt="" />`}</span>
+        : `<img loading="lazy" decoding="async" draggable="false" src="${item.image}" alt="" />`}</span>
       <strong>${item.title}</strong>
     </button>
   `).join("") + `
@@ -4813,5 +4813,11 @@ function finishHomeShortcutDrag(event) {
 document.addEventListener("pointerup", finishHomeShortcutDrag);
 document.addEventListener("pointercancel", finishHomeShortcutDrag);
 document.addEventListener("contextmenu", (event) => {
+  if (event.target.closest(".home-shortcut[data-home-shortcut]")) event.preventDefault();
+});
+document.addEventListener("dragstart", (event) => {
+  if (event.target.closest(".home-shortcut[data-home-shortcut]")) event.preventDefault();
+});
+document.addEventListener("selectstart", (event) => {
   if (event.target.closest(".home-shortcut[data-home-shortcut]")) event.preventDefault();
 });
