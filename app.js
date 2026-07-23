@@ -1691,13 +1691,13 @@ const stories = [
 ];
 
 const quickLogHomeShortcutCatalog = [
-  { id: "quicklog:sleep", group: "Швидкий запис", title: "Сон", emoji: "🌙", quickLogType: "sleep", quickLogAction: "Заснув" },
-  { id: "quicklog:feeding", group: "Швидкий запис", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне молоко" },
-  { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
-  { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
-  { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
-  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", image: "./assets/images/quick-log-note-v4.webp", quickLogType: "note", quickLogAction: "Нотатка" },
-  { id: "quicklog:head-position", group: "Швидкий запис", title: "Положення голови", image: "./assets/images/quick-log-head-position-v4.webp", quickLogType: "head-position", quickLogAction: "Ліворуч" }
+  { id: "quicklog:sleep", group: "Швидкі дії", title: "Сон", emoji: "🌙", quickLogType: "sleep", quickLogAction: "Заснув" },
+  { id: "quicklog:feeding", group: "Швидкі дії", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне молоко" },
+  { id: "quicklog:diaper", group: "Швидкі дії", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
+  { id: "quicklog:medicine", group: "Швидкі дії", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
+  { id: "quicklog:temperature", group: "Швидкі дії", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
+  { id: "quicklog:note", group: "Швидкі дії", title: "Нотатка", image: "./assets/images/quick-log-note-v4.webp", quickLogType: "note", quickLogAction: "Нотатка" },
+  { id: "quicklog:head-position", group: "Швидкі дії", title: "Положення голови", image: "./assets/images/quick-log-head-position-v4.webp", quickLogType: "head-position", quickLogAction: "Ліворуч" }
 ];
 
 const mainHomeShortcutCatalog = [
@@ -1714,7 +1714,7 @@ const mainHomeShortcutCatalog = [
   { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
   { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
   { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
-  { id: "quick-log", group: "Турбота", title: "Швидкий запис", image: "./assets/images/home-quick-log-v2.webp", section: "quick-log" },
+  { id: "quick-log", group: "Турбота", title: "Журнал", image: "./assets/images/home-journal-v1.webp", section: "quick-log" },
   { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
   { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
 ];
@@ -1750,7 +1750,7 @@ const homeShortcutFolders = [
   { id: "stories", title: "Казки", lead: "Додайте розділ або одну улюблену казку", image: "./assets/images/home-stories.webp", shortcutId: "stories" },
   { id: "poems", title: "Віршики", lead: "Додайте розділ або конкретний віршик", image: "./assets/images/home-poems.webp", shortcutId: "poems" },
   { id: "sleep", title: "Сон і звуки", lead: "Додайте розділ або окремий звук для сну", image: "./assets/images/home-sounds.webp", shortcutId: "sleep" },
-  { id: "quick-log", title: "Швидкий запис", lead: "Додайте окремі кнопки й записуйте події одним дотиком", image: "./assets/images/home-quick-log-v2.webp", shortcutId: "quick-log" }
+  { id: "quick-actions", title: "Швидкі дії", lead: "Виберіть окремі дії для головного екрана", image: "./assets/images/home-quick-log-v2.webp", shortcutId: null }
 ];
 
 function normalizeHomeShortcutIds(shortcutIds) {
@@ -2116,14 +2116,14 @@ function renderHomeShortcutCatalog() {
       </section>` : ""}
       <section class="home-shortcut-folder-list">
         ${homeShortcutFolders.map((folder) => {
-          const active = selected.has(folder.shortcutId);
+          const active = folder.shortcutId ? selected.has(folder.shortcutId) : false;
           return `<article>
             <button class="home-shortcut-folder-open" type="button" data-home-picker-folder="${folder.id}" aria-label="Відкрити ${folder.title}">
               <img loading="lazy" decoding="async" src="${folder.image}" alt="" />
               <span><strong>${folder.title}</strong><small>${folder.lead}</small></span>
               <b>›</b>
             </button>
-            <button class="home-shortcut-folder-add" type="button" data-home-picker-item="${folder.shortcutId}" aria-pressed="${active}" aria-label="${active ? "Прибрати" : "Додати"} розділ ${folder.title}">${active ? "✓" : "+"}</button>
+            ${folder.shortcutId ? `<button class="home-shortcut-folder-add" type="button" data-home-picker-item="${folder.shortcutId}" aria-pressed="${active}" aria-label="${active ? "Прибрати" : "Додати"} розділ ${folder.title}">${active ? "✓" : "+"}</button>` : ""}
           </article>`;
         }).join("")}
       </section>
@@ -2148,7 +2148,7 @@ function renderHomeShortcutCatalog() {
       ? homeShortcutCatalog.filter((item) => item.story)
       : state.homeShortcutFolder === "poems"
         ? homeShortcutCatalog.filter((item) => item.poem)
-        : state.homeShortcutFolder === "quick-log"
+        : state.homeShortcutFolder === "quick-actions"
           ? homeShortcutCatalog.filter((item) => item.quickLogType)
           : homeShortcutCatalog.filter((item) => item.sleepSound);
   title.textContent = folder?.title || "Виберіть";
@@ -2169,8 +2169,8 @@ function renderHomeShortcutCatalog() {
     </section>`;
 }
 
-function openHomeShortcutPicker() {
-  state.homeShortcutFolder = null;
+function openHomeShortcutPicker(folderId = null) {
+  state.homeShortcutFolder = folderId;
   renderHomeShortcutCatalog();
   $("#homeShortcutOverlay").hidden = false;
 }
@@ -4720,6 +4720,10 @@ document.addEventListener("click", (event) => {
   }
   if (action === "openHomeShortcutPicker") {
     openHomeShortcutPicker();
+    return;
+  }
+  if (action === "openQuickActionsPicker") {
+    openHomeShortcutPicker("quick-actions");
     return;
   }
   if (action === "closeHomeShortcutPicker") {

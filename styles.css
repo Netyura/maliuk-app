@@ -598,6 +598,11 @@ h1 {
   box-shadow: 0 9px 20px rgba(74, 55, 42, 0.1);
 }
 
+.quick-log-hero.journal-hero img {
+  object-fit: contain;
+  box-shadow: none;
+}
+
 .quick-log-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -861,7 +866,32 @@ h1 {
 
 .quick-log-journal {
   display: grid;
+  flex: 1;
+  align-content: start;
   gap: 0.72rem;
+}
+
+.journal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.journal-add-actions {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(244, 117, 64, 0.22);
+  border-radius: 15px;
+  color: #a74f22;
+  background: #fff0e5;
+  box-shadow: none;
+  font-size: 1.55rem;
+  font-weight: 700;
 }
 
 .quick-log-journal h3 {

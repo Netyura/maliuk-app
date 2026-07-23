@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=142" />
+    <link rel="stylesheet" href="./styles.css?v=143" />
   </head>
   <body>
     <main class="app">
@@ -115,9 +115,9 @@
           </div>
           <div class="home-grid" aria-label="Розділи турботи">
             <button data-section="quick-log">
-              <img loading="lazy" decoding="async" src="./assets/images/home-quick-log-v2.webp" alt="" />
-              <strong>Швидкий запис</strong>
-              <span>Сон, годування, підгузок, ліки й температура</span>
+              <img loading="lazy" decoding="async" src="./assets/images/home-journal-v1.webp" alt="" />
+              <strong>Журнал</strong>
+              <span>Усі події та нотатки в одному місці</span>
             </button>
             <button data-section="sleep">
               <img loading="lazy" decoding="async" src="./assets/images/home-sounds.webp" alt="" />
@@ -138,23 +138,13 @@
         </section>
 
         <section class="quick-log-screen" id="quickLogScreen" hidden>
-          <div class="quick-log-hero">
+          <div class="quick-log-hero journal-hero">
             <div>
-              <span>Запис за кілька секунд</span>
-              <h2>Швидкий запис</h2>
-              <p>Оберіть подію для <b id="quickLogChildName">малюка</b> — час підставиться автоматично.</p>
+              <span>Історія турботи</span>
+              <h2>Журнал</h2>
+              <p>Усі швидкі дії для <b id="quickLogChildName">малюка</b> зберігаються тут.</p>
             </div>
-            <img loading="lazy" decoding="async" src="./assets/images/home-quick-log-v2.webp" alt="" />
-          </div>
-
-          <div class="quick-log-actions" aria-label="Що записати">
-            <button type="button" data-quick-log-type="sleep"><span>🌙</span><strong>Сон</strong></button>
-            <button type="button" data-quick-log-type="feeding"><span>🍼</span><strong>Годування</strong></button>
-            <button type="button" data-quick-log-type="diaper"><img loading="lazy" decoding="async" src="./assets/images/quick-log-diaper-v2.webp" alt="" /><strong>Підгузок</strong></button>
-            <button type="button" data-quick-log-type="medicine"><span>💊</span><strong>Ліки</strong></button>
-            <button type="button" data-quick-log-type="temperature"><span>🌡️</span><strong>Температура</strong></button>
-            <button type="button" data-quick-log-type="note"><img loading="lazy" decoding="async" src="./assets/images/quick-log-note-v4.webp" alt="" /><strong>Нотатка</strong></button>
-            <button type="button" data-quick-log-type="head-position"><img loading="lazy" decoding="async" src="./assets/images/quick-log-head-position-v4.webp" alt="" /><strong>Положення голови</strong></button>
+            <img loading="lazy" decoding="async" src="./assets/images/home-journal-v1.webp" alt="" />
           </div>
 
           <form class="quick-log-composer" id="quickLogComposer" hidden novalidate>
@@ -191,9 +181,12 @@
           </form>
 
           <section class="quick-log-journal" aria-labelledby="quickLogJournalTitle">
-            <div>
-              <span>Хронологія</span>
-              <h3 id="quickLogJournalTitle">Журнал</h3>
+            <div class="journal-heading">
+              <div>
+                <span>Хронологія</span>
+                <h3 id="quickLogJournalTitle">Усі записи</h3>
+              </div>
+              <button class="journal-add-actions" type="button" data-action="openQuickActionsPicker" aria-label="Додати швидкі дії на головну">＋</button>
             </div>
             <div class="quick-log-list" id="quickLogList"></div>
           </section>
@@ -714,12 +707,12 @@
       </section>
     </div>
     <div class="home-quick-log-overlay" id="homeQuickLogOverlay" hidden>
-      <button class="home-quick-log-backdrop" type="button" data-action="closeHomeQuickLog" aria-label="Закрити швидкий запис"></button>
+      <button class="home-quick-log-backdrop" type="button" data-action="closeHomeQuickLog" aria-label="Закрити швидку дію"></button>
       <form class="home-quick-log-sheet" id="homeQuickLogForm" role="dialog" aria-modal="true" aria-labelledby="homeQuickLogTitle" novalidate>
         <div class="home-quick-log-heading">
           <span class="home-quick-log-icon" id="homeQuickLogIcon" aria-hidden="true"></span>
           <div>
-            <small>Швидкий запис</small>
+            <small>Швидка дія</small>
             <h2 id="homeQuickLogTitle">Оберіть подію</h2>
             <p id="homeQuickLogLead">Запис збережеться з поточним часом.</p>
           </div>
@@ -778,6 +771,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=133"></script>
+    <script src="./app.js?v=134"></script>
   </body>
 </html>
