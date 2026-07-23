@@ -1696,7 +1696,7 @@ const quickLogHomeShortcutCatalog = [
   { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
   { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
   { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
-  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "✏️", quickLogType: "note", quickLogAction: "Нотатка" }
+  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "📝", quickLogType: "note", quickLogAction: "Нотатка" }
 ];
 
 const mainHomeShortcutCatalog = [
@@ -2263,7 +2263,7 @@ const quickLogTypes = {
   diaper: { label: "Підгузок", icon: "", image: "./assets/images/quick-log-diaper-v2.webp", actions: ["Мокрий", "Брудний", "Обидва"] },
   medicine: { label: "Ліки", icon: "💊", actions: ["Ліки дано"] },
   temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] },
-  note: { label: "Нотатка", icon: "✏️", actions: ["Нотатка"] }
+  note: { label: "Нотатка", icon: "📝", actions: ["Нотатка"] }
 };
 
 function localDateTimeValue(date = new Date()) {
