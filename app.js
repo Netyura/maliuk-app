@@ -1825,6 +1825,14 @@ const state = {
   medicineHistoryDate: "",
   medicineHistoryDateFrom: "",
   medicineHistoryDateTo: "",
+  reportSource: "journal",
+  reportPeriod: "7days",
+  reportIncludeJournal: true,
+  reportIncludeMedicine: false,
+  reportDateFrom: "",
+  reportDateTo: "",
+  reportPdfBlob: null,
+  reportPdfSignature: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -3425,6 +3433,404 @@ function renderMedicineHistory() {
   </section>`).join("");
 }
 
+let reportPdfLibraryPromise = null;
+let reportFontBase64Promise = null;
+
+function reportPeriodRange() {
+  const today = new Date();
+  const todayKey = localDateKey(today);
+  if (state.reportPeriod === "custom") {
+    return {
+      from: state.reportDateFrom || todayKey,
+      to: state.reportDateTo || state.reportDateFrom || todayKey
+    };
+  }
+  const days = state.reportPeriod === "today" ? 1 : state.reportPeriod === "30days" ? 30 : 7;
+  const from = new Date(today);
+  from.setDate(from.getDate() - (days - 1));
+  return { from: localDateKey(from), to: todayKey };
+}
+
+function reportJournalEntries() {
+  if (!state.reportIncludeJournal) return [];
+  const { from, to } = reportPeriodRange();
+  return activeChildQuickLogs()
+    .filter((item) => {
+      const occurredAt = new Date(item.occurred_at || item.occurredAt);
+      const dateKey = localDateKey(occurredAt);
+      return dateKey >= from && dateKey <= to;
+    })
+    .sort((left, right) => new Date(left.occurred_at || left.occurredAt) - new Date(right.occurred_at || right.occurredAt));
+}
+
+function reportMedicineEntries() {
+  if (!state.reportIncludeMedicine) return [];
+  const childId = state.childProfile?.id;
+  const { from, to } = reportPeriodRange();
+  return state.medicineIntakes
+    .filter((intake) => {
+      if (childId && intake.child_id !== childId && intake.childId !== childId) return false;
+      const dateKey = intake.scheduled_date || intake.scheduledDate;
+      return dateKey >= from && dateKey <= to;
+    })
+    .sort((left, right) => {
+      const leftKey = `${left.scheduled_date || left.scheduledDate} ${left.scheduled_time || left.scheduledTime || ""}`;
+      const rightKey = `${right.scheduled_date || right.scheduledDate} ${right.scheduled_time || right.scheduledTime || ""}`;
+      return leftKey.localeCompare(rightKey);
+    });
+}
+
+function reportDateText(dateKey) {
+  return new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(dateFromKey(dateKey));
+}
+
+function reportPeriodText() {
+  const { from, to } = reportPeriodRange();
+  return from === to ? reportDateText(from) : `${reportDateText(from)} – ${reportDateText(to)}`;
+}
+
+function reportSignature() {
+  const child = state.childProfile || {};
+  const journal = reportJournalEntries();
+  const medicine = reportMedicineEntries();
+  return JSON.stringify({
+    childId: child.id,
+    childName: child.nickname,
+    period: state.reportPeriod,
+    from: state.reportDateFrom,
+    to: state.reportDateTo,
+    journal: journal.map((item) => [item.id, item.occurred_at || item.occurredAt]),
+    medicine: medicine.map((item) => [item.id, item.status, item.recorded_at || item.recordedAt]),
+    includeJournal: state.reportIncludeJournal,
+    includeMedicine: state.reportIncludeMedicine
+  });
+}
+
+function invalidateReportPdf() {
+  state.reportPdfBlob = null;
+  state.reportPdfSignature = "";
+}
+
+function refreshReportDialog() {
+  const includeJournal = $("#reportIncludeJournal");
+  const includeMedicine = $("#reportIncludeMedicine");
+  if (!includeJournal || !includeMedicine) return;
+  state.reportIncludeJournal = includeJournal.checked;
+  state.reportIncludeMedicine = includeMedicine.checked;
+  state.reportDateFrom = $("#reportDateFrom").value;
+  state.reportDateTo = $("#reportDateTo").value;
+
+  document.querySelectorAll("[data-report-period]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.reportPeriod === state.reportPeriod));
+  });
+  $("#reportCustomDates").hidden = state.reportPeriod !== "custom";
+
+  const journalCount = reportJournalEntries().length;
+  const medicineCount = reportMedicineEntries().length;
+  const parts = [];
+  if (state.reportIncludeJournal) parts.push(`${journalCount} ${pluralizeUkrainian(journalCount, "запис", "записи", "записів")} журналу`);
+  if (state.reportIncludeMedicine) parts.push(`${medicineCount} ${pluralizeUkrainian(medicineCount, "прийом", "прийоми", "прийомів")} ліків`);
+  $("#reportSummary").textContent = parts.length
+    ? `${state.childProfile?.nickname || "Малюк"} · ${reportPeriodText()} · ${parts.join(" та ")}`
+    : "Оберіть хоча б один розділ для звіту.";
+  $("#reportError").hidden = true;
+  invalidateReportPdf();
+}
+
+function openReport(source = "journal") {
+  state.reportSource = source;
+  state.reportPeriod = "7days";
+  state.reportIncludeJournal = source === "journal";
+  state.reportIncludeMedicine = source === "medicine";
+  const today = new Date();
+  const from = new Date(today);
+  from.setDate(from.getDate() - 6);
+  state.reportDateFrom = localDateKey(from);
+  state.reportDateTo = localDateKey(today);
+
+  $("#reportIncludeJournal").checked = state.reportIncludeJournal;
+  $("#reportIncludeMedicine").checked = state.reportIncludeMedicine;
+  $("#reportDateFrom").value = state.reportDateFrom;
+  $("#reportDateTo").value = state.reportDateTo;
+  $("#reportDateFrom").max = localDateKey();
+  $("#reportDateTo").max = localDateKey();
+  refreshReportDialog();
+  $("#reportOverlay").hidden = false;
+}
+
+function closeReport() {
+  $("#reportOverlay").hidden = true;
+}
+
+function loadReportPdfLibrary() {
+  if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (reportPdfLibraryPromise) return reportPdfLibraryPromise;
+  reportPdfLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "./assets/vendor/jspdf.umd.min.js?v=1";
+    script.onload = () => window.jspdf?.jsPDF
+      ? resolve(window.jspdf.jsPDF)
+      : reject(new Error("Не вдалося відкрити модуль PDF"));
+    script.onerror = () => reject(new Error("Не вдалося завантажити модуль PDF"));
+    document.head.append(script);
+  });
+  return reportPdfLibraryPromise;
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function loadReportFontBase64() {
+  if (reportFontBase64Promise) return reportFontBase64Promise;
+  reportFontBase64Promise = fetch("./assets/fonts/DejaVuSans.ttf?v=1")
+    .then((response) => {
+      if (!response.ok) throw new Error("Не вдалося завантажити український шрифт");
+      return response.arrayBuffer();
+    })
+    .then(arrayBufferToBase64);
+  return reportFontBase64Promise;
+}
+
+function reportFileName() {
+  const childName = (state.childProfile?.nickname || "малюк")
+    .trim()
+    .replace(/[^\p{L}\p{N}_-]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  const { from, to } = reportPeriodRange();
+  return `OwlJoy-звіт-${childName || "малюк"}-${from}-${to}.pdf`;
+}
+
+function pdfTextWriter(doc) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const left = 16;
+  const right = 16;
+  const contentWidth = pageWidth - left - right;
+  let y = 18;
+
+  const ensureSpace = (height = 12) => {
+    if (y + height <= pageHeight - 16) return;
+    doc.addPage();
+    y = 18;
+  };
+  const write = (text, options = {}) => {
+    const size = options.size || 10;
+    const lineHeight = options.lineHeight || size * 0.48;
+    const before = options.before || 0;
+    const after = options.after ?? 2;
+    y += before;
+    doc.setFont("DejaVu", options.bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.setTextColor(...(options.color || [35, 31, 39]));
+    const lines = doc.splitTextToSize(String(text || ""), options.width || contentWidth);
+    const height = Math.max(lineHeight, lines.length * lineHeight);
+    ensureSpace(height + after);
+    doc.text(lines, options.x || left, y);
+    y += height + after;
+  };
+  const divider = () => {
+    ensureSpace(7);
+    doc.setDrawColor(229, 222, 216);
+    doc.line(left, y, pageWidth - right, y);
+    y += 6;
+  };
+  return { write, divider, ensureSpace };
+}
+
+async function createReportPdfBlob() {
+  if (!state.reportIncludeJournal && !state.reportIncludeMedicine) {
+    throw new Error("Оберіть хоча б один розділ для звіту.");
+  }
+  const { from, to } = reportPeriodRange();
+  if (!from || !to || from > to) throw new Error("Перевірте початкову та кінцеву дату.");
+
+  const signature = reportSignature();
+  if (state.reportPdfBlob && state.reportPdfSignature === signature) return state.reportPdfBlob;
+
+  const [JsPdf, fontBase64] = await Promise.all([
+    loadReportPdfLibrary(),
+    loadReportFontBase64()
+  ]);
+  const doc = new JsPdf({ unit: "mm", format: "a4", compress: true });
+  doc.addFileToVFS("DejaVuSans.ttf", fontBase64);
+  doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
+  doc.addFont("DejaVuSans.ttf", "DejaVu", "bold");
+  const { write, divider, ensureSpace } = pdfTextWriter(doc);
+
+  const child = state.childProfile || {};
+  const birthDate = child.birth_date || child.birthDate;
+  write("OwlJoy", { size: 10, bold: true, color: [207, 92, 42], after: 3 });
+  write("Звіт для лікаря", { size: 21, bold: true, after: 4 });
+  write(`Дитина: ${child.nickname || "Не вказано"}`, { size: 11, bold: true, after: 1 });
+  if (birthDate) write(`Дата народження: ${reportDateText(birthDate)} · ${formatChildAge(birthDate)}`, { size: 9, color: [100, 92, 105], after: 1 });
+  write(`Період: ${reportPeriodText()}`, { size: 9, color: [100, 92, 105], after: 1 });
+  write(`Сформовано: ${new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date())}`, { size: 9, color: [100, 92, 105], after: 4 });
+  divider();
+
+  const medicineEntries = reportMedicineEntries();
+  if (state.reportIncludeMedicine) {
+    write("Історія ліків", { size: 14, bold: true, before: 1, after: 3 });
+    if (!medicineEntries.length) {
+      write("За вибраний період записів про ліки немає.", { size: 9, color: [100, 92, 105], after: 4 });
+    } else {
+      medicineEntries.forEach((intake) => {
+        ensureSpace(15);
+        const reminder = state.medicineReminders.find((item) => item.id === (intake.reminder_id || intake.reminderId));
+        const dateKey = intake.scheduled_date || intake.scheduledDate;
+        const time = intake.scheduled_time || intake.scheduledTime || "";
+        const taken = intake.status === "taken" || intake.status === "done";
+        const title = reminder?.title || "Ліки";
+        const instruction = reminder
+          ? [medicineDoseText(reminder), medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation)].filter(Boolean).join(" · ")
+          : "";
+        write(`${reportDateText(dateKey)} · ${time} · ${taken ? "Дано" : "Пропущено"}`, {
+          size: 9.5,
+          bold: true,
+          color: taken ? [50, 121, 78] : [171, 72, 62],
+          after: 1
+        });
+        write([title, instruction].filter(Boolean).join(" · "), { size: 9, after: 3 });
+      });
+    }
+    divider();
+  }
+
+  const journalEntries = reportJournalEntries();
+  if (state.reportIncludeJournal) {
+    write("Журнал турботи", { size: 14, bold: true, before: 1, after: 3 });
+    if (!journalEntries.length) {
+      write("За вибраний період записів у журналі немає.", { size: 9, color: [100, 92, 105], after: 4 });
+    } else {
+      journalEntries.forEach((item) => {
+        ensureSpace(15);
+        const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія" };
+        const occurredAt = new Date(item.occurred_at || item.occurredAt);
+        const value = item.value !== null && item.value !== undefined && item.value !== ""
+          ? `${item.value} ${item.unit || ""}`.trim()
+          : "";
+        write(`${new Intl.DateTimeFormat("uk-UA", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(occurredAt)} · ${type.label}`, { size: 9.5, bold: true, color: [84, 76, 89], after: 1 });
+        write([
+          item.event_action || item.eventAction,
+          value,
+          item.note
+        ].filter(Boolean).join(" · "), { size: 9, after: 3 });
+      });
+    }
+    divider();
+  }
+
+  write("Важливо", { size: 9, bold: true, color: [166, 79, 35], after: 1 });
+  write("Цей звіт містить дані, внесені користувачем, і не є медичним висновком. Не змінюйте лікування або дозування без консультації лікаря.", {
+    size: 8,
+    color: [105, 97, 109],
+    after: 0
+  });
+
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page);
+    doc.setFont("DejaVu", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(135, 127, 139);
+    doc.text(`OwlJoy · ${page} / ${pageCount}`, doc.internal.pageSize.getWidth() - 16, doc.internal.pageSize.getHeight() - 8, {
+      align: "right"
+    });
+  }
+
+  state.reportPdfBlob = doc.output("blob");
+  state.reportPdfSignature = signature;
+  return state.reportPdfBlob;
+}
+
+function setReportBusy(busy) {
+  const shareButton = $("#reportShareButton");
+  const saveButton = $("#reportSaveButton");
+  shareButton.disabled = busy;
+  saveButton.disabled = busy;
+  shareButton.querySelector("span").textContent = busy ? "Готуємо PDF…" : "Надіслати лікарю";
+}
+
+function showReportError(error) {
+  const errorBox = $("#reportError");
+  errorBox.textContent = error?.message || "Не вдалося створити PDF. Спробуйте ще раз.";
+  errorBox.hidden = false;
+}
+
+async function shareReport() {
+  setReportBusy(true);
+  $("#reportError").hidden = true;
+  try {
+    const blob = await createReportPdfBlob();
+    const file = new File([blob], reportFileName(), { type: "application/pdf" });
+    const shareData = {
+      files: [file],
+      title: `Звіт OwlJoy — ${state.childProfile?.nickname || "малюк"}`,
+      text: `Звіт OwlJoy за період ${reportPeriodText()}`
+    };
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      await navigator.share(shareData);
+      showToast("Звіт передано у вікно надсилання", "correct");
+      closeReport();
+      return;
+    }
+    saveReportBlob(blob);
+    showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
+  } catch (error) {
+    if (error?.name !== "AbortError") showReportError(error);
+  } finally {
+    setReportBusy(false);
+  }
+}
+
+function saveReportBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = reportFileName();
+  link.rel = "noopener";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+async function saveReport() {
+  setReportBusy(true);
+  $("#reportError").hidden = true;
+  try {
+    const blob = await createReportPdfBlob();
+    saveReportBlob(blob);
+    showToast("PDF збережено", "correct");
+  } catch (error) {
+    showReportError(error);
+  } finally {
+    setReportBusy(false);
+  }
+}
+
 function renderMedicineScreen() {
   const childName = state.childProfile?.nickname || "малюка";
   $("#medicineChildName").textContent = childName;
@@ -3981,6 +4387,20 @@ $("#journalSearch").addEventListener("input", (event) => {
 $("#medicineHistorySearch").addEventListener("input", (event) => {
   state.medicineHistorySearch = event.target.value;
   renderMedicineScreen();
+});
+$("#reportIncludeJournal").addEventListener("change", refreshReportDialog);
+$("#reportIncludeMedicine").addEventListener("change", refreshReportDialog);
+$("#reportDateFrom").addEventListener("change", (event) => {
+  if (event.target.value && $("#reportDateTo").value && event.target.value > $("#reportDateTo").value) {
+    $("#reportDateTo").value = event.target.value;
+  }
+  refreshReportDialog();
+});
+$("#reportDateTo").addEventListener("change", (event) => {
+  if (event.target.value && $("#reportDateFrom").value && event.target.value < $("#reportDateFrom").value) {
+    $("#reportDateFrom").value = event.target.value;
+  }
+  refreshReportDialog();
 });
 
 function shuffle(items) {
@@ -5174,6 +5594,19 @@ function showToast(text, tone = "neutral") {
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const reportSource = event.target.closest("[data-report-source]")?.dataset.reportSource;
+  if (reportSource) {
+    openReport(reportSource);
+    return;
+  }
+
+  const reportPeriod = event.target.closest("[data-report-period]")?.dataset.reportPeriod;
+  if (reportPeriod) {
+    state.reportPeriod = reportPeriod;
+    refreshReportDialog();
+    return;
+  }
+
   const medicineHistoryCalendarModeValue = event.target
     .closest("[data-medicine-history-calendar-mode]")
     ?.dataset.medicineHistoryCalendarMode;
@@ -5555,6 +5988,18 @@ document.addEventListener("click", (event) => {
 
   if (action === "addMedicine") {
     openMedicineForm();
+    return;
+  }
+  if (action === "closeReport") {
+    closeReport();
+    return;
+  }
+  if (action === "shareReport") {
+    shareReport();
+    return;
+  }
+  if (action === "saveReport") {
+    saveReport();
     return;
   }
   if (action === "cancelSkipMedicine") {

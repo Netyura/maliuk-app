@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=155" />
+    <link rel="stylesheet" href="./styles.css?v=156" />
   </head>
   <body>
     <main class="app">
@@ -168,7 +168,12 @@
                 <span>Хронологія</span>
                 <h3 id="quickLogJournalTitle">Усі записи</h3>
               </div>
-              <button class="journal-add-actions" type="button" data-action="openQuickActionsPicker" aria-label="Додати швидкі дії на головну">＋</button>
+              <div class="journal-heading-actions">
+                <button class="journal-report-button" type="button" data-report-source="journal" aria-label="Підготувати звіт для лікаря">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4h14v-4"/></svg>
+                </button>
+                <button class="journal-add-actions" type="button" data-action="openQuickActionsPicker" aria-label="Додати швидкі дії на головну">＋</button>
+              </div>
             </div>
             <div class="journal-tools">
               <label class="journal-search">
@@ -196,7 +201,12 @@
                 <span>Для <b id="medicineChildName">малюка</b></span>
                 <h3 id="medicineScreenTitle">Ліки</h3>
               </div>
-              <button class="journal-add-actions" type="button" data-action="addMedicine" aria-label="Додати ліки">＋</button>
+              <div class="journal-heading-actions">
+                <button class="journal-report-button" type="button" data-report-source="medicine" aria-label="Підготувати звіт для лікаря">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4h14v-4"/></svg>
+                </button>
+                <button class="journal-add-actions" type="button" data-action="addMedicine" aria-label="Додати ліки">＋</button>
+              </div>
             </div>
             <p class="medicine-summary" id="medicineTodayLabel">Сьогоднішній розклад і позначки про прийом.</p>
 
@@ -886,10 +896,63 @@
         </div>
       </section>
     </div>
+    <div class="report-overlay" id="reportOverlay" hidden>
+      <button class="report-backdrop" type="button" data-action="closeReport" aria-label="Закрити звіт"></button>
+      <section class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+        <div class="report-heading">
+          <div>
+            <span>Для лікаря</span>
+            <h2 id="reportTitle">Підготувати PDF-звіт</h2>
+          </div>
+          <button type="button" data-action="closeReport" aria-label="Закрити">×</button>
+        </div>
+        <p class="report-intro">Оберіть дані та період. PDF створиться лише на вашому пристрої.</p>
+
+        <fieldset class="report-section-picker">
+          <legend>Що додати у звіт?</legend>
+          <label>
+            <input id="reportIncludeJournal" type="checkbox" />
+            <span><b>Журнал турботи</b><small>Сон, годування, температура, нотатки та інші записи</small></span>
+          </label>
+          <label>
+            <input id="reportIncludeMedicine" type="checkbox" />
+            <span><b>Історія ліків</b><small>Що було дано або пропущено, час і дозування</small></span>
+          </label>
+        </fieldset>
+
+        <fieldset class="report-period-picker">
+          <legend>За який період?</legend>
+          <div>
+            <button type="button" data-report-period="today" aria-pressed="false">Сьогодні</button>
+            <button type="button" data-report-period="7days" aria-pressed="true">7 днів</button>
+            <button type="button" data-report-period="30days" aria-pressed="false">30 днів</button>
+            <button type="button" data-report-period="custom" aria-pressed="false">Свій період</button>
+          </div>
+          <div class="report-custom-dates" id="reportCustomDates" hidden>
+            <label><span>Від</span><input id="reportDateFrom" type="date" /></label>
+            <label><span>До</span><input id="reportDateTo" type="date" /></label>
+          </div>
+        </fieldset>
+
+        <div class="report-summary" id="reportSummary" aria-live="polite"></div>
+        <p class="report-error" id="reportError" role="alert" hidden></p>
+        <div class="report-actions">
+          <button class="report-share" id="reportShareButton" type="button" data-action="shareReport">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8M5 13v6h14v-6"/></svg>
+            <span>Надіслати лікарю</span>
+          </button>
+          <button class="report-save" id="reportSaveButton" type="button" data-action="saveReport">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4h14v-4"/></svg>
+            <span>Зберегти PDF</span>
+          </button>
+        </div>
+        <small class="report-privacy">🔒 У звіті будуть лише вибрані вами записи активної дитини.</small>
+      </section>
+    </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=9"></script>
-    <script src="./app.js?v=148"></script>
+    <script src="./app.js?v=151"></script>
   </body>
 </html>

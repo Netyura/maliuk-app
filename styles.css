@@ -878,6 +878,13 @@ h1 {
   gap: 0.75rem;
 }
 
+.journal-heading-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+}
+
+.journal-report-button,
 .journal-add-actions {
   display: grid;
   width: 44px;
@@ -892,6 +899,21 @@ h1 {
   box-shadow: none;
   font-size: 1.55rem;
   font-weight: 700;
+}
+
+.journal-report-button {
+  color: #6f6673;
+  background: #f7f1ed;
+}
+
+.journal-report-button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .journal-tools {
@@ -5815,6 +5837,280 @@ body,
 .profile-delete-actions .medicine-skip-confirm {
   color: #fff;
   background: #b96156;
+}
+
+.report-overlay {
+  position: fixed;
+  z-index: 110;
+  inset: 0;
+  display: grid;
+  align-items: end;
+}
+
+.report-overlay[hidden] {
+  display: none;
+}
+
+.report-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: rgba(27, 23, 31, 0.42);
+  box-shadow: none;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.report-dialog {
+  position: relative;
+  width: min(100%, 540px);
+  max-height: min(92dvh, 760px);
+  margin: 0 auto;
+  overflow-y: auto;
+  padding: 1.15rem 1.05rem calc(1.05rem + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: #fffaf6;
+  box-shadow: 0 -20px 70px rgba(37, 27, 22, 0.22);
+  overscroll-behavior: contain;
+}
+
+.report-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.report-heading span {
+  color: #a95324;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.report-heading h2 {
+  margin: 0.18rem 0 0;
+  font-size: clamp(1.35rem, 6vw, 1.75rem);
+  line-height: 1.05;
+}
+
+.report-heading > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  place-items: center;
+  border-radius: 14px;
+  color: #6e6872;
+  background: #f3ede8;
+  box-shadow: none;
+  font-size: 1.35rem;
+}
+
+.report-intro {
+  margin: 0.55rem 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.report-section-picker,
+.report-period-picker {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.report-period-picker {
+  margin-top: 0.9rem;
+}
+
+.report-section-picker legend,
+.report-period-picker legend {
+  margin-bottom: 0.42rem;
+  color: #47414c;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.report-section-picker > label {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 62px;
+  padding: 0.65rem 0.72rem;
+  border: 1px solid rgba(46, 39, 50, 0.08);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.report-section-picker input {
+  width: 22px;
+  height: 22px;
+  accent-color: #f47740;
+}
+
+.report-section-picker label > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.report-section-picker b {
+  font-size: 0.82rem;
+}
+
+.report-section-picker small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.32;
+}
+
+.report-period-picker > div:first-of-type {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+
+.report-period-picker [data-report-period] {
+  min-height: 39px;
+  padding: 0.35rem 0.3rem;
+  border: 1px solid rgba(46, 39, 50, 0.07);
+  border-radius: 13px;
+  color: #6f6874;
+  background: #f6f1ed;
+  box-shadow: none;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.report-period-picker [data-report-period][aria-pressed="true"] {
+  border-color: rgba(244, 117, 64, 0.3);
+  color: #a64f23;
+  background: #ffecdf;
+}
+
+.report-custom-dates {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.report-custom-dates[hidden] {
+  display: none;
+}
+
+.report-custom-dates label {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.report-custom-dates input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(46, 39, 50, 0.1);
+  border-radius: 14px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+}
+
+.report-summary {
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 16px;
+  color: #5f5964;
+  background: #f6f1ed;
+  font-size: 0.74rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.report-error {
+  margin: 0.65rem 0 0;
+  padding: 0.65rem 0.72rem;
+  border-radius: 14px;
+  color: #a63c2d;
+  background: #fff0eb;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.report-actions {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.report-actions button {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 16px;
+  box-shadow: none;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.report-actions svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.report-share {
+  color: #fff;
+  background: var(--orange);
+}
+
+.report-save {
+  color: #8e4927;
+  background: #ffecdf;
+}
+
+.report-actions button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.report-privacy {
+  display: block;
+  margin-top: 0.65rem;
+  color: #8a838e;
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (min-width: 560px) {
+  .report-overlay {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .report-dialog {
+    border-radius: 28px;
+  }
 }
 
 /* Головна у форматі екрана телефона */
