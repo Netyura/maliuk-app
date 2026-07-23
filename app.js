@@ -1695,7 +1695,8 @@ const quickLogHomeShortcutCatalog = [
   { id: "quicklog:feeding", group: "Швидкий запис", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне" },
   { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
   { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
-  { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" }
+  { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
+  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "✏️", quickLogType: "note", quickLogAction: "Нотатка" }
 ];
 
 const mainHomeShortcutCatalog = [
@@ -1812,6 +1813,8 @@ const state = {
   careQuickLogs: [],
   quickLogType: null,
   quickLogAction: null,
+  homeQuickLogType: null,
+  homeQuickLogAction: null,
   medicineTab: "today",
   editingMedicineId: null,
   deletingMedicineId: null,
@@ -2222,8 +2225,7 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
   if (shortcut.quickLogType) {
-    openQuickLogScreen();
-    openQuickLogComposer(shortcut.quickLogType);
+    openHomeQuickLog(shortcut.quickLogType);
     return;
   }
   if (shortcut.sleepSound) return selectSleepSound(shortcut.sleepSound);
@@ -2260,7 +2262,8 @@ const quickLogTypes = {
   feeding: { label: "Годування", icon: "🍼", actions: ["Грудне", "Пляшечка", "Прикорм"] },
   diaper: { label: "Підгузок", icon: "", image: "./assets/images/quick-log-diaper-v2.webp", actions: ["Мокрий", "Брудний", "Обидва"] },
   medicine: { label: "Ліки", icon: "💊", actions: ["Ліки дано"] },
-  temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] }
+  temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] },
+  note: { label: "Нотатка", icon: "✏️", actions: ["Нотатка"] }
 };
 
 function localDateTimeValue(date = new Date()) {
@@ -2301,7 +2304,7 @@ function renderQuickLogJournal() {
   if (!list) return;
   const logs = activeChildQuickLogs();
   if (!logs.length) {
-    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки й температуру.</p>';
+    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки, температуру та ваші нотатки.</p>';
     return;
   }
 
@@ -2336,18 +2339,23 @@ function renderQuickLogJournal() {
   }).join("");
 }
 
-function quickLogValueSettings() {
-  if (state.quickLogType === "temperature") {
+function quickLogValueSettingsFor(type, action) {
+  if (type === "temperature") {
     return { label: "Температура", unit: "°C", placeholder: "Наприклад, 36,6", min: 30, max: 45 };
   }
-  if (state.quickLogType !== "feeding") return null;
-  if (state.quickLogAction === "Грудне") {
+  if (type !== "feeding") return null;
+  if (!action) return null;
+  if (action === "Грудне") {
     return { label: "Тривалість годування", unit: "хв", placeholder: "Наприклад, 15", min: 1, max: 180 };
   }
-  if (state.quickLogAction === "Прикорм") {
+  if (action === "Прикорм") {
     return { label: "Скільки з’їв", unit: "г", placeholder: "Наприклад, 80", min: 1, max: 2000 };
   }
   return { label: "Скільки випив", unit: "мл", placeholder: "Наприклад, 120", min: 1, max: 2000 };
+}
+
+function quickLogValueSettings() {
+  return quickLogValueSettingsFor(state.quickLogType, state.quickLogAction);
 }
 
 function updateQuickLogValueField() {
@@ -2376,7 +2384,13 @@ function renderQuickLogComposer() {
       `<button type="button" data-quick-log-choice="${escapeHtml(action)}" aria-pressed="${action === state.quickLogAction}">${escapeHtml(action)}</button>`
     ).join("");
   $("#quickLogSaveButton").disabled = noMedicines;
-  $("#quickLogNote").placeholder = state.quickLogType === "feeding"
+  $("#quickLogNote").required = state.quickLogType === "note";
+  $("#quickLogNoteLabel").innerHTML = state.quickLogType === "note"
+    ? "Текст нотатки"
+    : "Примітка <small>необов’язково</small>";
+  $("#quickLogNote").placeholder = state.quickLogType === "note"
+    ? "Напишіть коротку нотатку…"
+    : state.quickLogType === "feeding"
     ? "Наприклад, з’їв із задоволенням"
     : state.quickLogType === "temperature"
       ? "Наприклад, після сну"
@@ -2406,6 +2420,137 @@ function closeQuickLogComposer() {
   $("#quickLogError").hidden = true;
 }
 
+function renderHomeQuickLog() {
+  const type = quickLogTypes[state.homeQuickLogType];
+  if (!type) return;
+  const actions = [...new Set(quickLogActionsForType(state.homeQuickLogType))];
+  const settings = quickLogValueSettingsFor(state.homeQuickLogType, state.homeQuickLogAction);
+  const isNote = state.homeQuickLogType === "note";
+  const noMedicines = state.homeQuickLogType === "medicine" && !actions.length;
+  const needsForm = isNote || state.homeQuickLogType === "temperature" || (state.homeQuickLogType === "feeding" && state.homeQuickLogAction);
+
+  $("#homeQuickLogIcon").innerHTML = type.image
+    ? `<img src="${type.image}" alt="" />`
+    : `<b>${type.icon}</b>`;
+  $("#homeQuickLogTitle").textContent = isNote ? "Нова нотатка" : type.label;
+  $("#homeQuickLogLead").textContent = isNote
+    ? "Запишіть думку або важливу деталь — вона залишиться в журналі."
+    : state.homeQuickLogType === "feeding"
+      ? "Оберіть тип годування та вкажіть кількість."
+      : state.homeQuickLogType === "temperature"
+        ? "Вкажіть температуру — час підставиться автоматично."
+        : "Оберіть один варіант — запис збережеться одразу.";
+
+  $("#homeQuickLogChoices").innerHTML = noMedicines
+    ? '<div class="home-quick-log-empty"><p>Спочатку додайте препарат у розділі «Ліки».</p><button type="button" data-action="openMedicineFromHomeQuickLog">Додати ліки</button></div>'
+    : (isNote || state.homeQuickLogType === "temperature")
+      ? ""
+      : actions.map((action) => `<button type="button" data-home-quick-log-choice="${escapeHtml(action)}" aria-pressed="${action === state.homeQuickLogAction}">${escapeHtml(action)}</button>`).join("");
+
+  const valueField = $("#homeQuickLogValueField");
+  valueField.hidden = !settings;
+  $("#homeQuickLogValueLabel").textContent = settings?.label || "Значення";
+  $("#homeQuickLogValueUnit").textContent = settings?.unit || "";
+  $("#homeQuickLogValue").placeholder = settings?.placeholder || "Вкажіть";
+  $("#homeQuickLogNoteField").hidden = !isNote;
+  $("#homeQuickLogSave").hidden = !needsForm;
+  $("#homeQuickLogSave").textContent = isNote ? "Зберегти нотатку" : "Зберегти";
+}
+
+function openHomeQuickLog(type) {
+  if (!quickLogTypes[type]) return;
+  state.homeQuickLogType = type;
+  state.homeQuickLogAction = type === "temperature" ? "Виміряно" : type === "note" ? "Нотатка" : "";
+  $("#homeQuickLogValue").value = "";
+  $("#homeQuickLogNote").value = "";
+  $("#homeQuickLogError").hidden = true;
+  $("#homeQuickLogForm").removeAttribute("aria-busy");
+  renderHomeQuickLog();
+  $("#homeQuickLogOverlay").hidden = false;
+  window.requestAnimationFrame(() => {
+    if (type === "temperature") $("#homeQuickLogValue").focus();
+    if (type === "note") $("#homeQuickLogNote").focus();
+  });
+}
+
+function closeHomeQuickLog() {
+  state.homeQuickLogType = null;
+  state.homeQuickLogAction = null;
+  $("#homeQuickLogOverlay").hidden = true;
+  $("#homeQuickLogError").hidden = true;
+  $("#homeQuickLogForm").removeAttribute("aria-busy");
+}
+
+async function saveHomeQuickLog(event) {
+  event?.preventDefault?.();
+  const form = $("#homeQuickLogForm");
+  const error = $("#homeQuickLogError");
+  if (form.getAttribute("aria-busy") === "true") return;
+
+  const type = state.homeQuickLogType;
+  const action = state.homeQuickLogAction;
+  const settings = quickLogValueSettingsFor(type, action);
+  const rawValue = $("#homeQuickLogValue").value.trim().replace(",", ".");
+  const numberValue = rawValue ? Number(rawValue) : null;
+  const typedNote = $("#homeQuickLogNote").value.trim();
+
+  if (!state.childProfile?.id || !type || !action) {
+    error.textContent = "Оберіть потрібний варіант.";
+    error.hidden = false;
+    return;
+  }
+  if (type === "note" && !typedNote) {
+    error.textContent = "Напишіть текст нотатки.";
+    error.hidden = false;
+    $("#homeQuickLogNote").focus();
+    return;
+  }
+  if (settings && (numberValue === null || !Number.isFinite(numberValue) || numberValue < settings.min || numberValue > settings.max)) {
+    error.textContent = type === "temperature"
+      ? "Вкажіть температуру від 30 до 45 °C."
+      : `Вкажіть значення від ${settings.min} до ${settings.max} ${settings.unit}.`;
+    error.hidden = false;
+    $("#homeQuickLogValue").focus();
+    return;
+  }
+
+  error.hidden = true;
+  form.setAttribute("aria-busy", "true");
+  const selectedMedicine = type === "medicine"
+    ? activeChildMedicineReminders().find((item) => item.title === action)
+    : null;
+  try {
+    await window.owlJoyAccount.saveCareQuickLog({
+      childId: state.childProfile.id,
+      eventType: type,
+      eventAction: action,
+      value: numberValue,
+      unit: settings?.unit || null,
+      note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
+      occurredAt: new Date().toISOString()
+    });
+    state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    closeHomeQuickLog();
+    renderQuickLogJournal();
+    showToast(type === "note" ? "Нотатку збережено" : "Запис додано", "correct");
+  } catch (saveError) {
+    error.textContent = saveError.message || "Не вдалося зберегти запис.";
+    error.hidden = false;
+    form.removeAttribute("aria-busy");
+  }
+}
+
+function selectHomeQuickLogChoice(action) {
+  state.homeQuickLogAction = action;
+  $("#homeQuickLogValue").value = "";
+  renderHomeQuickLog();
+  if (state.homeQuickLogType === "feeding") {
+    window.requestAnimationFrame(() => $("#homeQuickLogValue").focus());
+    return;
+  }
+  saveHomeQuickLog();
+}
+
 function openQuickLogScreen() {
   hideContentScreens();
   closeQuickLogComposer();
@@ -2424,6 +2569,7 @@ async function saveQuickLogForm(event) {
   const rawValue = $("#quickLogValue").value.trim().replace(",", ".");
   const valueSettings = quickLogValueSettings();
   const numberValue = rawValue ? Number(rawValue) : null;
+  const typedNote = $("#quickLogNote").value.trim();
 
   if (!state.childProfile?.id || !state.quickLogType || !state.quickLogAction || Number.isNaN(occurredAt.getTime())) {
     error.textContent = "Оберіть подію та перевірте час запису.";
@@ -2433,6 +2579,12 @@ async function saveQuickLogForm(event) {
   if (occurredAt.getTime() > Date.now() + 5 * 60 * 1000) {
     error.textContent = "Час запису не може бути в майбутньому.";
     error.hidden = false;
+    return;
+  }
+  if (state.quickLogType === "note" && !typedNote) {
+    error.textContent = "Напишіть текст нотатки.";
+    error.hidden = false;
+    $("#quickLogNote").focus();
     return;
   }
   if (valueSettings && (numberValue === null || numberValue < valueSettings.min || numberValue > valueSettings.max)) {
@@ -2454,7 +2606,6 @@ async function saveQuickLogForm(event) {
     const selectedMedicine = state.quickLogType === "medicine"
       ? activeChildMedicineReminders().find((item) => item.title === state.quickLogAction)
       : null;
-    const typedNote = $("#quickLogNote").value.trim();
     await window.owlJoyAccount.saveCareQuickLog({
       childId: state.childProfile.id,
       eventType: state.quickLogType,
@@ -3025,6 +3176,7 @@ async function saveOnboardingProfile(event) {
 $("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
 $("#medicineForm").addEventListener("submit", saveMedicineForm);
 $("#quickLogComposer").addEventListener("submit", saveQuickLogForm);
+$("#homeQuickLogForm").addEventListener("submit", saveHomeQuickLog);
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -4214,6 +4366,12 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const homeQuickLogChoice = event.target.closest("[data-home-quick-log-choice]")?.dataset.homeQuickLogChoice;
+  if (homeQuickLogChoice) {
+    selectHomeQuickLogChoice(homeQuickLogChoice);
+    return;
+  }
+
   const quickLogType = event.target.closest("[data-quick-log-type]")?.dataset.quickLogType;
   if (quickLogType) {
     openQuickLogComposer(quickLogType);
@@ -4477,6 +4635,15 @@ document.addEventListener("click", (event) => {
   }
   if (action === "cancelQuickLog") {
     closeQuickLogComposer();
+    return;
+  }
+  if (action === "closeHomeQuickLog") {
+    closeHomeQuickLog();
+    return;
+  }
+  if (action === "openMedicineFromHomeQuickLog") {
+    closeHomeQuickLog();
+    openMedicineScreen("schedule");
     return;
   }
   if (action === "openHomeShortcutPicker") {
