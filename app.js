@@ -2078,6 +2078,7 @@ function openDevelopmentTab() {
   $("#developmentHubScreen").hidden = false;
   showMainNavigation("development");
   updateTopBack();
+  showSectionIntroIfNeeded("development");
 }
 
 function openCareTab() {
@@ -2085,6 +2086,7 @@ function openCareTab() {
   $("#careHubScreen").hidden = false;
   showMainNavigation("care");
   updateTopBack();
+  showSectionIntroIfNeeded("care");
 }
 
 function openMedicineScreen(tabName = state.medicineTab || "today") {
@@ -2843,6 +2845,80 @@ function showHomeIntroIfNeeded() {
 function closeHomeIntro() {
   localStorage.setItem("owljoyHomeIntroSeen", "1");
   $("#homeIntroOverlay").hidden = true;
+}
+
+const sectionIntroContent = {
+  development: {
+    image: "./assets/images/nav/development.webp",
+    kicker: "Розділ розвитку",
+    title: "Навчання через гру",
+    text: "Тут зібрані розвиваючі ігри, казки та короткі віршики для малюка."
+  },
+  care: {
+    image: "./assets/images/nav/care-v2.webp",
+    kicker: "Щоденна турбота",
+    title: "Важливе в одному місці",
+    text: "Журнал, сон, прогулянки, прикорм і нагадування допомагають нічого не забути."
+  },
+  profile: {
+    image: "./assets/images/nav/profile.webp",
+    kicker: "Профілі дітей",
+    title: "Окремо для кожного малюка",
+    text: "Перемикайте активний профіль, редагуйте дані або додайте ще одну дитину."
+  },
+  stories: {
+    image: "./assets/images/home-stories.webp",
+    kicker: "Час для казки",
+    title: "Читайте разом",
+    text: "Оберіть казку та читайте її дитині своїм голосом у зручному темпі."
+  },
+  games: {
+    image: "./assets/images/home-games.webp",
+    kicker: "Розвиваючі ігри",
+    title: "Спочатку оберіть вік",
+    text: "Ми покажемо відповідні за віком картинки, звуки, слова й прості запитання."
+  },
+  sleep: {
+    image: "./assets/images/home-sounds.webp",
+    kicker: "Сон і звуки",
+    title: "Спокійний фон для відпочинку",
+    text: "Оберіть звук, установіть таймер і залиште його грати м’яким циклом."
+  },
+  walk: {
+    image: "./assets/images/nav/care-v2.webp",
+    kicker: "На прогулянку",
+    title: "Підказка відповідно до погоди",
+    text: "Оберіть місто, час і спосіб прогулянки — ми запропонуємо відповідний одяг."
+  },
+  poems: {
+    image: "./assets/images/home-poems.webp",
+    kicker: "Короткі рими",
+    title: "Віршики для різних моментів",
+    text: "Оберіть тему: купання, сон, їжа, руханки або улюблені тваринки."
+  }
+};
+
+let activeSectionIntroId = null;
+
+function showSectionIntroIfNeeded(sectionId) {
+  const content = sectionIntroContent[sectionId];
+  if (!content || localStorage.getItem(`owljoySectionIntroSeen:${sectionId}`) === "1") return;
+  activeSectionIntroId = sectionId;
+  $("#sectionIntroImage").src = content.image;
+  $("#sectionIntroKicker").textContent = content.kicker;
+  $("#sectionIntroTitle").textContent = content.title;
+  $("#sectionIntroText").textContent = content.text;
+  window.requestAnimationFrame(() => {
+    $("#sectionIntroOverlay").hidden = false;
+  });
+}
+
+function closeSectionIntro() {
+  if (activeSectionIntroId) {
+    localStorage.setItem(`owljoySectionIntroSeen:${activeSectionIntroId}`, "1");
+  }
+  activeSectionIntroId = null;
+  $("#sectionIntroOverlay").hidden = true;
 }
 
 async function saveQuickLogForm(event) {
@@ -4658,6 +4734,7 @@ function openProfileTab() {
   $("#profileHubScreen").hidden = false;
   showMainNavigation("profile");
   updateTopBack();
+  showSectionIntroIfNeeded("profile");
 }
 
 function selectChildProfile(childId) {
@@ -5013,11 +5090,11 @@ function showStories() {
   renderStories();
   showMainNavigation("development");
   updateTopBack();
+  showSectionIntroIfNeeded("stories");
 }
 
 function renderStories() {
   const list = $("#storiesList");
-  $("#storiesLead").textContent = "Слухайте разом або читайте дитині своїм голосом.";
   list.innerHTML = stories.map((story) => `
     <button class="story-card" data-story="${story.id}">
       <img loading="lazy" decoding="async" src="${asset(story.image)}" alt="" />
@@ -5072,6 +5149,7 @@ function showAgePicker(gameId = null) {
   $("#agePicker").hidden = false;
   showMainNavigation("development");
   updateTopBack();
+  showSectionIntroIfNeeded("games");
 }
 
 function showSleepScreen() {
@@ -5080,6 +5158,7 @@ function showSleepScreen() {
   renderSleepList();
   showMainNavigation("care");
   updateTopBack();
+  showSectionIntroIfNeeded("sleep");
 }
 
 function showSleepPlayer() {
@@ -5097,6 +5176,7 @@ function showPoemCategories() {
   renderPoemCategories();
   showMainNavigation("development");
   updateTopBack();
+  showSectionIntroIfNeeded("poems");
 }
 
 function showPoemsScreen(categoryId) {
@@ -5726,8 +5806,6 @@ function renderPoems() {
     : poemCategories.find((item) => item.id === state.poemFilter) || poemCategories[0];
 
   $("#poemListTitle").textContent = category.title;
-  $("#poemListLead").textContent = category.lead;
-  $("#poemListImage").src = asset(category.image);
   $("#poemListKicker").textContent = state.poemFilter === "favorites" ? "Ваша папка" : "Віршики";
 
   const list = $("#poemsList");
@@ -6564,6 +6642,10 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeHomeIntro") {
     closeHomeIntro();
+    return;
+  }
+  if (action === "closeSectionIntro") {
+    closeSectionIntro();
     return;
   }
   if (action === "openJournalCalendar") {

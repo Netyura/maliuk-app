@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=161" />
+    <link rel="stylesheet" href="./styles.css?v=162" />
   </head>
   <body>
     <main class="app">
@@ -68,14 +68,6 @@
         </section>
 
         <section class="category-hub-screen" id="developmentHubScreen" hidden>
-          <div class="category-hub-hero development-hub-hero">
-            <div>
-              <span>Навчатися граючись</span>
-              <h2>Розвиток</h2>
-              <p>Ігри, казки та віршики відповідно до віку активної дитини.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/nav/development.webp" alt="" />
-          </div>
           <div class="home-grid" aria-label="Розділи розвитку">
             <button data-section="games">
               <img loading="lazy" decoding="async" src="./assets/images/home-games.webp" alt="" />
@@ -96,14 +88,6 @@
         </section>
 
         <section class="category-hub-screen" id="careHubScreen" hidden>
-          <div class="category-hub-hero care-hub-hero">
-            <div>
-              <span>Щоденна турбота</span>
-              <h2>Турбота</h2>
-              <p>Сон, прикорм і важливі нагадування в одному місці.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/nav/care-v2.webp" alt="" />
-          </div>
           <div class="home-grid" aria-label="Розділи турботи">
             <button data-section="quick-log">
               <img loading="lazy" decoding="async" src="./assets/images/care-journal-v1.webp" alt="" />
@@ -324,14 +308,6 @@
         </section>
 
         <section class="category-hub-screen" id="profileHubScreen" hidden>
-          <div class="category-hub-hero profile-hub-hero">
-            <div>
-              <span>Ваша сім’я</span>
-              <h2>Профіль</h2>
-              <p>Оберіть дитину або додайте ще один профіль.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/nav/profile.webp" alt="" />
-          </div>
           <div class="profile-hub-card">
             <div class="profile-hub-heading">
               <span>Профілі дітей</span>
@@ -343,15 +319,6 @@
         </section>
 
         <section class="stories-screen" id="storiesScreen" hidden>
-          <div class="stories-hero">
-            <div>
-              <span>Час для казки</span>
-              <h2>Казки для малюка</h2>
-              <p id="storiesLead">Слухайте разом або читайте дитині своїм голосом.</p>
-            </div>
-            <img loading="lazy" decoding="async" class="stories-hero-icon" src="./assets/images/home-stories.webp" alt="" />
-          </div>
-
           <div class="stories-list" id="storiesList" aria-label="Список казок"></div>
         </section>
 
@@ -383,16 +350,6 @@
         </section>
 
         <section class="age-picker" id="agePicker" hidden>
-          <div class="age-intro">
-            <div class="intro-copy">
-              <span>Почнемо м'яко</span>
-              <h2>Оберіть вік малюка</h2>
-              <p>Покажемо ігри, які підходять саме зараз.</p>
-            </div>
-            <div class="intro-mascot" aria-hidden="true">
-              <img loading="lazy" decoding="async" src="./assets/images/mascot.webp" alt="" />
-            </div>
-          </div>
           <div class="age-grid" aria-label="Вибір віку">
             <button data-age="baby">
               <span class="age-icon"><img loading="lazy" decoding="async" src="./assets/images/age-baby.webp" alt="" /></span>
@@ -418,10 +375,9 @@
         </section>
 
         <section class="game-picker" id="gamePicker" hidden>
-          <div class="picker-heading">
+          <div class="section-compact-heading">
             <span id="selectedAgeLabel">6–12 міс</span>
             <h2>Оберіть гру</h2>
-            <p>Короткі заняття на кілька хвилин. Оберіть те, що зараз найкраще зайде малюку.</p>
           </div>
 
           <div class="game-grid" id="gameGrid" aria-label="Вибір гри">
@@ -591,28 +547,10 @@
         </section>
 
         <section class="sleep-screen" id="sleepScreen" hidden>
-          <div class="sleep-hero">
-            <div>
-              <span>Тихий режим</span>
-              <h2>Звуки для сну</h2>
-              <p>Оберіть м'який фон, увімкніть таймер і залиште звук грати спокійним циклом.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/home-sounds.webp" alt="" />
-          </div>
-
           <div class="sleep-list" id="sleepList" aria-label="Звуки для сну"></div>
         </section>
 
         <section class="poem-categories-screen" id="poemCategoriesScreen" hidden>
-          <div class="poems-hero">
-            <div>
-              <span>Короткі рими</span>
-              <h2>Віршики для малюка</h2>
-              <p>Оберіть папку: купання, сон, їжа, руханки або тваринки.</p>
-            </div>
-            <img loading="lazy" decoding="async" src="./assets/images/home-poems.webp" alt="" />
-          </div>
-
           <button class="favorites-folder" id="favoritesFolder" data-poem-folder="favorites" hidden>
             <span class="folder-icon">♥</span>
             <strong>Улюблені віршики</strong>
@@ -623,13 +561,9 @@
         </section>
 
         <section class="poems-screen" id="poemsScreen" hidden>
-          <div class="poems-hero compact">
-            <div>
-              <span id="poemListKicker">Віршики</span>
-              <h2 id="poemListTitle">Купання</h2>
-              <p id="poemListLead">Короткі забавлянки для цього моменту дня.</p>
-            </div>
-            <img loading="lazy" decoding="async" id="poemListImage" src="./assets/images/poem-category-bath.webp" alt="" />
+          <div class="section-compact-heading">
+            <span id="poemListKicker">Віршики</span>
+            <h2 id="poemListTitle">Купання</h2>
           </div>
 
           <div class="poems-list" id="poemsList" aria-label="Список віршиків"></div>
@@ -785,6 +719,16 @@
         <h2 id="homeIntroTitle">Усе потрібне під рукою</h2>
         <p id="homeIntroText">Натисніть «＋», щоб додати гру, казку або швидку дію. Затисніть іконку пальцем, щоб пересунути її.</p>
         <button type="button" data-action="closeHomeIntro">Зрозуміло</button>
+      </section>
+    </div>
+    <div class="journal-intro-overlay" id="sectionIntroOverlay" hidden>
+      <button class="journal-intro-backdrop" type="button" data-action="closeSectionIntro" aria-label="Закрити пояснення розділу"></button>
+      <section class="journal-intro-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionIntroTitle" aria-describedby="sectionIntroText">
+        <img loading="lazy" decoding="async" id="sectionIntroImage" src="./assets/images/home-owl.webp" alt="" />
+        <span id="sectionIntroKicker">Коротко про розділ</span>
+        <h2 id="sectionIntroTitle">Усе зрозуміло з першого погляду</h2>
+        <p id="sectionIntroText"></p>
+        <button type="button" data-action="closeSectionIntro">Зрозуміло</button>
       </section>
     </div>
     <div class="journal-calendar-overlay" id="journalCalendarOverlay" hidden>
@@ -977,6 +921,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=12"></script>
-    <script src="./app.js?v=161"></script>
+    <script src="./app.js?v=162"></script>
   </body>
 </html>
