@@ -25,6 +25,17 @@ function localSchedule(now: Date, timezone: string) {
   return { date, time, dayOfWeek };
 }
 
+const reminderOffsets = [0, 5, 15];
+
+function scheduledSlot(local: ReturnType<typeof localSchedule>, offsetMinutes: number) {
+  const wallClock = new Date(`${local.date}T${local.time}:00Z`);
+  wallClock.setUTCMinutes(wallClock.getUTCMinutes() - offsetMinutes);
+  const date = wallClock.toISOString().slice(0, 10);
+  const time = wallClock.toISOString().slice(11, 16);
+  const dayOfWeek = wallClock.getUTCDay() === 0 ? 7 : wallClock.getUTCDay();
+  return { date, time, dayOfWeek, offsetMinutes };
+}
+
 async function telegramRequest(botToken: string, method: string, body: unknown) {
   const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
     method: "POST",
@@ -77,16 +88,33 @@ export default {
       if (!preferenceMap.get(reminder.user_id)) continue;
       const local = localSchedule(now, reminder.timezone || "Europe/Kyiv");
       const reminderTime = String(reminder.reminder_time).slice(0, 5);
-      if (local.time !== reminderTime) continue;
-      if (reminder.start_date && local.date < reminder.start_date) continue;
-      if (reminder.end_date && local.date > reminder.end_date) continue;
-      if (!(reminder.days_of_week || []).map(Number).includes(local.dayOfWeek)) continue;
+      const slot = reminderOffsets
+        .map((offsetMinutes) => scheduledSlot(local, offsetMinutes))
+        .find((candidate) => candidate.time === reminderTime);
+      if (!slot) continue;
+      if (reminder.start_date && slot.date < reminder.start_date) continue;
+      if (reminder.end_date && slot.date > reminder.end_date) continue;
+      if (!(reminder.days_of_week || []).map(Number).includes(slot.dayOfWeek)) continue;
 
-      const { error: logError } = await supabase.from("medicine_notification_log").insert({
-        reminder_id: reminder.id,
-        user_id: reminder.user_id,
-        scheduled_date: local.date,
-      });
+      const { data: intake, error: intakeError } = await supabase
+        .from("medicine_intakes")
+        .select("id")
+        .eq("reminder_id", reminder.id)
+        .eq("scheduled_date", slot.date)
+        .maybeSingle();
+      if (intakeError) throw intakeError;
+      if (intake) continue;
+
+      const { data: notificationLog, error: logError } = await supabase
+        .from("medicine_notification_log")
+        .insert({
+          reminder_id: reminder.id,
+          user_id: reminder.user_id,
+          scheduled_date: slot.date,
+          notification_offset_minutes: slot.offsetMinutes,
+        })
+        .select("id")
+        .single();
       if (logError?.code === "23505") continue;
       if (logError) throw logError;
 
@@ -101,7 +129,13 @@ export default {
           : reminder.meal_relation === "after" ? "після їди" : "";
       const mealText = mealRelation ? ` · ${mealRelation}` : "";
       const note = reminder.note ? `\n${reminder.note}` : "";
-      const text = `💊 Час дати ліки\n\n${childName} · ${reminder.title} · ${dose}${mealText}\nЗаплановано на ${reminderTime}${note}`;
+      const heading = slot.offsetMinutes === 0
+        ? "💊 Час дати ліки"
+        : `💊 Нагадування через ${slot.offsetMinutes} хв`;
+      const repeatText = slot.offsetMinutes === 0
+        ? ""
+        : `\nПрийом ще не позначено. Якщо ліки вже дали — натисніть «Дано».`;
+      const text = `${heading}\n\n${childName} · ${reminder.title} · ${dose}${mealText}\nЗаплановано на ${reminderTime}${repeatText}${note}`;
 
       try {
         const message = await telegramRequest(botToken, "sendMessage", {
@@ -109,15 +143,14 @@ export default {
           text,
           reply_markup: {
             inline_keyboard: [[
-              { text: "✅ Дано", callback_data: `med:t:${reminder.id}:${local.date}` },
-              { text: "Пропустити", callback_data: `med:s:${reminder.id}:${local.date}` },
+              { text: "✅ Дано", callback_data: `med:t:${reminder.id}:${slot.date}` },
+              { text: "Пропустити", callback_data: `med:s:${reminder.id}:${slot.date}` },
             ], [{ text: "Відкрити OwlJoy", url: "https://t.me/OwlJoy_bot/OwlJoy?startapp=medicine" }]],
           },
         });
         await supabase.from("medicine_notification_log")
           .update({ telegram_message_id: message.message_id })
-          .eq("reminder_id", reminder.id)
-          .eq("scheduled_date", local.date);
+          .eq("id", notificationLog.id);
         await supabase.from("medicine_reminders")
           .update({ last_sent_at: now.toISOString() })
           .eq("id", reminder.id);
@@ -125,8 +158,7 @@ export default {
       } catch (error) {
         await supabase.from("medicine_notification_log")
           .delete()
-          .eq("reminder_id", reminder.id)
-          .eq("scheduled_date", local.date);
+          .eq("id", notificationLog.id);
         console.error("medicine reminder", reminder.id, error);
       }
     }
