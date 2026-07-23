@@ -4379,6 +4379,78 @@ html.telegram-mini-app body {
   font-weight: 750;
 }
 
+.medicine-today-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.medicine-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.2rem 0.12rem 0;
+}
+
+.medicine-group-heading strong {
+  color: #5e5864;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.medicine-group-heading span {
+  overflow: hidden;
+  color: #8d8691;
+  font-size: 0.61rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medicine-today-group.overdue .medicine-group-heading strong {
+  color: #a85749;
+}
+
+.medicine-today-group.upcoming .medicine-group-heading strong {
+  color: #9e4d24;
+}
+
+.medicine-group-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.medicine-today-group.overdue .medicine-card {
+  background: #fff5ef;
+}
+
+.medicine-today-group.completed {
+  margin-top: 0.1rem;
+}
+
+.medicine-today-group.completed .medicine-card {
+  opacity: 0.78;
+}
+
+.medicine-card.skipped {
+  background: #f7f3f1;
+}
+
+.medicine-card.skipped .medicine-status {
+  color: #a25d53;
+}
+
+.medicine-all-marked {
+  margin: 0;
+  padding: 0.58rem 0.7rem;
+  border-radius: 14px;
+  color: #3f7d53;
+  background: #edf8f0;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-align: center;
+}
+
 .medicine-card {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;

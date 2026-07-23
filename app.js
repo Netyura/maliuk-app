@@ -3093,6 +3093,19 @@ function medicineCardHtml(reminder, dateKey, mode = "today") {
   </article>`;
 }
 
+function medicineTodayGroup(title, detail, reminders, dateKey, className = "") {
+  if (!reminders.length) return "";
+  return `<section class="medicine-today-group ${className}">
+    <div class="medicine-group-heading">
+      <strong>${escapeHtml(title)}</strong>
+      <span>${escapeHtml(detail)}</span>
+    </div>
+    <div class="medicine-group-list">
+      ${reminders.map((reminder) => medicineCardHtml(reminder, dateKey)).join("")}
+    </div>
+  </section>`;
+}
+
 function renderMedicineToday() {
   const dateKey = localDateKey();
   const reminders = activeChildMedicineReminders()
@@ -3105,11 +3118,38 @@ function renderMedicineToday() {
       <small>Додайте препарат і час — OwlJoy збере все у зрозумілий розклад.</small>
     </div>`;
   }
-  const completed = reminders.filter((reminder) => intakeForReminder(reminder.id, dateKey)?.status === "taken").length;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const pending = reminders.filter((reminder) => !intakeForReminder(reminder.id, dateKey));
+  const overdue = pending.filter((reminder) => {
+    const [hours, minutes] = medicineTime(reminder).split(":").map(Number);
+    return hours * 60 + minutes < currentMinutes;
+  });
+  const upcoming = pending.filter((reminder) => !overdue.includes(reminder));
+  const completed = reminders.filter((reminder) => Boolean(intakeForReminder(reminder.id, dateKey)));
+  const nextTime = upcoming[0] ? `Наступний о ${medicineTime(upcoming[0])}` : "";
+  const allMarked = completed.length === reminders.length;
+
   return `<div class="medicine-day-heading">
     <strong>${escapeHtml(medicineDateLabel(dateKey))}</strong>
-    <span>${completed} із ${reminders.length} виконано</span>
-  </div>${reminders.map((reminder) => medicineCardHtml(reminder, dateKey)).join("")}`;
+    <span>${completed.length} із ${reminders.length} відмічено</span>
+  </div>
+  ${allMarked ? '<p class="medicine-all-marked">На сьогодні все відмічено ✓</p>' : ""}
+  ${medicineTodayGroup(
+    "Потрібно відмітити",
+    `${overdue.length} ${pluralizeUkrainian(overdue.length, "прийом", "прийоми", "прийомів")} без позначки`,
+    overdue,
+    dateKey,
+    "overdue"
+  )}
+  ${medicineTodayGroup("Далі сьогодні", nextTime, upcoming, dateKey, "upcoming")}
+  ${medicineTodayGroup(
+    "Завершено",
+    `${completed.length} ${pluralizeUkrainian(completed.length, "прийом", "прийоми", "прийомів")} відмічено`,
+    completed,
+    dateKey,
+    "completed"
+  )}`;
 }
 
 function medicineDaysText(reminder) {
