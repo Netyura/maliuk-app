@@ -2665,8 +2665,10 @@ async function saveHomeQuickLog(event) {
 
   error.hidden = true;
   form.setAttribute("aria-busy", "true");
+  const occurredAt = new Date();
   const selectedMedicine = type === "medicine"
-    ? activeChildMedicineReminders().find((item) => item.title === action)
+    ? matchingMedicineSchedule(action, occurredAt)?.reminder
+      || activeChildMedicineReminders().find((item) => item.title === action)
     : null;
   try {
     await window.owlJoyAccount.saveCareQuickLog({
@@ -2676,13 +2678,30 @@ async function saveHomeQuickLog(event) {
       value: numberValue,
       unit: settings?.unit || null,
       note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
-      occurredAt: new Date().toISOString()
+      occurredAt: occurredAt.toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    let matchedMedicine = null;
+    let medicineSyncFailed = false;
+    if (type === "medicine") {
+      try {
+        matchedMedicine = await markMatchingMedicineIntake(action, occurredAt);
+      } catch (syncError) {
+        medicineSyncFailed = true;
+        console.error("OwlJoy: запис у журналі збережено, але розклад ліків не оновлено", syncError);
+      }
+    }
     showLatestJournalEntries();
     closeHomeQuickLog();
     renderQuickLogJournal();
-    showToast(type === "note" ? "Нотатку збережено в журналі" : "Запис збережено в журналі", "correct");
+    showToast(
+      medicineSyncFailed
+        ? "Запис у журналі, але розклад ліків не оновлено"
+        : matchedMedicine
+          ? "Ліки дано — розклад оновлено"
+          : type === "note" ? "Нотатку збережено в журналі" : "Запис збережено в журналі",
+      medicineSyncFailed ? "neutral" : "correct"
+    );
   } catch (saveError) {
     error.textContent = saveError.message || "Не вдалося зберегти запис.";
     error.hidden = false;
@@ -2788,7 +2807,8 @@ async function saveQuickLogForm(event) {
   $("#quickLogSaveButton").disabled = true;
   try {
     const selectedMedicine = state.quickLogType === "medicine"
-      ? activeChildMedicineReminders().find((item) => item.title === state.quickLogAction)
+      ? matchingMedicineSchedule(state.quickLogAction, occurredAt)?.reminder
+        || activeChildMedicineReminders().find((item) => item.title === state.quickLogAction)
       : null;
     await window.owlJoyAccount.saveCareQuickLog({
       childId: state.childProfile.id,
@@ -2800,10 +2820,25 @@ async function saveQuickLogForm(event) {
       occurredAt: occurredAt.toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    let matchedMedicine = null;
+    let medicineSyncFailed = false;
+    if (state.quickLogType === "medicine") {
+      try {
+        matchedMedicine = await markMatchingMedicineIntake(state.quickLogAction, occurredAt);
+      } catch (syncError) {
+        medicineSyncFailed = true;
+        console.error("OwlJoy: запис у журналі збережено, але розклад ліків не оновлено", syncError);
+      }
+    }
     showLatestJournalEntries();
     closeQuickLogComposer();
     renderQuickLogJournal();
-    showToast("Запис збережено в журналі", "correct");
+    showToast(
+      medicineSyncFailed
+        ? "Запис у журналі, але розклад ліків не оновлено"
+        : matchedMedicine ? "Ліки дано — розклад оновлено" : "Запис збережено в журналі",
+      medicineSyncFailed ? "neutral" : "correct"
+    );
   } catch (saveError) {
     error.textContent = saveError.message || "Не вдалося зберегти запис.";
     error.hidden = false;
@@ -2861,6 +2896,49 @@ function medicineDoseText(reminder) {
   return [reminder.dose_amount || reminder.doseAmount, reminder.dose_unit || reminder.doseUnit]
     .filter(Boolean)
     .join(" ");
+}
+
+function matchingMedicineSchedule(title, occurredAt = new Date()) {
+  const eventDate = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
+  if (!title || Number.isNaN(eventDate.getTime())) return null;
+
+  const dateKeys = [-1, 0, 1].map((offset) => {
+    const date = new Date(eventDate);
+    date.setDate(date.getDate() + offset);
+    return localDateKey(date);
+  });
+  const matches = activeChildMedicineReminders()
+    .filter((reminder) => reminder.title === title)
+    .flatMap((reminder) => dateKeys
+      .filter((dateKey) => reminderRunsOnDate(reminder, dateKey))
+      .map((dateKey) => {
+        const scheduledAt = new Date(`${dateKey}T${medicineTime(reminder)}:00`);
+        return {
+          reminder,
+          dateKey,
+          difference: Math.abs(eventDate.getTime() - scheduledAt.getTime())
+        };
+      }))
+    .filter((match) => Number.isFinite(match.difference) && match.difference <= 60 * 60 * 1000)
+    .sort((left, right) => left.difference - right.difference);
+
+  return matches[0] || null;
+}
+
+async function markMatchingMedicineIntake(title, occurredAt = new Date()) {
+  const match = matchingMedicineSchedule(title, occurredAt);
+  if (!match) return null;
+  const reminder = match.reminder;
+  await window.owlJoyAccount.logMedicineIntake({
+    reminderId: reminder.id,
+    childId: reminder.child_id || reminder.childId || state.childProfile?.id,
+    scheduledDate: match.dateKey,
+    scheduledTime: medicineTime(reminder),
+    status: "taken"
+  });
+  state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+  if (!$("#medicineScreen").hidden) renderMedicineScreen();
+  return match;
 }
 
 function medicineCardHtml(reminder, dateKey, mode = "today") {
