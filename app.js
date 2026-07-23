@@ -1829,6 +1829,8 @@ const state = {
   task: null
 };
 
+let journalCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
 const homeShortcutDrag = {
   id: null,
   pointerId: null,
@@ -2341,10 +2343,58 @@ function renderJournalFilters() {
   document.querySelectorAll("[data-journal-period]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.journalPeriod === state.journalPeriod));
   });
-  const dateInput = $("#journalDate");
-  dateInput.max = localDateKey();
-  dateInput.value = state.journalDate;
-  dateInput.closest(".journal-date-picker")?.classList.toggle("active", state.journalPeriod === "date");
+  const dateButton = $("#journalDateButton");
+  const dateSelected = state.journalPeriod === "date" && Boolean(state.journalDate);
+  dateButton.setAttribute("aria-pressed", String(dateSelected));
+  dateButton.classList.toggle("active", dateSelected);
+  $("#journalDateLabel").textContent = dateSelected
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
+    : "Дата";
+}
+
+function renderJournalCalendar() {
+  const monthLabel = $("#journalCalendarMonth");
+  const grid = $("#journalCalendarGrid");
+  const monthStart = new Date(journalCalendarMonth.getFullYear(), journalCalendarMonth.getMonth(), 1);
+  const nextMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const daysInMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0).getDate();
+  const emptyDays = isoDayForDate(monthStart) - 1;
+  const todayKey = localDateKey();
+
+  monthLabel.textContent = new Intl.DateTimeFormat("uk-UA", { month: "long", year: "numeric" }).format(monthStart);
+  $("#journalCalendarNext").disabled = nextMonth > new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const blanks = Array.from({ length: emptyDays }, () => "<span></span>");
+  const days = Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1);
+    const dateKey = localDateKey(date);
+    const classes = [
+      dateKey === todayKey ? "today" : "",
+      dateKey === state.journalDate ? "selected" : ""
+    ].filter(Boolean).join(" ");
+    const disabled = dateKey > todayKey ? " disabled" : "";
+    const selected = dateKey === state.journalDate ? ' aria-selected="true"' : "";
+    return `<button class="${classes}" type="button" role="gridcell" data-journal-calendar-date="${dateKey}"${selected}${disabled}>${index + 1}</button>`;
+  });
+  grid.innerHTML = [...blanks, ...days].join("");
+}
+
+function openJournalCalendar() {
+  const selectedDate = state.journalDate ? dateFromKey(state.journalDate) : new Date();
+  journalCalendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  renderJournalCalendar();
+  $("#journalCalendarOverlay").hidden = false;
+}
+
+function closeJournalCalendar() {
+  $("#journalCalendarOverlay").hidden = true;
+}
+
+function selectJournalCalendarDate(dateKey) {
+  state.journalDate = dateKey;
+  state.journalPeriod = "date";
+  closeJournalCalendar();
+  renderQuickLogJournal();
 }
 
 function showLatestJournalEntries() {
@@ -3328,15 +3378,6 @@ $("#quickLogComposer").addEventListener("submit", saveQuickLogForm);
 $("#homeQuickLogForm").addEventListener("submit", saveHomeQuickLog);
 $("#journalSearch").addEventListener("input", (event) => {
   state.journalSearch = event.target.value;
-  renderQuickLogJournal();
-});
-$("#journalDate").addEventListener("change", (event) => {
-  state.journalDate = event.target.value;
-  if (!state.journalDate) {
-    state.journalPeriod = "all";
-  } else {
-    state.journalPeriod = "date";
-  }
   renderQuickLogJournal();
 });
 
@@ -4529,6 +4570,23 @@ function showToast(text, tone = "neutral") {
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const calendarDate = event.target.closest("[data-journal-calendar-date]")?.dataset.journalCalendarDate;
+  if (calendarDate) {
+    selectJournalCalendarDate(calendarDate);
+    return;
+  }
+
+  const calendarNavigation = event.target.closest("[data-journal-calendar-nav]")?.dataset.journalCalendarNav;
+  if (calendarNavigation) {
+    journalCalendarMonth = new Date(
+      journalCalendarMonth.getFullYear(),
+      journalCalendarMonth.getMonth() + Number(calendarNavigation),
+      1
+    );
+    renderJournalCalendar();
+    return;
+  }
+
   const journalPeriod = event.target.closest("[data-journal-period]")?.dataset.journalPeriod;
   if (journalPeriod) {
     state.journalPeriod = journalPeriod;
@@ -4842,6 +4900,21 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeJournalIntro") {
     closeJournalIntro();
+    return;
+  }
+  if (action === "openJournalCalendar") {
+    openJournalCalendar();
+    return;
+  }
+  if (action === "closeJournalCalendar") {
+    closeJournalCalendar();
+    return;
+  }
+  if (action === "showAllJournalDates") {
+    state.journalDate = "";
+    state.journalPeriod = "all";
+    closeJournalCalendar();
+    renderQuickLogJournal();
     return;
   }
   if (action === "closeHomeShortcutPicker") {

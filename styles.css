@@ -934,12 +934,11 @@ h1 {
 
 .journal-date-filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.38rem;
 }
 
-.journal-date-filters > button,
-.journal-date-picker {
+.journal-date-filters > button {
   min-height: 40px;
   border: 1px solid rgba(244, 117, 64, 0.13);
   border-radius: 14px;
@@ -962,36 +961,23 @@ h1 {
 }
 
 .journal-date-picker {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-width: 0;
+  display: flex;
   align-items: center;
-  gap: 0.42rem;
-  padding: 0.38rem 0.6rem;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.48rem 0.4rem;
 }
 
 .journal-date-picker > span {
-  font-size: 0.95rem;
+  font-size: 0.78rem;
 }
 
 .journal-date-picker > b {
-  text-align: left;
-  font-size: 0.68rem;
-}
-
-.journal-date-picker input {
-  box-sizing: border-box;
-  width: 125px;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  color: #6b6470;
-  background: transparent;
-  font: inherit;
-  font-size: 0.68rem;
-  font-weight: 800;
-  cursor: pointer;
+  overflow: hidden;
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .journal-intro-overlay {
@@ -1071,6 +1057,149 @@ h1 {
   background: var(--orange);
   box-shadow: 0 9px 20px rgba(226, 101, 48, 0.2);
   font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.journal-calendar-overlay {
+  position: fixed;
+  z-index: 96;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  padding: 1rem;
+}
+
+.journal-calendar-overlay[hidden] {
+  display: none;
+}
+
+.journal-calendar-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: rgba(35, 30, 37, 0.38);
+  box-shadow: none;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.journal-calendar-dialog {
+  position: relative;
+  width: min(100%, 430px);
+  margin: 0 auto;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 28px;
+  background: #fffaf6;
+  box-shadow: 0 22px 48px rgba(42, 34, 38, 0.22);
+}
+
+.journal-calendar-heading,
+.journal-calendar-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.journal-calendar-heading span {
+  color: #a45322;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.journal-calendar-heading h2 {
+  margin: 0.14rem 0 0;
+  font-size: 1.3rem;
+}
+
+.journal-calendar-heading > button,
+.journal-calendar-month > button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border-radius: 14px;
+  color: #6f6872;
+  background: #f7f0eb;
+  box-shadow: none;
+  font-size: 1.35rem;
+}
+
+.journal-calendar-month {
+  margin: 0.95rem 0 0.55rem;
+}
+
+.journal-calendar-month strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+  text-transform: capitalize;
+}
+
+.journal-calendar-month > button:disabled {
+  opacity: 0.28;
+}
+
+.journal-calendar-weekdays,
+.journal-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+
+.journal-calendar-weekdays {
+  margin-bottom: 0.34rem;
+  color: #99919a;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.journal-calendar-grid > span,
+.journal-calendar-grid > button {
+  aspect-ratio: 1;
+}
+
+.journal-calendar-grid > button {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  place-items: center;
+  border-radius: 13px;
+  color: #3d3740;
+  background: #fff;
+  box-shadow: none;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.journal-calendar-grid > button.today {
+  box-shadow: inset 0 0 0 1px rgba(244, 117, 64, 0.38);
+}
+
+.journal-calendar-grid > button.selected {
+  color: #fff;
+  background: var(--orange);
+}
+
+.journal-calendar-grid > button:disabled {
+  opacity: 0.24;
+}
+
+.journal-calendar-all {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 0.8rem;
+  border-radius: 15px;
+  color: #a45322;
+  background: #fff0e5;
+  box-shadow: none;
+  font-size: 0.76rem;
   font-weight: 850;
 }
 
