@@ -1818,11 +1818,14 @@ const state = {
   journalSearch: "",
   journalPeriod: "all",
   journalDate: "",
+  journalDateFrom: "",
+  journalDateTo: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
   medicineTab: "today",
   editingMedicineId: null,
+  editingMedicineGroupId: null,
   deletingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
   homeShortcutFolder: null,
@@ -1830,6 +1833,7 @@ const state = {
 };
 
 let journalCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let journalCalendarMode = "day";
 
 const homeShortcutDrag = {
   id: null,
@@ -2322,7 +2326,14 @@ function filteredJournalLogs() {
 
   return activeChildQuickLogs().filter((item) => {
     const occurredAt = new Date(item.occurred_at || item.occurredAt);
-    if (periodDate && localDateKey(occurredAt) !== periodDate) return false;
+    const occurredDateKey = localDateKey(occurredAt);
+    if (periodDate && occurredDateKey !== periodDate) return false;
+    if (
+      state.journalPeriod === "range"
+      && state.journalDateFrom
+      && state.journalDateTo
+      && (occurredDateKey < state.journalDateFrom || occurredDateKey > state.journalDateTo)
+    ) return false;
     if (!query) return true;
     const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія" };
     const searchable = [
@@ -2343,12 +2354,25 @@ function renderJournalFilters() {
     button.setAttribute("aria-pressed", String(button.dataset.journalPeriod === state.journalPeriod));
   });
   const dateButton = $("#journalDateButton");
-  const dateSelected = state.journalPeriod === "date" && Boolean(state.journalDate);
+  const dateSelected = (
+    state.journalPeriod === "date" && Boolean(state.journalDate)
+  ) || (
+    state.journalPeriod === "range" && Boolean(state.journalDateFrom) && Boolean(state.journalDateTo)
+  );
   dateButton.setAttribute("aria-pressed", String(dateSelected));
   dateButton.classList.toggle("active", dateSelected);
-  $("#journalDateLabel").textContent = dateSelected
-    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
-    : "Дата";
+  if (state.journalPeriod === "range" && state.journalDateFrom && state.journalDateTo) {
+    const fromDate = dateFromKey(state.journalDateFrom);
+    const toDate = dateFromKey(state.journalDateTo);
+    const sameMonth = fromDate.getFullYear() === toDate.getFullYear() && fromDate.getMonth() === toDate.getMonth();
+    const from = new Intl.DateTimeFormat("uk-UA", sameMonth ? { day: "2-digit" } : { day: "2-digit", month: "2-digit" }).format(fromDate);
+    const to = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(toDate);
+    $("#journalDateLabel").textContent = `${from}–${to}`;
+  } else {
+    $("#journalDateLabel").textContent = dateSelected
+      ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
+      : "Дата";
+  }
 }
 
 function renderJournalCalendar() {
@@ -2359,6 +2383,20 @@ function renderJournalCalendar() {
   const daysInMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0).getDate();
   const emptyDays = isoDayForDate(monthStart) - 1;
   const todayKey = localDateKey();
+  const rangeMode = journalCalendarMode === "range";
+
+  document.querySelectorAll("[data-journal-calendar-mode]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.journalCalendarMode === journalCalendarMode));
+  });
+  $("#journalCalendarTitle").textContent = rangeMode ? "Оберіть період" : "Оберіть дату";
+  $("#journalCalendarRange").hidden = !rangeMode;
+  $("#journalCalendarApply").hidden = !rangeMode;
+  $("#journalCalendarApply").disabled = !(state.journalDateFrom && state.journalDateTo);
+  const shortDate = (dateKey) => dateKey
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "short" }).format(dateFromKey(dateKey))
+    : "Оберіть";
+  $("#journalCalendarFrom").textContent = shortDate(state.journalDateFrom);
+  $("#journalCalendarTo").textContent = shortDate(state.journalDateTo);
 
   monthLabel.textContent = new Intl.DateTimeFormat("uk-UA", { month: "long", year: "numeric" }).format(monthStart);
   $("#journalCalendarNext").disabled = nextMonth > new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -2367,19 +2405,36 @@ function renderJournalCalendar() {
   const days = Array.from({ length: daysInMonth }, (_, index) => {
     const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1);
     const dateKey = localDateKey(date);
+    const rangeStart = rangeMode && dateKey === state.journalDateFrom;
+    const rangeEnd = rangeMode && dateKey === state.journalDateTo;
+    const inRange = rangeMode
+      && state.journalDateFrom
+      && state.journalDateTo
+      && dateKey > state.journalDateFrom
+      && dateKey < state.journalDateTo;
     const classes = [
       dateKey === todayKey ? "today" : "",
-      dateKey === state.journalDate ? "selected" : ""
+      !rangeMode && dateKey === state.journalDate ? "selected" : "",
+      rangeStart ? "range-start selected" : "",
+      rangeEnd ? "range-end selected" : "",
+      inRange ? "in-range" : ""
     ].filter(Boolean).join(" ");
     const disabled = dateKey > todayKey ? " disabled" : "";
-    const selected = dateKey === state.journalDate ? ' aria-selected="true"' : "";
+    const selected = (
+      (!rangeMode && dateKey === state.journalDate)
+      || rangeStart
+      || rangeEnd
+      || inRange
+    ) ? ' aria-selected="true"' : "";
     return `<button class="${classes}" type="button" role="gridcell" data-journal-calendar-date="${dateKey}"${selected}${disabled}>${index + 1}</button>`;
   });
   grid.innerHTML = [...blanks, ...days].join("");
 }
 
 function openJournalCalendar() {
-  const selectedDate = state.journalDate ? dateFromKey(state.journalDate) : new Date();
+  journalCalendarMode = state.journalPeriod === "range" ? "range" : "day";
+  const selectedDateKey = journalCalendarMode === "range" ? state.journalDateFrom : state.journalDate;
+  const selectedDate = selectedDateKey ? dateFromKey(selectedDateKey) : new Date();
   journalCalendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
   renderJournalCalendar();
   $("#journalCalendarOverlay").hidden = false;
@@ -2390,7 +2445,22 @@ function closeJournalCalendar() {
 }
 
 function selectJournalCalendarDate(dateKey) {
+  if (journalCalendarMode === "range") {
+    if (!state.journalDateFrom || state.journalDateTo) {
+      state.journalDateFrom = dateKey;
+      state.journalDateTo = "";
+    } else if (dateKey < state.journalDateFrom) {
+      state.journalDateTo = state.journalDateFrom;
+      state.journalDateFrom = dateKey;
+    } else {
+      state.journalDateTo = dateKey;
+    }
+    renderJournalCalendar();
+    return;
+  }
   state.journalDate = dateKey;
+  state.journalDateFrom = "";
+  state.journalDateTo = "";
   state.journalPeriod = "date";
   closeJournalCalendar();
   renderQuickLogJournal();
@@ -2400,6 +2470,8 @@ function showLatestJournalEntries() {
   state.journalSearch = "";
   state.journalPeriod = "today";
   state.journalDate = "";
+  state.journalDateFrom = "";
+  state.journalDateTo = "";
   const searchInput = $("#journalSearch");
   if (searchInput) searchInput.value = "";
 }
@@ -2412,7 +2484,7 @@ function renderQuickLogJournal() {
   if (!logs.length) {
     list.innerHTML = state.journalSearch
       ? '<p class="quick-log-empty">За вашим запитом записів не знайдено.</p>'
-      : '<p class="quick-log-empty">За вибраний день записів поки немає.</p>';
+      : `<p class="quick-log-empty">За вибраний ${state.journalPeriod === "range" ? "період" : "день"} записів поки немає.</p>`;
     return;
   }
 
@@ -2677,7 +2749,7 @@ async function saveHomeQuickLog(event) {
       eventAction: savedQuickLogAction(type, action, state.homeQuickLogBreastSide),
       value: numberValue,
       unit: settings?.unit || null,
-      note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
+      note: typedNote || (selectedMedicine ? medicineDoseInstruction(selectedMedicine) : ""),
       occurredAt: occurredAt.toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
@@ -2816,7 +2888,7 @@ async function saveQuickLogForm(event) {
       eventAction: savedQuickLogAction(state.quickLogType, state.quickLogAction, state.quickLogBreastSide),
       value: numberValue,
       unit: valueSettings?.unit || null,
-      note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
+      note: typedNote || (selectedMedicine ? medicineDoseInstruction(selectedMedicine) : ""),
       occurredAt: occurredAt.toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
@@ -2872,6 +2944,29 @@ function medicineTime(reminder) {
   return String(reminder.reminder_time || reminder.reminderTime || "").slice(0, 5);
 }
 
+function medicineGroupId(reminder) {
+  return reminder?.schedule_group_id || reminder?.scheduleGroupId || reminder?.id || "";
+}
+
+function medicineGroupReminders(reminderOrId) {
+  const reminder = typeof reminderOrId === "string"
+    ? state.medicineReminders.find((item) => item.id === reminderOrId)
+    : reminderOrId;
+  if (!reminder) return [];
+  const groupId = medicineGroupId(reminder);
+  return state.medicineReminders
+    .filter((item) => medicineGroupId(item) === groupId)
+    .sort((left, right) => medicineTime(left).localeCompare(medicineTime(right)));
+}
+
+function medicineMealRelationLabel(value) {
+  return {
+    before: "До їди",
+    with: "Під час їди",
+    after: "Після їди"
+  }[value] || "";
+}
+
 function reminderRunsOnDate(reminder, dateKey) {
   if (!reminder.is_active && reminder.is_active !== undefined) return false;
   if (reminder.start_date && dateKey < reminder.start_date) return false;
@@ -2896,6 +2991,13 @@ function medicineDoseText(reminder) {
   return [reminder.dose_amount || reminder.doseAmount, reminder.dose_unit || reminder.doseUnit]
     .filter(Boolean)
     .join(" ");
+}
+
+function medicineDoseInstruction(reminder) {
+  return [
+    medicineDoseText(reminder),
+    medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation)
+  ].filter(Boolean).join(" · ");
 }
 
 function matchingMedicineSchedule(title, occurredAt = new Date()) {
@@ -2945,7 +3047,11 @@ function medicineCardHtml(reminder, dateKey, mode = "today") {
   const intake = intakeForReminder(reminder.id, dateKey);
   const taken = intake?.status === "taken";
   const skipped = intake?.status === "skipped";
-  const note = reminder.note ? `<small>${escapeHtml(reminder.note)}</small>` : "";
+  const instructions = [
+    medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation),
+    reminder.note
+  ].filter(Boolean).join(" · ");
+  const note = instructions ? `<small>${escapeHtml(instructions)}</small>` : "";
   let actions = "";
 
   if (mode === "today") {
@@ -3007,9 +3113,30 @@ function renderMedicineAll() {
   if (!reminders.length) {
     return `<div class="medicine-empty"><span>＋</span><strong>Список поки порожній</strong><small>Перший препарат можна додати за кілька секунд.</small></div>`;
   }
-  return reminders.map((reminder) => {
-    const withSchedule = { ...reminder, note: `${medicineDaysText(reminder)} · ${reminder.note || "без примітки"}` };
-    return medicineCardHtml(withSchedule, localDateKey(), "all");
+  const groups = new Map();
+  reminders.forEach((reminder) => {
+    const groupId = medicineGroupId(reminder);
+    if (!groups.has(groupId)) groups.set(groupId, []);
+    groups.get(groupId).push(reminder);
+  });
+  return [...groups.values()].map((group) => {
+    const sorted = group.sort((left, right) => medicineTime(left).localeCompare(medicineTime(right)));
+    const reminder = sorted[0];
+    const times = sorted.map(medicineTime).join(", ");
+    const mealRelation = medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation);
+    const details = [medicineDaysText(reminder), mealRelation, reminder.note].filter(Boolean).join(" · ");
+    return `<article class="medicine-card medicine-group-card">
+      <span class="medicine-time">${sorted.length}×</span>
+      <div class="medicine-card-copy">
+        <strong>${escapeHtml(reminder.title)}</strong>
+        <span>${escapeHtml(`${sorted.length} ${pluralizeUkrainian(sorted.length, "прийом", "прийоми", "прийомів")} · ${times}`)}</span>
+        <small>${escapeHtml(details || "Без додаткових вказівок")}</small>
+      </div>
+      <div class="medicine-card-actions">
+        <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
+        <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
+      </div>
+    </article>`;
   }).join("");
 }
 
@@ -3066,18 +3193,61 @@ function setMedicineDays(days = [1, 2, 3, 4, 5, 6, 7]) {
   });
 }
 
+const medicineTimePresets = {
+  1: ["09:00"],
+  2: ["09:00", "21:00"],
+  3: ["08:00", "14:00", "20:00"],
+  4: ["08:00", "12:00", "16:00", "20:00"]
+};
+
+function medicineScheduleRows() {
+  return [...document.querySelectorAll("[data-medicine-schedule-row]")].map((row) => ({
+    time: row.querySelector("[data-medicine-schedule-time]")?.value || "",
+    doseAmount: row.querySelector("[data-medicine-schedule-dose]")?.value.trim().replace(",", ".") || ""
+  }));
+}
+
+function renderMedicineScheduleRows(count, values = []) {
+  const safeCount = Math.min(4, Math.max(1, Number(count) || 1));
+  const current = values.length ? values : medicineScheduleRows();
+  const presets = medicineTimePresets[safeCount];
+  const labels = ["Перший прийом", "Другий прийом", "Третій прийом", "Четвертий прийом"];
+  document.querySelectorAll("[data-medicine-frequency]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(Number(button.dataset.medicineFrequency) === safeCount));
+  });
+  $("#medicineScheduleList").innerHTML = Array.from({ length: safeCount }, (_, index) => {
+    const value = current[index] || {};
+    return `<div class="medicine-schedule-row" data-medicine-schedule-row>
+      <strong>${labels[index]}</strong>
+      <label>
+        <small>Кількість</small>
+        <input type="text" inputmode="decimal" maxlength="20" placeholder="Вкажіть" value="${escapeHtml(value.doseAmount || current[0]?.doseAmount || "")}" data-medicine-schedule-dose required />
+      </label>
+      <label>
+        <small>Час</small>
+        <input type="time" value="${escapeHtml(value.time || presets[index])}" data-medicine-schedule-time required />
+      </label>
+    </div>`;
+  }).join("");
+}
+
 function openMedicineForm(reminderId = null) {
   state.editingMedicineId = reminderId;
   const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  const group = reminder ? medicineGroupReminders(reminder) : [];
+  state.editingMedicineGroupId = reminder ? medicineGroupId(reminder) : null;
   $("#medicineForm").reset();
   $("#medicineFormError").hidden = true;
   $("#medicineFormTitle").textContent = reminder ? "Редагувати ліки" : "Додати ліки";
   $("#medicineSaveButton").textContent = reminder ? "Зберегти зміни" : "Зберегти нагадування";
   populateMedicineChildren(reminder?.child_id || state.childProfile?.id);
   $("#medicineTitle").value = reminder?.title || "";
-  $("#medicineDose").value = reminder?.dose_amount || "";
   $("#medicineUnit").value = reminder?.dose_unit || "краплі";
-  $("#medicineTime").value = medicineTime(reminder || {}) || "09:00";
+  $("#medicineMealRelation").value = reminder?.meal_relation || reminder?.mealRelation || "none";
+  renderMedicineScheduleRows(group.length || 1, group.map((item) => ({
+    time: medicineTime(item),
+    doseAmount: item.dose_amount || item.doseAmount || ""
+  })));
   $("#medicineStartDate").value = reminder?.start_date || localDateKey();
   $("#medicineEndDate").value = reminder?.end_date || "";
   $("#medicineNote").value = reminder?.note || "";
@@ -3117,16 +3287,27 @@ function requestMedicineWriteAccess() {
 async function saveMedicineForm(event) {
   event.preventDefault();
   const title = $("#medicineTitle").value.trim();
-  const doseAmount = $("#medicineDose").value.trim().replace(",", ".");
   const doseUnit = $("#medicineUnit").value;
-  const reminderTime = $("#medicineTime").value;
+  const mealRelation = $("#medicineMealRelation").value;
+  const schedules = medicineScheduleRows()
+    .sort((first, second) => first.time.localeCompare(second.time));
   const daysOfWeek = selectedMedicineDays();
   const startDate = $("#medicineStartDate").value || localDateKey();
   const endDate = $("#medicineEndDate").value || null;
   const error = $("#medicineFormError");
 
-  if (!title || !doseAmount || !reminderTime || !daysOfWeek.length) {
-    error.textContent = "Заповніть назву, кількість, час і виберіть хоча б один день.";
+  if (!title || !schedules.length || schedules.some((item) => !item.doseAmount || !item.time) || !daysOfWeek.length) {
+    error.textContent = "Заповніть назву, кількість і час кожного прийому та виберіть хоча б один день.";
+    error.hidden = false;
+    return;
+  }
+  if (schedules.some((item) => !Number.isFinite(Number(item.doseAmount)) || Number(item.doseAmount) <= 0)) {
+    error.textContent = "Кількість для кожного прийому має бути числом, більшим за нуль.";
+    error.hidden = false;
+    return;
+  }
+  if (new Set(schedules.map((item) => item.time)).size !== schedules.length) {
+    error.textContent = "Час прийомів не повинен повторюватися.";
     error.hidden = false;
     return;
   }
@@ -3140,26 +3321,43 @@ async function saveMedicineForm(event) {
   $("#medicineSaveButton").disabled = true;
   const writeAccessPromise = requestMedicineWriteAccess();
   try {
-    const reminder = await window.owlJoyAccount.saveMedicineReminder({
-      reminderId: state.editingMedicineId,
+    const existingReminder = state.medicineReminders.find((item) => item.id === state.editingMedicineId);
+    const existingGroup = existingReminder ? medicineGroupReminders(existingReminder) : [];
+    const scheduleGroupId = state.editingMedicineGroupId
+      || window.crypto?.randomUUID?.()
+      || `group-${Date.now()}`;
+    const commonValues = {
+      scheduleGroupId,
       childId: $("#medicineChild").value,
       title,
-      doseAmount,
       doseUnit,
-      reminderTime,
+      mealRelation,
       daysOfWeek,
       startDate,
       endDate,
       note: $("#medicineNote").value.trim(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Kyiv"
-    });
+    };
+    const savedReminders = [];
+    for (const [index, schedule] of schedules.entries()) {
+      savedReminders.push(await window.owlJoyAccount.saveMedicineReminder({
+        ...commonValues,
+        reminderId: existingGroup[index]?.id || null,
+        doseAmount: schedule.doseAmount,
+        reminderTime: schedule.time
+      }));
+    }
+    for (const obsoleteReminder of existingGroup.slice(schedules.length)) {
+      await window.owlJoyAccount.deleteMedicineReminder(obsoleteReminder.id);
+    }
     state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
     const notificationsEnabled = await writeAccessPromise;
     if (notificationsEnabled) window.owlJoyAccount.setMedicineNotifications(true).catch(() => {});
     showToast(state.editingMedicineId ? "Зміни збережено" : "Нагадування додано", "correct");
     state.editingMedicineId = null;
+    state.editingMedicineGroupId = null;
     openMedicineScreen("today");
-    return reminder;
+    return savedReminders;
   } catch (saveError) {
     error.textContent = saveError.message || "Не вдалося зберегти нагадування.";
     error.hidden = false;
@@ -3189,7 +3387,10 @@ async function confirmMedicineDelete() {
   confirmButton.disabled = true;
   confirmButton.textContent = "Видаляємо…";
   try {
-    await window.owlJoyAccount.deleteMedicineReminder(reminderId);
+    const group = medicineGroupReminders(reminderId);
+    for (const reminder of group.length ? group : [{ id: reminderId }]) {
+      await window.owlJoyAccount.deleteMedicineReminder(reminder.id);
+    }
     state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
     state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
     closeMedicineDeleteDialog();
@@ -3224,7 +3425,7 @@ async function logMedicineIntake(reminderId, status) {
           eventAction: reminder.title,
           value: null,
           unit: null,
-          note: medicineDoseText(reminder),
+          note: medicineDoseInstruction(reminder),
           occurredAt: new Date().toISOString()
         });
         state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
@@ -4115,6 +4316,7 @@ function goBack() {
 
   if (!$("#medicineFormScreen").hidden) {
     state.editingMedicineId = null;
+    state.editingMedicineGroupId = null;
     openMedicineScreen(state.medicineTab);
     return;
   }
@@ -4660,6 +4862,17 @@ function showToast(text, tone = "neutral") {
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const calendarMode = event.target.closest("[data-journal-calendar-mode]")?.dataset.journalCalendarMode;
+  if (calendarMode) {
+    journalCalendarMode = calendarMode;
+    if (calendarMode === "range" && state.journalPeriod !== "range") {
+      state.journalDateFrom = "";
+      state.journalDateTo = "";
+    }
+    renderJournalCalendar();
+    return;
+  }
+
   const calendarDate = event.target.closest("[data-journal-calendar-date]")?.dataset.journalCalendarDate;
   if (calendarDate) {
     selectJournalCalendarDate(calendarDate);
@@ -4681,6 +4894,10 @@ document.addEventListener("click", (event) => {
   if (journalPeriod) {
     state.journalPeriod = journalPeriod;
     if (journalPeriod !== "date") state.journalDate = "";
+    if (journalPeriod !== "range") {
+      state.journalDateFrom = "";
+      state.journalDateTo = "";
+    }
     renderQuickLogJournal();
     return;
   }
@@ -4736,6 +4953,12 @@ document.addEventListener("click", (event) => {
   const medicineDay = event.target.closest("[data-medicine-day]");
   if (medicineDay) {
     medicineDay.setAttribute("aria-pressed", String(medicineDay.getAttribute("aria-pressed") !== "true"));
+    return;
+  }
+
+  const medicineFrequency = event.target.closest("[data-medicine-frequency]")?.dataset.medicineFrequency;
+  if (medicineFrequency) {
+    renderMedicineScheduleRows(Number(medicineFrequency));
     return;
   }
 
@@ -5004,8 +5227,18 @@ document.addEventListener("click", (event) => {
     closeJournalCalendar();
     return;
   }
+  if (action === "applyJournalDateRange") {
+    if (!state.journalDateFrom || !state.journalDateTo) return;
+    state.journalDate = "";
+    state.journalPeriod = "range";
+    closeJournalCalendar();
+    renderQuickLogJournal();
+    return;
+  }
   if (action === "showAllJournalDates") {
     state.journalDate = "";
+    state.journalDateFrom = "";
+    state.journalDateTo = "";
     state.journalPeriod = "all";
     closeJournalCalendar();
     renderQuickLogJournal();
@@ -5022,6 +5255,7 @@ document.addEventListener("click", (event) => {
   }
   if (action === "cancelMedicineForm") {
     state.editingMedicineId = null;
+    state.editingMedicineGroupId = null;
     openMedicineScreen(state.medicineTab);
     return;
   }
