@@ -1696,8 +1696,8 @@ const quickLogHomeShortcutCatalog = [
   { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
   { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
   { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
-  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "📝", quickLogType: "note", quickLogAction: "Нотатка" },
-  { id: "quicklog:head-position", group: "Швидкий запис", title: "Положення голови", emoji: "↔️", quickLogType: "head-position", quickLogAction: "Ліворуч" }
+  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", image: "./assets/images/quick-log-note-v4.webp", quickLogType: "note", quickLogAction: "Нотатка" },
+  { id: "quicklog:head-position", group: "Швидкий запис", title: "Положення голови", image: "./assets/images/quick-log-head-position-v4.webp", quickLogType: "head-position", quickLogAction: "Ліворуч" }
 ];
 
 const mainHomeShortcutCatalog = [
@@ -2264,8 +2264,8 @@ const quickLogTypes = {
   diaper: { label: "Підгузок", icon: "", image: "./assets/images/quick-log-diaper-v2.webp", actions: ["Мокрий", "Брудний", "Обидва"] },
   medicine: { label: "Ліки", icon: "💊", actions: ["Ліки дано"] },
   temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] },
-  note: { label: "Нотатка", icon: "📝", actions: ["Нотатка"] },
-  "head-position": { label: "Положення голови", icon: "↔️", actions: ["Ліворуч", "Праворуч"] }
+  note: { label: "Нотатка", icon: "", image: "./assets/images/quick-log-note-v4.webp", actions: ["Нотатка"] },
+  "head-position": { label: "Положення голови", icon: "", image: "./assets/images/quick-log-head-position-v4.webp", actions: ["Ліворуч", "Праворуч"] }
 };
 
 function localDateTimeValue(date = new Date()) {
