@@ -177,7 +177,7 @@ Deno.serve(async (request) => {
             .order("created_at", { ascending: true }),
           supabase
             .from("medicine_reminders")
-            .select("id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
+            .select("id, child_id, title, note, schedule_group_id, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
             .eq("user_id", user.id)
             .order("reminder_time", { ascending: true }),
           supabase
@@ -379,12 +379,15 @@ Deno.serve(async (request) => {
         const title = typeof body.title === "string" ? body.title.trim() : "";
         const doseAmount = typeof body.doseAmount === "string" ? body.doseAmount.trim() : "";
         const doseUnit = typeof body.doseUnit === "string" ? body.doseUnit.trim() : "";
+        const scheduleGroupId = typeof body.scheduleGroupId === "string" ? body.scheduleGroupId : "";
+        const mealRelation = typeof body.mealRelation === "string" ? body.mealRelation : "none";
         const reminderTime = typeof body.reminderTime === "string" ? body.reminderTime : "";
         const note = typeof body.note === "string" ? body.note.trim() : "";
         const startDate = typeof body.startDate === "string" ? body.startDate : "";
         const endDate = typeof body.endDate === "string" && body.endDate ? body.endDate : null;
         const timezone = typeof body.timezone === "string" ? body.timezone : "Europe/Kyiv";
         const allowedUnits = ["краплі", "мл", "таблетка", "мірна ложка", "доза"];
+        const allowedMealRelations = ["none", "before", "with", "after"];
         const daysOfWeek = Array.isArray(body.daysOfWeek)
           ? [...new Set(body.daysOfWeek.map(Number))].filter((day) => Number.isInteger(day) && day >= 1 && day <= 7).sort()
           : [];
@@ -397,6 +400,7 @@ Deno.serve(async (request) => {
 
         if (
           !childId || !title || title.length > 120 || !doseAmount || doseAmount.length > 20 ||
+          !/^[0-9a-f-]{36}$/i.test(scheduleGroupId) || !allowedMealRelations.includes(mealRelation) ||
           !allowedUnits.includes(doseUnit) || !/^\d{2}:\d{2}$/.test(reminderTime) ||
           !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
           (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) ||
@@ -418,6 +422,8 @@ Deno.serve(async (request) => {
           user_id: user.id,
           child_id: childId,
           title,
+          schedule_group_id: scheduleGroupId,
+          meal_relation: mealRelation,
           dose_amount: doseAmount,
           dose_unit: doseUnit,
           note: note || null,
@@ -433,7 +439,7 @@ Deno.serve(async (request) => {
           ? supabase.from("medicine_reminders").update(reminderValues).eq("id", reminderId).eq("user_id", user.id)
           : supabase.from("medicine_reminders").insert(reminderValues);
         const { data: medicineReminder, error: reminderError } = await reminderQuery
-          .select("id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
+          .select("id, child_id, title, note, schedule_group_id, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
           .single();
         if (reminderError) throw reminderError;
 
