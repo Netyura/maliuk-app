@@ -11,6 +11,7 @@
     currentUser: null,
     currentChild: null,
     childProfiles: [],
+    familyMembers: [],
     favoritePoemIds: [],
     homeShortcutIds: null,
     medicineReminders: [],
@@ -65,6 +66,27 @@
     return payload;
   }
 
+  function applyAuthenticatedPayload(payload) {
+    account.currentUser = payload.user;
+    account.childProfiles = payload.childProfiles || (payload.childProfile ? [payload.childProfile] : []);
+    account.currentChild = account.childProfiles[0] || null;
+    account.familyMembers = payload.familyMembers || [];
+    account.favoritePoemIds = payload.favoritePoemIds || [];
+    account.homeShortcutIds = Array.isArray(payload.homeShortcutIds) ? payload.homeShortcutIds : null;
+    account.medicineReminders = payload.medicineReminders || [];
+    account.medicineIntakes = payload.medicineIntakes || [];
+    account.careQuickLogs = payload.careQuickLogs || [];
+    account.status = "authenticated";
+    account.error = null;
+    return account;
+  }
+
+  async function refresh() {
+    if (account.status !== "authenticated") return account;
+    const payload = await request("bootstrap");
+    return applyAuthenticatedPayload(payload);
+  }
+
   async function bootstrap() {
     if (!telegramApp?.initData) {
       account.childProfiles = readPreviewChildren();
@@ -86,15 +108,7 @@
 
     try {
       const payload = await request("bootstrap");
-      account.currentUser = payload.user;
-      account.childProfiles = payload.childProfiles || (payload.childProfile ? [payload.childProfile] : []);
-      account.currentChild = account.childProfiles[0] || null;
-      account.favoritePoemIds = payload.favoritePoemIds || [];
-      account.homeShortcutIds = Array.isArray(payload.homeShortcutIds) ? payload.homeShortcutIds : null;
-      account.medicineReminders = payload.medicineReminders || [];
-      account.medicineIntakes = payload.medicineIntakes || [];
-      account.careQuickLogs = payload.careQuickLogs || [];
-      account.status = "authenticated";
+      applyAuthenticatedPayload(payload);
     } catch (error) {
       account.status = "error";
       account.error = error;
@@ -256,6 +270,52 @@
     return { ok: true };
   }
 
+  async function createFamilyInvitation({ childId, role }) {
+    if (account.status !== "authenticated") {
+      throw new Error("Сімейний доступ працює після входу через Telegram");
+    }
+    const payload = await request("family.invite.create", { childId, role });
+    return payload.invitation;
+  }
+
+  async function acceptFamilyInvitation(code) {
+    if (account.status !== "authenticated") {
+      throw new Error("Відкрийте OwlJoy у Telegram, щоб прийняти запрошення");
+    }
+    const payload = await request("family.invite.accept", { code });
+    await refresh();
+    return {
+      ...payload,
+      childProfile: account.childProfiles.find((profile) => profile.id === payload.childProfile?.id)
+        || payload.childProfile
+    };
+  }
+
+  async function removeFamilyMember({ childId, memberUserId }) {
+    if (account.status !== "authenticated") {
+      throw new Error("Сімейний доступ працює після входу через Telegram");
+    }
+    await request("family.member.remove", { childId, memberUserId });
+    account.familyMembers = account.familyMembers.filter((member) =>
+      member.child_id !== childId || member.user_id !== memberUserId
+    );
+    return { ok: true };
+  }
+
+  async function leaveFamilyProfile(childId) {
+    if (account.status !== "authenticated") {
+      throw new Error("Сімейний доступ працює після входу через Telegram");
+    }
+    await request("family.leave", { childId });
+    account.childProfiles = account.childProfiles.filter((profile) => profile.id !== childId);
+    account.familyMembers = account.familyMembers.filter((member) => member.child_id !== childId);
+    account.medicineReminders = account.medicineReminders.filter((item) => item.child_id !== childId);
+    account.medicineIntakes = account.medicineIntakes.filter((item) => item.child_id !== childId);
+    account.careQuickLogs = account.careQuickLogs.filter((item) => item.child_id !== childId);
+    if (account.currentChild?.id === childId) account.currentChild = account.childProfiles[0] || null;
+    return account.currentChild;
+  }
+
   async function saveCareQuickLog(values) {
     if (account.status === "authenticated") {
       const payload = await request("quicklog.save", values);
@@ -312,6 +372,7 @@
   }
 
   account.request = request;
+  account.refresh = refresh;
   account.saveChildProfile = saveChildProfile;
   account.deleteChildProfile = deleteChildProfile;
   account.saveMedicineReminder = saveMedicineReminder;
@@ -319,6 +380,10 @@
   account.logMedicineIntake = logMedicineIntake;
   account.deleteMedicineIntake = deleteMedicineIntake;
   account.setMedicineNotifications = setMedicineNotifications;
+  account.createFamilyInvitation = createFamilyInvitation;
+  account.acceptFamilyInvitation = acceptFamilyInvitation;
+  account.removeFamilyMember = removeFamilyMember;
+  account.leaveFamilyProfile = leaveFamilyProfile;
   account.saveCareQuickLog = saveCareQuickLog;
   account.deleteCareQuickLog = deleteCareQuickLog;
   account.setHomeShortcuts = setHomeShortcuts;

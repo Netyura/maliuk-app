@@ -174,6 +174,64 @@ function childAgeInMonths(birthDate: string) {
   return months;
 }
 
+function normalizeInvitationCode(value: unknown) {
+  return typeof value === "string"
+    ? value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)
+    : "";
+}
+
+function createInvitationCode() {
+  const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return toHex(digest);
+}
+
+async function childAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  childId: string,
+) {
+  const { data: child, error: childError } = await supabase
+    .from("child_profiles")
+    .select("id, user_id, nickname, birth_date, age_months, created_at, updated_at")
+    .eq("id", childId)
+    .maybeSingle();
+  if (childError) throw childError;
+  if (!child) return null;
+  if (child.user_id === userId) {
+    return {
+      child,
+      role: "owner",
+      canManage: true,
+      canManageMedicine: true,
+      canCreateReport: true,
+    };
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("child_family_members")
+    .select("role, medicine_notifications_enabled")
+    .eq("child_id", childId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (membershipError) throw membershipError;
+  return membership
+    ? {
+      child,
+      role: membership.role,
+      canManage: false,
+      canManageMedicine: membership.role === "parent",
+      canCreateReport: membership.role === "parent",
+      medicineNotificationsEnabled: Boolean(membership.medicine_notifications_enabled),
+    }
+    : null;
+}
+
 // Використовуємо стабільний клієнт напряму: функція не залежить від
 // експериментальної обгортки середовища виконання Supabase.
 Deno.serve(async (request) => {
@@ -223,7 +281,7 @@ Deno.serve(async (request) => {
       if (error) throw error;
 
       if (body.action === "bootstrap") {
-        const [favoritesResult, childResult, medicineResult, intakeResult, preferencesResult, quickLogsResult] = await Promise.all([
+        const [favoritesResult, ownedChildrenResult, membershipsResult, preferencesResult] = await Promise.all([
           supabase
             .from("user_favorites")
             .select("content_id")
@@ -232,60 +290,376 @@ Deno.serve(async (request) => {
           supabase
             .from("child_profiles")
             .select(
-              "id, nickname, birth_date, age_months, created_at, updated_at",
+              "id, user_id, nickname, birth_date, age_months, created_at, updated_at",
             )
             .eq("user_id", user.id)
             .order("created_at", { ascending: true }),
           supabase
-            .from("medicine_reminders")
-            .select("id, child_id, title, note, schedule_group_id, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
-            .eq("user_id", user.id)
-            .order("reminder_time", { ascending: true }),
-          supabase
-            .from("medicine_intakes")
-            .select("id, reminder_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
-            .eq("user_id", user.id)
-            .order("scheduled_date", { ascending: false })
-            .limit(120),
+            .from("child_family_members")
+            .select("child_id, role, medicine_notifications_enabled")
+            .eq("user_id", user.id),
           supabase
             .from("user_preferences")
             .select("home_shortcuts")
             .eq("user_id", user.id)
             .maybeSingle(),
-          supabase
-            .from("care_quick_logs")
-            .select("id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
-            .eq("user_id", user.id)
-            .order("occurred_at", { ascending: false })
-            .limit(200),
         ]);
         const { data: favorites, error: favoritesError } = favoritesResult;
-        const { data: childProfiles, error: childError } = childResult;
+        const { data: ownedChildren, error: ownedChildrenError } = ownedChildrenResult;
+        const { data: memberships, error: membershipsError } = membershipsResult;
+        const { data: preferences, error: preferencesError } = preferencesResult;
+        if (favoritesError) throw favoritesError;
+        if (ownedChildrenError) throw ownedChildrenError;
+        if (membershipsError) throw membershipsError;
+        if (preferencesError) throw preferencesError;
+
+        const sharedChildIds = (memberships || []).map((item) => item.child_id);
+        const ownedChildIds = (ownedChildren || []).map((item) => item.id);
+        const accessibleChildIds = [...new Set([...ownedChildIds, ...sharedChildIds])];
+        const [
+          sharedChildrenResult,
+          medicineResult,
+          intakeResult,
+          quickLogsResult,
+          familyMembersResult,
+        ] = await Promise.all([
+          sharedChildIds.length
+            ? supabase
+              .from("child_profiles")
+              .select("id, user_id, nickname, birth_date, age_months, created_at, updated_at")
+              .in("id", sharedChildIds)
+            : Promise.resolve({ data: [], error: null }),
+          accessibleChildIds.length
+            ? supabase
+              .from("medicine_reminders")
+              .select("id, user_id, child_id, title, note, schedule_group_id, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
+              .in("child_id", accessibleChildIds)
+              .order("reminder_time", { ascending: true })
+            : Promise.resolve({ data: [], error: null }),
+          accessibleChildIds.length
+            ? supabase
+              .from("medicine_intakes")
+              .select("id, reminder_id, user_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
+              .in("child_id", accessibleChildIds)
+              .order("scheduled_date", { ascending: false })
+              .limit(240)
+            : Promise.resolve({ data: [], error: null }),
+          accessibleChildIds.length
+            ? supabase
+              .from("care_quick_logs")
+              .select("id, user_id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
+              .in("child_id", accessibleChildIds)
+              .order("occurred_at", { ascending: false })
+              .limit(300)
+            : Promise.resolve({ data: [], error: null }),
+          accessibleChildIds.length
+            ? supabase
+              .from("child_family_members")
+              .select("child_id, user_id, role, medicine_notifications_enabled, created_at")
+              .in("child_id", accessibleChildIds)
+              .order("created_at", { ascending: true })
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+        const { data: sharedChildren, error: sharedChildrenError } = sharedChildrenResult;
         const { data: medicineReminders, error: medicineError } = medicineResult;
         const { data: medicineIntakes, error: intakeError } = intakeResult;
-        const { data: preferences, error: preferencesError } = preferencesResult;
         const { data: careQuickLogs, error: quickLogsError } = quickLogsResult;
-        if (favoritesError) throw favoritesError;
-        if (childError) throw childError;
+        const { data: familyMemberships, error: familyMembersError } = familyMembersResult;
+        if (sharedChildrenError) throw sharedChildrenError;
         if (medicineError) throw medicineError;
         if (intakeError) throw intakeError;
-        if (preferencesError) throw preferencesError;
         if (quickLogsError) throw quickLogsError;
+        if (familyMembersError) throw familyMembersError;
+
+        const membershipRoleMap = new Map(
+          (memberships || []).map((item) => [item.child_id, item.role]),
+        );
+        const membershipNotificationMap = new Map(
+          (memberships || []).map((item) => [
+            item.child_id,
+            Boolean(item.medicine_notifications_enabled),
+          ]),
+        );
+        const childProfiles = [...(ownedChildren || []), ...(sharedChildren || [])]
+          .filter((profile, index, profiles) =>
+            profiles.findIndex((item) => item.id === profile.id) === index
+          )
+          .map((profile) => ({
+            ...profile,
+            access_role: profile.user_id === user.id
+              ? "owner"
+              : membershipRoleMap.get(profile.id),
+            can_manage: profile.user_id === user.id,
+            can_manage_medicine: profile.user_id === user.id
+              || membershipRoleMap.get(profile.id) === "parent",
+            can_create_report: profile.user_id === user.id
+              || membershipRoleMap.get(profile.id) === "parent",
+            medicine_notifications_enabled: profile.user_id === user.id
+              ? null
+              : membershipNotificationMap.get(profile.id) || false,
+          }))
+          .sort((left, right) => left.created_at.localeCompare(right.created_at));
+
+        const ownerRows = childProfiles.map((profile) => ({
+          child_id: profile.id,
+          user_id: profile.user_id,
+          role: "owner",
+          created_at: profile.created_at,
+        }));
+        const allFamilyRows = [...ownerRows, ...(familyMemberships || [])]
+          .filter((row, index, rows) =>
+            rows.findIndex((item) =>
+              item.child_id === row.child_id && item.user_id === row.user_id
+            ) === index
+          );
+        const familyUserIds = [...new Set([
+          ...allFamilyRows.map((item) => item.user_id),
+          ...(medicineIntakes || []).map((item) => item.user_id),
+          ...(careQuickLogs || []).map((item) => item.user_id),
+        ])];
+        const { data: familyUsers, error: familyUsersError } = familyUserIds.length
+          ? await supabase
+            .from("owljoy_users")
+            .select("id, first_name, last_name, username")
+            .in("id", familyUserIds)
+          : { data: [], error: null };
+        if (familyUsersError) throw familyUsersError;
+        const familyUserMap = new Map((familyUsers || []).map((item) => [
+          item.id,
+          {
+            displayName: [item.first_name, item.last_name].filter(Boolean).join(" "),
+            username: item.username || null,
+          },
+        ]));
+        const familyMembers = allFamilyRows.map((item) => ({
+          child_id: item.child_id,
+          user_id: item.user_id,
+          role: item.role,
+          display_name: familyUserMap.get(item.user_id)?.displayName || "Член родини",
+          username: familyUserMap.get(item.user_id)?.username || null,
+          is_you: item.user_id === user.id,
+          can_remove: childProfiles.some((profile) =>
+            profile.id === item.child_id
+            && profile.can_manage
+            && item.user_id !== user.id
+          ),
+          medicine_notifications_enabled: Boolean(item.medicine_notifications_enabled),
+        }));
+        const intakesWithRecorder = (medicineIntakes || []).map((item) => ({
+          ...item,
+          recorded_by_name: familyUserMap.get(item.user_id)?.displayName || "Член родини",
+          recorded_by_you: item.user_id === user.id,
+        }));
+        const quickLogsWithRecorder = (careQuickLogs || []).map((item) => ({
+          ...item,
+          recorded_by_name: familyUserMap.get(item.user_id)?.displayName || "Член родини",
+          recorded_by_you: item.user_id === user.id,
+          can_delete: item.user_id === user.id || childProfiles.some((profile) =>
+            profile.id === item.child_id && profile.can_manage
+          ),
+        }));
 
         return json(
           {
             user,
             childProfile: (childProfiles || [])[0] || null,
             childProfiles: childProfiles || [],
+            familyMembers,
             favoritePoemIds: favorites.map((favorite) => favorite.content_id),
             medicineReminders: medicineReminders || [],
-            medicineIntakes: medicineIntakes || [],
-            careQuickLogs: careQuickLogs || [],
+            medicineIntakes: intakesWithRecorder,
+            careQuickLogs: quickLogsWithRecorder,
             homeShortcutIds: preferences?.home_shortcuts || null,
           },
           200,
           headers,
         );
+      }
+
+      if (body.action === "family.invite.create") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const role = ["parent", "grandmother", "grandfather"].includes(body.role)
+          ? body.role
+          : "";
+        const access = childId ? await childAccess(supabase, user.id, childId) : null;
+        if (!access?.canManage) {
+          return json({ error: "Лише власник профілю може запрошувати рідних" }, 403, headers);
+        }
+        if (!role) return json({ error: "Оберіть роль члена родини" }, 400, headers);
+
+        const { count, error: memberCountError } = await supabase
+          .from("child_family_members")
+          .select("user_id", { count: "exact", head: true })
+          .eq("child_id", childId);
+        if (memberCountError) throw memberCountError;
+        if ((count || 0) >= 7) {
+          return json({ error: "До профілю вже підключено максимальну кількість рідних" }, 400, headers);
+        }
+
+        await supabase
+          .from("child_family_invitations")
+          .delete()
+          .eq("child_id", childId)
+          .eq("invited_by_user_id", user.id)
+          .is("accepted_at", null);
+
+        let code = "";
+        let inviteError = null;
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          code = createInvitationCode();
+          const codeHash = await sha256Hex(code);
+          const result = await supabase
+            .from("child_family_invitations")
+            .insert({
+              child_id: childId,
+              invited_by_user_id: user.id,
+              role,
+              code_hash: codeHash,
+              expires_at: expiresAt,
+            });
+          inviteError = result.error;
+          if (!inviteError) break;
+          if (inviteError.code !== "23505") throw inviteError;
+        }
+        if (inviteError) throw inviteError;
+        return json({
+          invitation: {
+            code,
+            role,
+            child_id: childId,
+            child_name: access.child.nickname,
+            expires_at: expiresAt,
+          },
+        }, 200, headers);
+      }
+
+      if (body.action === "family.invite.accept") {
+        const code = normalizeInvitationCode(body.code);
+        if (code.length !== 8) {
+          return json({ error: "Введіть 8 символів коду запрошення" }, 400, headers);
+        }
+        const codeHash = await sha256Hex(code);
+        const { data: invitation, error: invitationError } = await supabase
+          .from("child_family_invitations")
+          .select("id, child_id, role, expires_at, accepted_at, accepted_by_user_id")
+          .eq("code_hash", codeHash)
+          .maybeSingle();
+        if (invitationError) throw invitationError;
+        if (invitation?.accepted_at && invitation.accepted_by_user_id === user.id) {
+          const existingAccess = await childAccess(supabase, user.id, invitation.child_id);
+          if (existingAccess) {
+            return json({
+              ok: true,
+              already_member: true,
+              childProfile: {
+                ...existingAccess.child,
+                access_role: existingAccess.role,
+                can_manage: existingAccess.canManage,
+                can_manage_medicine: existingAccess.canManageMedicine,
+                can_create_report: existingAccess.canCreateReport,
+                medicine_notifications_enabled: existingAccess.medicineNotificationsEnabled ?? null,
+              },
+            }, 200, headers);
+          }
+        }
+        if (
+          !invitation
+          || invitation.accepted_at
+          || new Date(invitation.expires_at).getTime() <= Date.now()
+        ) {
+          return json({ error: "Код недійсний або вже використаний" }, 404, headers);
+        }
+
+        const { data: invitedChild, error: invitedChildError } = await supabase
+          .from("child_profiles")
+          .select("id, user_id, nickname, birth_date, age_months, created_at, updated_at")
+          .eq("id", invitation.child_id)
+          .maybeSingle();
+        if (invitedChildError) throw invitedChildError;
+        if (!invitedChild) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+        if (invitedChild.user_id === user.id) {
+          return json({ error: "Ви вже є власником цього профілю" }, 400, headers);
+        }
+
+        const { error: membershipSaveError } = await supabase
+          .from("child_family_members")
+          .upsert({
+            child_id: invitation.child_id,
+            user_id: user.id,
+            role: invitation.role,
+            added_by_user_id: invitedChild.user_id,
+            medicine_notifications_enabled: true,
+          }, { onConflict: "child_id,user_id" });
+        if (membershipSaveError) throw membershipSaveError;
+        const { data: acceptedInvitation, error: acceptError } = await supabase
+          .from("child_family_invitations")
+          .update({
+            accepted_by_user_id: user.id,
+            accepted_at: new Date().toISOString(),
+          })
+          .eq("id", invitation.id)
+          .is("accepted_at", null)
+          .select("id")
+          .maybeSingle();
+        if (acceptError) throw acceptError;
+        if (!acceptedInvitation) {
+          await supabase
+            .from("child_family_members")
+            .delete()
+            .eq("child_id", invitation.child_id)
+            .eq("user_id", user.id);
+          return json({ error: "Цей код щойно використав інший користувач" }, 409, headers);
+        }
+
+        return json({
+          ok: true,
+          childProfile: {
+            ...invitedChild,
+            access_role: invitation.role,
+            can_manage: false,
+            can_manage_medicine: invitation.role === "parent",
+            can_create_report: invitation.role === "parent",
+            medicine_notifications_enabled: true,
+          },
+        }, 200, headers);
+      }
+
+      if (body.action === "family.member.remove") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const memberUserId = typeof body.memberUserId === "string" ? body.memberUserId : "";
+        const access = childId ? await childAccess(supabase, user.id, childId) : null;
+        if (!access?.canManage) {
+          return json({ error: "Лише власник профілю може змінювати сімейний доступ" }, 403, headers);
+        }
+        if (!memberUserId || memberUserId === user.id) {
+          return json({ error: "Некоректний член родини" }, 400, headers);
+        }
+        const { data: removedMember, error: removeError } = await supabase
+          .from("child_family_members")
+          .delete()
+          .eq("child_id", childId)
+          .eq("user_id", memberUserId)
+          .select("user_id")
+          .maybeSingle();
+        if (removeError) throw removeError;
+        if (!removedMember) return json({ error: "Члена родини не знайдено" }, 404, headers);
+        return json({ ok: true }, 200, headers);
+      }
+
+      if (body.action === "family.leave") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const access = childId ? await childAccess(supabase, user.id, childId) : null;
+        if (!access || access.canManage) {
+          return json({ error: "Власник не може залишити власний профіль" }, 400, headers);
+        }
+        const { error: leaveError } = await supabase
+          .from("child_family_members")
+          .delete()
+          .eq("child_id", childId)
+          .eq("user_id", user.id);
+        if (leaveError) throw leaveError;
+        return json({ ok: true }, 200, headers);
       }
 
       if (body.action === "child.save") {
@@ -326,6 +700,13 @@ Deno.serve(async (request) => {
           }
         }
 
+        if (childId) {
+          const access = await childAccess(supabase, user.id, childId);
+          if (!access?.canManage) {
+            return json({ error: "Редагувати профіль може лише його власник" }, 403, headers);
+          }
+        }
+
         const profileQuery = childId
           ? supabase
               .from("child_profiles")
@@ -342,7 +723,17 @@ Deno.serve(async (request) => {
           .single();
         if (profileError) throw profileError;
 
-        return json({ childProfile }, 200, headers);
+        return json({
+          childProfile: {
+            ...childProfile,
+            user_id: user.id,
+            access_role: "owner",
+            can_manage: true,
+            can_manage_medicine: true,
+            can_create_report: true,
+            medicine_notifications_enabled: null,
+          },
+        }, 200, headers);
       }
 
       if (body.action === "child.delete") {
@@ -392,14 +783,8 @@ Deno.serve(async (request) => {
           return json({ error: "Перевірте дані швидкого запису" }, 400, headers);
         }
 
-        const { data: ownedChild, error: childLookupError } = await supabase
-          .from("child_profiles")
-          .select("id")
-          .eq("id", childId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (childLookupError) throw childLookupError;
-        if (!ownedChild) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+        const access = await childAccess(supabase, user.id, childId);
+        if (!access) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
 
         const { data: careQuickLog, error: quickLogError } = await supabase
           .from("care_quick_logs")
@@ -413,20 +798,37 @@ Deno.serve(async (request) => {
             note: note || null,
             occurred_at: occurredAt.toISOString(),
           })
-          .select("id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
+          .select("id, user_id, child_id, event_type, event_action, value, unit, note, occurred_at, created_at")
           .single();
         if (quickLogError) throw quickLogError;
-        return json({ careQuickLog }, 200, headers);
+        return json({
+          careQuickLog: {
+            ...careQuickLog,
+            recorded_by_name: [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(" "),
+            recorded_by_you: true,
+            can_delete: true,
+          },
+        }, 200, headers);
       }
 
       if (body.action === "quicklog.delete") {
         const quickLogId = typeof body.quickLogId === "string" ? body.quickLogId : "";
         if (!quickLogId) return json({ error: "Запис не вказано" }, 400, headers);
+        const { data: quickLog, error: quickLogLookupError } = await supabase
+          .from("care_quick_logs")
+          .select("id, user_id, child_id")
+          .eq("id", quickLogId)
+          .maybeSingle();
+        if (quickLogLookupError) throw quickLogLookupError;
+        if (!quickLog) return json({ error: "Запис не знайдено" }, 404, headers);
+        const access = await childAccess(supabase, user.id, quickLog.child_id);
+        if (!access || (!access.canManage && quickLog.user_id !== user.id)) {
+          return json({ error: "Видалити цей запис може лише його автор або власник профілю" }, 403, headers);
+        }
         const { data: deletedQuickLog, error: deleteError } = await supabase
           .from("care_quick_logs")
           .delete()
           .eq("id", quickLogId)
-          .eq("user_id", user.id)
           .select("id")
           .maybeSingle();
         if (deleteError) throw deleteError;
@@ -470,17 +872,27 @@ Deno.serve(async (request) => {
           return json({ error: "Перевірте дані нагадування" }, 400, headers);
         }
 
-        const { data: ownedChild, error: childLookupError } = await supabase
-          .from("child_profiles")
-          .select("id")
-          .eq("id", childId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (childLookupError) throw childLookupError;
-        if (!ownedChild) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+        const access = await childAccess(supabase, user.id, childId);
+        if (!access) return json({ error: "Профіль дитини не знайдено" }, 404, headers);
+        if (!access.canManageMedicine) {
+          return json({ error: "Змінювати розклад ліків можуть лише батьки" }, 403, headers);
+        }
+        if (reminderId) {
+          const { data: existingReminder, error: existingReminderError } = await supabase
+            .from("medicine_reminders")
+            .select("id, child_id")
+            .eq("id", reminderId)
+            .maybeSingle();
+          if (existingReminderError) throw existingReminderError;
+          const existingAccess = existingReminder
+            ? await childAccess(supabase, user.id, existingReminder.child_id)
+            : null;
+          if (!existingAccess?.canManageMedicine) {
+            return json({ error: "Нагадування не знайдено" }, 404, headers);
+          }
+        }
 
         const reminderValues = {
-          user_id: user.id,
           child_id: childId,
           title,
           schedule_group_id: scheduleGroupId,
@@ -497,8 +909,8 @@ Deno.serve(async (request) => {
           updated_at: new Date().toISOString(),
         };
         const reminderQuery = reminderId
-          ? supabase.from("medicine_reminders").update(reminderValues).eq("id", reminderId).eq("user_id", user.id)
-          : supabase.from("medicine_reminders").insert(reminderValues);
+          ? supabase.from("medicine_reminders").update(reminderValues).eq("id", reminderId)
+          : supabase.from("medicine_reminders").insert({ user_id: user.id, ...reminderValues });
         const { data: medicineReminder, error: reminderError } = await reminderQuery
           .select("id, child_id, title, note, schedule_group_id, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date, is_active, created_at, updated_at")
           .single();
@@ -520,11 +932,21 @@ Deno.serve(async (request) => {
       if (body.action === "medicine.delete") {
         const reminderId = typeof body.reminderId === "string" ? body.reminderId : "";
         if (!reminderId) return json({ error: "Нагадування не вказано" }, 400, headers);
+        const { data: reminder, error: reminderLookupError } = await supabase
+          .from("medicine_reminders")
+          .select("id, child_id")
+          .eq("id", reminderId)
+          .maybeSingle();
+        if (reminderLookupError) throw reminderLookupError;
+        if (!reminder) return json({ error: "Нагадування не знайдено" }, 404, headers);
+        const access = await childAccess(supabase, user.id, reminder.child_id);
+        if (!access?.canManageMedicine) {
+          return json({ error: "Видалити розклад можуть лише батьки" }, 403, headers);
+        }
         const { data: deletedReminder, error: reminderDeleteError } = await supabase
           .from("medicine_reminders")
           .delete()
           .eq("id", reminderId)
-          .eq("user_id", user.id)
           .select("id")
           .maybeSingle();
         if (reminderDeleteError) throw reminderDeleteError;
@@ -538,12 +960,21 @@ Deno.serve(async (request) => {
         if (!reminderId || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
           return json({ error: "Некоректний прийом ліків" }, 400, headers);
         }
+        const { data: reminder, error: reminderLookupError } = await supabase
+          .from("medicine_reminders")
+          .select("id, child_id")
+          .eq("id", reminderId)
+          .maybeSingle();
+        if (reminderLookupError) throw reminderLookupError;
+        if (!reminder || !await childAccess(supabase, user.id, reminder.child_id)) {
+          return json({ error: "Нагадування не знайдено" }, 404, headers);
+        }
         const { error: intakeDeleteError } = await supabase
           .from("medicine_intakes")
           .delete()
           .eq("reminder_id", reminderId)
           .eq("scheduled_date", scheduledDate)
-          .eq("user_id", user.id);
+          .eq("child_id", reminder.child_id);
         if (intakeDeleteError) throw intakeDeleteError;
         return json({ ok: true }, 200, headers);
       }
@@ -561,10 +992,11 @@ Deno.serve(async (request) => {
           .from("medicine_reminders")
           .select("id, child_id")
           .eq("id", reminderId)
-          .eq("user_id", user.id)
           .maybeSingle();
         if (reminderLookupError) throw reminderLookupError;
         if (!reminder) return json({ error: "Нагадування не знайдено" }, 404, headers);
+        const access = await childAccess(supabase, user.id, reminder.child_id);
+        if (!access) return json({ error: "Нагадування не знайдено" }, 404, headers);
 
         const { data: medicineIntake, error: intakeSaveError } = await supabase
           .from("medicine_intakes")
@@ -577,10 +1009,16 @@ Deno.serve(async (request) => {
             status,
             recorded_at: new Date().toISOString(),
           }, { onConflict: "reminder_id,scheduled_date" })
-          .select("id, reminder_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
+          .select("id, reminder_id, user_id, child_id, scheduled_date, scheduled_time, status, recorded_at")
           .single();
         if (intakeSaveError) throw intakeSaveError;
-        return json({ medicineIntake }, 200, headers);
+        return json({
+          medicineIntake: {
+            ...medicineIntake,
+            recorded_by_name: [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(" "),
+            recorded_by_you: true,
+          },
+        }, 200, headers);
       }
 
       if (body.action === "medicine.notifications") {
@@ -626,6 +1064,11 @@ Deno.serve(async (request) => {
       }
 
       if (body.action === "report.prepareDownload") {
+        const childId = typeof body.childId === "string" ? body.childId : "";
+        const access = childId ? await childAccess(supabase, user.id, childId) : null;
+        if (!access?.canCreateReport) {
+          return json({ error: "Медичний звіт можуть створювати лише батьки" }, 403, headers);
+        }
         const pdfBase64 =
           typeof body.pdfBase64 === "string" ? body.pdfBase64 : "";
         const rawFileName =

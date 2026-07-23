@@ -1714,6 +1714,7 @@ const mainHomeShortcutCatalog = [
   { id: "game:my-face", group: "Ігри", title: "Моє личко", image: "./assets/images/game-my-face.webp", game: "my-face" },
   { id: "game:my-body", group: "Ігри", title: "Моє тіло", image: "./assets/images/game-my-body.webp", game: "my-body" },
   { id: "sleep", group: "Турбота", title: "Сон і звуки", image: "./assets/images/home-sounds.webp", section: "sleep" },
+  { id: "walk", group: "Турбота", title: "На прогулянку", image: "./assets/images/home-walk-weather-v1.webp", section: "walk" },
   { id: "quick-log", group: "Турбота", title: "Журнал", image: "./assets/images/home-journal-v1.webp", section: "quick-log" },
   { id: "medicine", group: "Турбота", title: "Ліки", image: "./assets/images/home-medicine.webp", section: "medicine" },
   { id: "food", group: "Турбота", title: "Прикорм", image: "./assets/images/home-food.webp", section: "food" }
@@ -1753,6 +1754,38 @@ const homeShortcutFolders = [
   { id: "quick-actions", title: "Швидкі дії", lead: "Виберіть окремі дії для головного екрана", image: "./assets/images/home-quick-log-v2.webp", shortcutId: null }
 ];
 
+function readWalkWeatherCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem("owljoyWalkWeather") || "null");
+    if (!cached?.weather || !cached?.savedAt || Date.now() - cached.savedAt > 18 * 60 * 60 * 1000) return null;
+    if (cached.locationName !== "Ваше місце" && cached.countryCode !== "UA") return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+const cachedWalkWeather = readWalkWeatherCache();
+
+function readWalkPlace() {
+  try {
+    const place = JSON.parse(localStorage.getItem("owljoyWalkPlace") || "null");
+    if (place?.countryCode !== "UA" || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude) || !place.locationName) return null;
+    return place;
+  } catch {
+    return null;
+  }
+}
+
+const savedWalkPlace = readWalkPlace();
+const defaultWalkPlace = {
+  name: "Київ",
+  locationName: "Київ",
+  latitude: 50.4501,
+  longitude: 30.5234,
+  countryCode: "UA"
+};
+
 function normalizeHomeShortcutIds(shortcutIds) {
   if (!Array.isArray(shortcutIds)) return null;
   const allowedIds = new Set(homeShortcutCatalog.map((item) => item.id));
@@ -1773,8 +1806,12 @@ function readHomeShortcutIds() {
 const state = {
   childProfile: null,
   childProfiles: [],
+  familyMembers: [],
+  familyInvitation: null,
+  incomingFamilyCode: "",
   onboardingMode: "first",
   onboardingReturn: "today",
+  profileView: "menu",
   editingChildId: null,
   deletingChildId: null,
   age: null,
@@ -1846,6 +1883,15 @@ const state = {
   skippingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
   homeShortcutFolder: null,
+  walkMode: localStorage.getItem("owljoyWalkMode") || "stroller",
+  walkTime: "now",
+  walkLocationName: cachedWalkWeather?.locationName || savedWalkPlace?.locationName || defaultWalkPlace.locationName,
+  walkPlace: savedWalkPlace || defaultWalkPlace,
+  walkWeather: cachedWalkWeather?.weather || null,
+  walkWeatherLoading: false,
+  walkWeatherCached: Boolean(cachedWalkWeather),
+  walkWeatherUpdatedAt: cachedWalkWeather?.savedAt || 0,
+  walkCitySuggestions: [],
   pendingGameId: null,
   task: null
 };
@@ -1893,6 +1939,7 @@ window.owlJoyAccount?.ready.then((account) => {
   state.medicineReminders = [...(account.medicineReminders || [])];
   state.medicineIntakes = [...(account.medicineIntakes || [])];
   state.careQuickLogs = [...(account.careQuickLogs || [])];
+  state.familyMembers = [...(account.familyMembers || [])];
   if (!$("#quickLogScreen").hidden) renderQuickLogJournal();
   if (Array.isArray(account.homeShortcutIds)) {
     state.homeShortcutIds = normalizeHomeShortcutIds(account.homeShortcutIds);
@@ -1904,6 +1951,8 @@ window.owlJoyAccount?.ready.then((account) => {
     localStorage.setItem("favoritePoems", JSON.stringify([...state.favoritePoems]));
   }
   initializeChildProfile(account);
+  const incomingFamilyCode = familyInvitationCodeFromStartParam();
+  if (incomingFamilyCode) openIncomingFamilyInvitation(incomingFamilyCode);
 }).catch(() => showOnboarding());
 
 function ageInMonths(birthDate) {
@@ -1949,6 +1998,21 @@ function applyChildProfile(profile) {
   state.childProfile = profile;
   localStorage.setItem("owljoyActiveChildId", profile.id);
   renderChildSwitcher();
+  updateChildRoleVisibility();
+}
+
+function canManageActiveChildMedicine() {
+  return state.childProfile?.can_manage_medicine !== false;
+}
+
+function canCreateActiveChildReport() {
+  return state.childProfile?.can_create_report !== false;
+}
+
+function updateChildRoleVisibility() {
+  document.querySelectorAll("[data-report-source]").forEach((button) => {
+    button.hidden = !canCreateActiveChildReport();
+  });
 }
 
 function resetOnboardingForm() {
@@ -1992,6 +2056,7 @@ function showOnboarding(mode = "first") {
 }
 
 function renderChildSwitcher() {
+  const ownedProfileCount = state.childProfiles.filter((profile) => profile.can_manage !== false).length;
   [$("#childProfileList"), $("#profileHubChildList")].filter(Boolean).forEach((list) => {
   list.innerHTML = "";
   state.childProfiles.forEach((profile) => {
@@ -2009,7 +2074,8 @@ function renderChildSwitcher() {
     const name = document.createElement("strong");
     name.textContent = profile.nickname;
     const age = document.createElement("small");
-    age.textContent = formatChildAge(profile.birth_date) || "Вік не вказано";
+    const accessLabel = profile.can_manage === false ? " · Спільний доступ" : "";
+    age.textContent = `${formatChildAge(profile.birth_date) || "Вік не вказано"}${accessLabel}`;
     copy.append(name, age);
     const check = document.createElement("b");
     check.textContent = profile.id === state.childProfile?.id ? "✓" : "›";
@@ -2017,24 +2083,27 @@ function renderChildSwitcher() {
     if (list.id === "profileHubChildList") {
       const row = document.createElement("div");
       row.className = "child-profile-row";
+      if (profile.can_manage === false) row.classList.add("shared");
       const actions = document.createElement("div");
       actions.className = "child-profile-actions";
-      const editButton = document.createElement("button");
-      editButton.type = "button";
-      editButton.className = "child-profile-action edit";
-      editButton.dataset.editChildId = profile.id;
-      editButton.setAttribute("aria-label", `Редагувати профіль ${profile.nickname}`);
-      editButton.title = "Редагувати";
-      editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-.8 4.8L8 20l10.6-10.6a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14 8 3 3"/></svg>';
-      const deleteButton = document.createElement("button");
-      deleteButton.type = "button";
-      deleteButton.className = "child-profile-action delete";
-      deleteButton.dataset.deleteChildId = profile.id;
-      deleteButton.setAttribute("aria-label", `Видалити профіль ${profile.nickname}`);
-      deleteButton.title = state.childProfiles.length <= 1 ? "Потрібно залишити хоча б один профіль" : "Видалити";
-      deleteButton.disabled = state.childProfiles.length <= 1;
-      deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>';
-      actions.append(editButton, deleteButton);
+      if (profile.can_manage !== false) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "child-profile-action edit";
+        editButton.dataset.editChildId = profile.id;
+        editButton.setAttribute("aria-label", `Редагувати профіль ${profile.nickname}`);
+        editButton.title = "Редагувати";
+        editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-.8 4.8L8 20l10.6-10.6a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14 8 3 3"/></svg>';
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "child-profile-action delete";
+        deleteButton.dataset.deleteChildId = profile.id;
+        deleteButton.setAttribute("aria-label", `Видалити профіль ${profile.nickname}`);
+        deleteButton.title = ownedProfileCount <= 1 ? "Потрібно залишити хоча б один власний профіль" : "Видалити";
+        deleteButton.disabled = ownedProfileCount <= 1;
+        deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg>';
+        actions.append(editButton, deleteButton);
+      }
       row.append(button, actions);
       list.append(row);
     } else {
@@ -2124,6 +2193,585 @@ function openMedicineScreen(tabName = state.medicineTab || "today") {
   showMainNavigation("care");
   renderMedicineScreen();
   updateTopBack();
+}
+
+const walkWeatherCodes = {
+  0: ["Ясно", "☀️"],
+  1: ["Переважно ясно", "🌤️"],
+  2: ["Мінлива хмарність", "⛅"],
+  3: ["Хмарно", "☁️"],
+  45: ["Туман", "🌫️"],
+  48: ["Паморозь і туман", "🌫️"],
+  51: ["Легка мряка", "🌦️"],
+  53: ["Мряка", "🌦️"],
+  55: ["Сильна мряка", "🌧️"],
+  56: ["Крижана мряка", "🌧️"],
+  57: ["Сильна крижана мряка", "🌧️"],
+  61: ["Невеликий дощ", "🌦️"],
+  63: ["Дощ", "🌧️"],
+  65: ["Сильний дощ", "🌧️"],
+  66: ["Крижаний дощ", "🌧️"],
+  67: ["Сильний крижаний дощ", "🌧️"],
+  71: ["Невеликий сніг", "🌨️"],
+  73: ["Сніг", "❄️"],
+  75: ["Сильний сніг", "❄️"],
+  77: ["Сніжна крупа", "🌨️"],
+  80: ["Невелика злива", "🌦️"],
+  81: ["Злива", "🌧️"],
+  82: ["Сильна злива", "⛈️"],
+  85: ["Сніговий заряд", "🌨️"],
+  86: ["Сильний сніговий заряд", "❄️"],
+  95: ["Гроза", "⛈️"],
+  96: ["Гроза з градом", "⛈️"],
+  99: ["Сильна гроза з градом", "⛈️"]
+};
+
+function walkWeatherLabel(code) {
+  return walkWeatherCodes[Number(code)] || ["Мінлива погода", "🌤️"];
+}
+
+function walkHourLabel(time) {
+  const date = new Date(time);
+  if (Number.isNaN(date.getTime())) return "Оновлено щойно";
+  return new Intl.DateTimeFormat("uk-UA", { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+function walkSelectedWeather() {
+  const payload = state.walkWeather;
+  if (!payload) return null;
+  if (state.walkTime === "now") return payload.current;
+  const rows = payload.hourly || [];
+  const now = new Date();
+  const target = new Date(now);
+  if (state.walkTime === "hour") {
+    target.setHours(target.getHours() + 1, 0, 0, 0);
+  } else {
+    target.setHours(18, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+  }
+  return rows.find((row) => new Date(row.time) >= target) || rows[0] || payload.current;
+}
+
+function walkAgeInMonths() {
+  return ageInMonths(state.childProfile?.birth_date || state.childProfile?.birthDate);
+}
+
+function walkItemsForAge(items, ageMonths) {
+  if (ageMonths === null) return items;
+  return items.map((item) => {
+    if (ageMonths < 12) {
+      return item
+        .replace(/Легке бавовняне боді або футболка/i, "Легке бавовняне боді")
+        .replace(/Бавовняне боді або футболка/i, "Бавовняне боді")
+        .replace(/Боді або футболка/i, "Бавовняне боді")
+        .replace(/Легкі шортики або тонкі штанці/i, "Легкі повзунки або штанці")
+        .replace(/Легкі штанці або шортики/i, "Легкі повзунки або штанці")
+        .replace(/Легкі штанці/i, "Легкі повзунки")
+        .replace(/Штанці та закрите взуття/i, "Штанці та м’які пінетки")
+        .replace(/^Закрите взуття$/i, "М’які пінетки")
+        .replace(/^Утеплене взуття$/i, "Теплі пінетки")
+        .replace(/Шкарпетки та закрите взуття/i, "Шкарпетки або м’які пінетки")
+        .replace(/Теплі шкарпетки та черевички/i, "Теплі шкарпетки або пінетки")
+        .replace(/Рукавички й утеплене взуття/i, "Рукавички й теплі пінетки")
+        .replace(/Рукавички, теплі шкарпетки та взуття/i, "Рукавички, теплі шкарпетки та пінетки");
+    }
+    if (ageMonths >= 24) {
+      return item
+        .replace(/Легке бавовняне боді або футболка/i, "Легка бавовняна футболка")
+        .replace(/Бавовняне боді або футболка/i, "Бавовняна футболка")
+        .replace(/Боді або футболка/i, "Футболка")
+        .replace(/Боді з довгим рукавом/i, "Лонгслів")
+        .replace(/Теплий базовий шар/i, "Теплий лонгслів");
+    }
+    return item;
+  });
+}
+
+function walkRecommendationFor(weather) {
+  const ageMonths = walkAgeInMonths();
+  const modeAdjustment = state.walkMode === "stroller" ? -2 : state.walkMode === "carrier" ? 2 : 3;
+  const ageAdjustment = ageMonths !== null && ageMonths < 6 && Number(weather.apparentTemperature) < 23 ? -1 : 0;
+  const effective = Math.round(Number(weather.apparentTemperature) + modeAdjustment + ageAdjustment);
+  let result;
+
+  if (effective >= 28) {
+    result = {
+      badge: "Спекотно",
+      tone: "is-hot",
+      title: "Один дуже легкий шар",
+      lead: "Обирайте світлий, вільний і дихаючий одяг.",
+      items: ["Легке бавовняне боді або футболка", "Легкі шортики або тонкі штанці", "Панамка з полями"]
+    };
+  } else if (effective >= 23) {
+    result = {
+      badge: "Тепло",
+      tone: "is-hot",
+      title: "Один легкий шар",
+      lead: "Малюкові має бути вільно рухатися й не спекотно.",
+      items: ["Бавовняне боді або футболка", "Легкі штанці або шортики", "Панамка від сонця"]
+    };
+  } else if (effective >= 18) {
+    result = {
+      badge: "Комфортно",
+      tone: "",
+      title: "Два легкі шари",
+      lead: "Легкий комплект, який просто розстібнути або зняти.",
+      items: ["Боді або футболка", "Тонка кофта", "Легкі штанці", "Шкарпетки", "Закрите взуття"]
+    };
+  } else if (effective >= 13) {
+    result = {
+      badge: "Прохолодно",
+      tone: "is-cold",
+      title: "Три легкі шари",
+      lead: "Базовий, теплий середній і легкий захисний шар.",
+      items: ["Боді з довгим рукавом", "Кофта або тонкий фліс", "Легка куртка чи комбінезон", "Штанці", "Шкарпетки", "Закрите взуття", "Тонка шапочка"]
+    };
+  } else if (effective >= 7) {
+    result = {
+      badge: "Холодно",
+      tone: "is-cold",
+      title: "Теплий багатошаровий комплект",
+      lead: "Додайте утеплений середній шар і захист від вітру.",
+      items: ["Боді з довгим рукавом", "Флісова кофта або костюм", "Демісезонний комбінезон", "Тепла шапочка", "Теплі шкарпетки", "Закрите взуття"]
+    };
+  } else if (effective >= 0) {
+    result = {
+      badge: "Дуже холодно",
+      tone: "is-cold",
+      title: "Зимовий комплект",
+      lead: "Теплі шари мають залишатися сухими й не стискати рухи.",
+      items: ["Теплий базовий шар", "Флісовий або вовняний середній шар", "Зимовий комбінезон", "Тепла шапка, що закриває вушка", "Рукавички", "Теплі шкарпетки", "Утеплене взуття"]
+    };
+  } else {
+    result = {
+      badge: "Мороз",
+      tone: "is-cold",
+      title: "Утеплений зимовий комплект",
+      lead: "Скорочуйте прогулянку, якщо малюкові некомфортно.",
+      items: ["Теплий базовий шар", "Флісовий або вовняний комплект", "Утеплений зимовий комбінезон", "Тепла шапка", "Баф без вільних зав’язок", "Рукавички", "Теплі шкарпетки", "Утеплене взуття"]
+    };
+  }
+
+  const items = walkItemsForAge([...result.items], ageMonths);
+  const reasons = [];
+  const apparent = Math.round(Number(weather.apparentTemperature));
+  const actual = Math.round(Number(weather.temperature));
+  reasons.push(actual === apparent
+    ? `На вулиці близько ${actual > 0 ? "+" : ""}${actual}°.`
+    : `Температура ${actual > 0 ? "+" : ""}${actual}°, але відчувається як ${apparent > 0 ? "+" : ""}${apparent}°.`);
+
+  if (state.walkMode === "stroller") {
+    reasons.push("У візочку дитина рухається мало, тому комплект трохи тепліший.");
+    if (effective < 13) items.push("Легка ковдра на ніжки — не накривайте нею весь візочок");
+  } else if (state.walkMode === "carrier") {
+    reasons.push("У переносці дитину додатково зігрівають ваше тіло та верхній одяг.");
+    if (items.length > 4) items.splice(1, 1);
+  } else {
+    reasons.push("Активний рух зігріває, тому зайвий утеплювальний шар не потрібен.");
+    if (effective >= 23) items.push("Легкі сандалі із закритим носком");
+  }
+
+  const precipitation = Number(weather.precipitation || 0);
+  const weatherCode = Number(weather.weatherCode);
+  if (precipitation > 0 || (weatherCode >= 51 && weatherCode <= 82)) {
+    items.push(state.walkMode === "stroller" ? "Дощовик для візочка з доступом повітря" : "Водостійкий верхній шар");
+    if (state.walkMode === "active" && effective > 5) items.push("Гумові чобітки");
+    reasons.push("Можливі опади — важливо зберегти одяг сухим.");
+  }
+  if (weatherCode >= 71 && weatherCode <= 86) {
+    reasons.push("Сніг робить взуття й зовнішній шар вологими швидше.");
+  }
+  if (Number(weather.windGusts) >= 30) {
+    const outerIndex = items.findIndex((item) => /куртк|комбінез|водостій|вітрозахис/i.test(item));
+    if (outerIndex === -1) {
+      items.push("Легка вітрозахисна куртка з капюшоном");
+    } else if (!/водостій|вітрозахис/i.test(items[outerIndex])) {
+      if (/демісезон/i.test(items[outerIndex])) {
+        items[outerIndex] = "Вітрозахисний демісезонний комбінезон з капюшоном";
+      } else if (/зим|утеплен/i.test(items[outerIndex])) {
+        items[outerIndex] = `${items[outerIndex]} з капюшоном`;
+      } else {
+        items[outerIndex] = "Легка вітрозахисна куртка з капюшоном";
+      }
+    }
+    reasons.push(`Пориви вітру до ${Math.round(Number(weather.windGusts))} км/год.`);
+  }
+  if (Number(weather.uvIndex) >= 3) {
+    reasons.push(`UV-індекс ${Math.round(Number(weather.uvIndex))}: обирайте тінь і захищайте шкіру від сонця.`);
+  }
+  if (ageMonths !== null && ageMonths < 6) {
+    reasons.push(Number(weather.apparentTemperature) >= 23
+      ? "Малюка до 6 місяців тримайте в тіні: у спеку достатньо одного легкого шару."
+      : "Для малюка до 6 місяців додано легкий запас тепла.");
+  } else if (ageMonths !== null && ageMonths < 12) {
+    reasons.push("Для немовляти обрано м’які пінетки замість жорсткого взуття.");
+  } else if (ageMonths !== null && ageMonths < 24) {
+    reasons.push("Для віку 1–2 роки обрано шари, які легко зняти під час активної прогулянки.");
+  } else if (ageMonths !== null && ageMonths >= 24) {
+    reasons.push(state.walkMode === "active"
+      ? "Враховано, що старша дитина активно рухається й швидше зігрівається."
+      : "Для старшої дитини боді замінено на футболку або лонгслів.");
+  }
+
+  return { ...result, items: [...new Set(items)], reasons, effective };
+}
+
+function walkItemVisual(item) {
+  const value = item.toLowerCase();
+  if (/панам/.test(value)) {
+    return { image: "./assets/images/walk-item-panama-v1.webp", label: "Панамка" };
+  }
+  if (/шап/.test(value)) {
+    return { image: "./assets/images/walk-item-beanie-v1.webp", label: value.includes("тепл") ? "Тепла шапка" : "Шапочка" };
+  }
+  if (/баф|снуд/.test(value)) {
+    return { image: "./assets/images/walk-item-snood-v1.webp", label: "Баф" };
+  }
+  if (/рукавич/.test(value)) {
+    return { image: "./assets/images/walk-item-mittens-v1.webp", label: "Рукавички" };
+  }
+  if (/пінет/.test(value)) {
+    return { image: "./assets/images/walk-item-booties-v1.webp", label: "Пінетки" };
+  }
+  if (/шкарп/.test(value)) {
+    return { image: "./assets/images/walk-item-socks-v1.webp", label: value.includes("тепл") ? "Теплі шкарпетки" : "Шкарпетки" };
+  }
+  if (/гумов.*чоб|дощов.*чоб/.test(value)) {
+    return { image: "./assets/images/walk-item-rainboots-v1.webp", label: "Гумові чобітки" };
+  }
+  if (/взут|черев|чоб|сандал/.test(value)) {
+    const isWarm = value.includes("тепл") || value.includes("утеп");
+    return {
+      image: value.includes("сандал")
+        ? "./assets/images/walk-item-sandals-v1.webp"
+        : isWarm ? "./assets/images/walk-item-winterboots-v1.webp" : "./assets/images/walk-item-shoes-v1.webp",
+      label: value.includes("сандал") ? "Сандалі" : isWarm ? "Тепле взуття" : "Взуття"
+    };
+  }
+  if (/шорт/.test(value)) {
+    return { image: "./assets/images/walk-item-shorts-v1.webp", label: "Шортики" };
+  }
+  if (/штан|повзунк|колгот/.test(value)) {
+    return { image: "./assets/images/walk-item-pants-v1.webp", label: value.includes("тепл") ? "Теплий низ" : value.includes("повзунк") ? "Повзунки" : "Штанці" };
+  }
+  if (/дощ|водостій/.test(value)) {
+    return { image: "./assets/images/walk-item-raincoat-v1.webp", label: "Від дощу" };
+  }
+  if (/ковдр/.test(value)) {
+    return { image: "./assets/images/walk-item-blanket-v1.webp", label: "Ковдра на ніжки" };
+  }
+  if (/комбінез|куртк/.test(value)) {
+    const isWinter = value.includes("зим") || value.includes("утеп");
+    return {
+      image: value.includes("демісезон")
+        ? "./assets/images/walk-item-demisuit-v1.webp"
+        : isWinter ? "./assets/images/walk-item-snowsuit-v1.webp" : "./assets/images/walk-item-jacket-v1.webp",
+      label: value.includes("демісезон") ? "Демісезонний верх" : isWinter ? "Теплий верх" : "Верхній шар"
+    };
+  }
+  if (/фліс|вовнян|кофт|середн/.test(value)) {
+    return { image: "./assets/images/walk-item-fleece-v1.webp", label: "Теплий шар" };
+  }
+  if (/лонгслів|довгим рукавом/.test(value)) {
+    return { image: "./assets/images/walk-item-longsleeve-v1.webp", label: "Лонгслів" };
+  }
+  if (/футбол/.test(value)) {
+    return { image: "./assets/images/walk-item-tshirt-v1.webp", label: "Футболка" };
+  }
+  return { image: "./assets/images/walk-item-base-v1.webp", label: value.includes("легк") ? "Легкий верх" : "Базовий шар" };
+}
+
+function walkVisualTiles(items) {
+  return items.map((item) => ({ ...walkItemVisual(item), detail: item }));
+}
+
+function renderWalkScreen() {
+  const childName = state.childProfile?.nickname || state.childProfile?.name || "Малюк";
+  if ($("#walkChildName")) $("#walkChildName").textContent = childName;
+  $("#walkCity").value = state.walkLocationName === "Ваше місце" ? "" : state.walkLocationName;
+
+  const ageMonths = walkAgeInMonths();
+  const birthDate = state.childProfile?.birth_date || state.childProfile?.birthDate;
+  const ageBadge = $("#walkAgeBadge");
+  if (ageBadge) ageBadge.textContent = formatChildAge(birthDate) || "Вік не вказано";
+  const activeButton = document.querySelector('[data-walk-mode="active"]');
+  if (activeButton) {
+    activeButton.disabled = ageMonths !== null && ageMonths < 12;
+    activeButton.title = activeButton.disabled ? "Для малюків, які вже активно ходять" : "";
+    if (activeButton.disabled && state.walkMode === "active") state.walkMode = "stroller";
+  }
+
+  document.querySelectorAll("[data-walk-mode]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.walkMode === state.walkMode));
+  });
+  document.querySelectorAll("[data-walk-time]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.walkTime === state.walkTime));
+  });
+
+  if (state.walkWeatherLoading) {
+    $("#walkWeatherCard").innerHTML = '<div class="walk-weather-loading"><span aria-hidden="true">☁️</span><strong>Дізнаємося погоду…</strong></div>';
+    $("#walkRecommendation").hidden = true;
+    return;
+  }
+
+  const weather = walkSelectedWeather();
+  if (!weather) {
+    $("#walkWeatherCard").innerHTML = '<div class="walk-weather-error"><strong>Не вдалося отримати погоду</strong><p>Перевірте інтернет або спробуйте знайти місто ще раз.</p></div>';
+    $("#walkRecommendation").hidden = true;
+    return;
+  }
+
+  const [condition, symbol] = walkWeatherLabel(weather.weatherCode);
+  const temperature = Math.round(Number(weather.temperature));
+  const apparent = Math.round(Number(weather.apparentTemperature));
+  const timeLabel = state.walkWeatherCached
+    ? `Останні дані о ${walkHourLabel(weather.time)}`
+    : state.walkTime === "now" ? `Оновлено о ${walkHourLabel(weather.time)}` : `Прогноз на ${walkHourLabel(weather.time)}`;
+  $("#walkWeatherCard").innerHTML = `
+    <div class="walk-weather-main">
+      <span class="walk-weather-symbol" aria-hidden="true">${symbol}</span>
+      <strong class="walk-temperature">${temperature > 0 ? "+" : ""}${temperature}°</strong>
+      <span class="walk-weather-place"><strong>${escapeHtml(state.walkLocationName)}</strong><span>${timeLabel}</span></span>
+    </div>
+    <p class="walk-weather-condition">${condition} · відчувається як ${apparent > 0 ? "+" : ""}${apparent}°</p>
+    <div class="walk-weather-details">
+      <span>Вологість<b>${Math.round(Number(weather.humidity))}%</b></span>
+      <span>Вітер<b>${Math.round(Number(weather.windSpeed))} км/год</b></span>
+      <span>Пориви<b>${Math.round(Number(weather.windGusts))} км/год</b></span>
+    </div>
+  `;
+
+  const recommendation = walkRecommendationFor(weather);
+  const badge = $("#walkComfortBadge");
+  badge.textContent = recommendation.badge;
+  badge.className = recommendation.tone;
+  $("#walkRecommendationTitle").textContent = recommendation.title;
+  $("#walkRecommendationLead").textContent = recommendation.lead;
+  $("#walkLookTemperature").textContent = `${apparent > 0 ? "+" : ""}${apparent}°`;
+  $("#walkOutfitList").innerHTML = walkVisualTiles(recommendation.items).map((item) => `
+    <span class="walk-outfit-tile" aria-label="${escapeHtml(item.detail)}">
+      <img src="${item.image}" alt="" />
+      <b>${item.label}</b>
+    </span>
+  `).join("");
+  const visibleReasons = ageMonths !== null && recommendation.reasons.length > 1
+    ? [recommendation.reasons[0], recommendation.reasons[recommendation.reasons.length - 1]]
+    : recommendation.reasons.slice(0, 2);
+  $("#walkWhy").textContent = visibleReasons.join(" ");
+  $("#walkRecommendation").hidden = false;
+}
+
+function normalizeWalkWeather(payload) {
+  const current = payload.current;
+  const hourly = payload.hourly || {};
+  const rows = (hourly.time || []).map((time, index) => ({
+    time,
+    temperature: hourly.temperature_2m?.[index],
+    apparentTemperature: hourly.apparent_temperature?.[index],
+    humidity: hourly.relative_humidity_2m?.[index],
+    precipitation: hourly.precipitation?.[index],
+    weatherCode: hourly.weather_code?.[index],
+    windSpeed: hourly.wind_speed_10m?.[index],
+    windGusts: hourly.wind_gusts_10m?.[index],
+    uvIndex: hourly.uv_index?.[index]
+  }));
+  return {
+    current: {
+      time: current.time,
+      temperature: current.temperature_2m,
+      apparentTemperature: current.apparent_temperature,
+      humidity: current.relative_humidity_2m,
+      precipitation: current.precipitation,
+      weatherCode: current.weather_code,
+      windSpeed: current.wind_speed_10m,
+      windGusts: current.wind_gusts_10m,
+      uvIndex: current.uv_index
+    },
+    hourly: rows
+  };
+}
+
+async function loadWalkWeather(latitude, longitude, locationName) {
+  const previousWeather = state.walkWeather;
+  const previousLocationName = state.walkLocationName;
+  state.walkWeatherLoading = true;
+  state.walkLocationName = locationName;
+  renderWalkScreen();
+  try {
+    const parameters = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+      current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
+      hourly: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
+      forecast_days: "2",
+      timezone: "auto"
+    });
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${parameters}`);
+    if (!response.ok) throw new Error("weather");
+    state.walkWeather = normalizeWalkWeather(await response.json());
+    state.walkWeatherLoading = false;
+    state.walkWeatherCached = false;
+    state.walkWeatherUpdatedAt = Date.now();
+    if (locationName !== "Ваше місце") {
+      localStorage.setItem("owljoyWalkCity", locationName);
+    }
+    localStorage.setItem("owljoyWalkWeather", JSON.stringify({
+      locationName,
+      countryCode: locationName === "Ваше місце" ? "UA" : state.walkPlace?.countryCode,
+      weather: state.walkWeather,
+      savedAt: state.walkWeatherUpdatedAt
+    }));
+    renderWalkScreen();
+  } catch {
+    state.walkWeather = previousWeather;
+    state.walkLocationName = previousLocationName;
+    state.walkWeatherLoading = false;
+    state.walkWeatherCached = Boolean(previousWeather);
+    renderWalkScreen();
+    showToast(previousWeather ? "Показуємо останні збережені дані" : "Не вдалося завантажити погоду");
+  }
+}
+
+let walkCitySuggestionTimer = null;
+let walkCitySuggestionRequest = 0;
+
+function walkCityLocationName(place) {
+  return place.admin1 && place.admin1 !== place.name ? `${place.name}, ${place.admin1}` : place.name;
+}
+
+function walkCityAreaLabel(place) {
+  const parts = [place.admin2, place.admin1].filter((part, index, items) => part && part !== place.name && items.indexOf(part) === index);
+  return parts.join(" · ") || "Україна";
+}
+
+function hideWalkCitySuggestions() {
+  state.walkCitySuggestions = [];
+  const list = $("#walkCitySuggestions");
+  const input = $("#walkCity");
+  if (list) {
+    list.hidden = true;
+    list.innerHTML = "";
+  }
+  if (input) input.setAttribute("aria-expanded", "false");
+}
+
+function renderWalkCitySuggestions(places) {
+  const list = $("#walkCitySuggestions");
+  const input = $("#walkCity");
+  if (!list || !input || !places.length) {
+    hideWalkCitySuggestions();
+    return;
+  }
+  state.walkCitySuggestions = places;
+  list.innerHTML = places.map((place, index) => `
+    <button type="button" role="option" data-walk-city-index="${index}">
+      <span aria-hidden="true">⌖</span>
+      <span><strong>${escapeHtml(place.name)}</strong><small>${escapeHtml(walkCityAreaLabel(place))}</small></span>
+    </button>
+  `).join("");
+  list.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+}
+
+async function fetchWalkCityMatches(cityName, count = 20) {
+  const query = cityName.trim();
+  if (query.length < 2) return [];
+  const parameters = new URLSearchParams({
+    name: query,
+    count: String(count),
+    language: "uk",
+    format: "json",
+    countryCode: "UA"
+  });
+  const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${parameters}`);
+  if (!response.ok) throw new Error("geocoding");
+  const results = (await response.json()).results || [];
+  return results.filter((place) => place.country_code === "UA");
+}
+
+async function chooseWalkCity(place) {
+  if (!place) return;
+  hideWalkCitySuggestions();
+  const locationName = walkCityLocationName(place);
+  state.walkPlace = {
+    name: place.name,
+    locationName,
+    latitude: Number(place.latitude),
+    longitude: Number(place.longitude),
+    countryCode: "UA"
+  };
+  localStorage.setItem("owljoyWalkPlace", JSON.stringify(state.walkPlace));
+  $("#walkCity").value = locationName;
+  await loadWalkWeather(place.latitude, place.longitude, locationName);
+}
+
+async function searchWalkCity(cityName) {
+  const query = cityName.trim();
+  if (!query) {
+    showToast("Введіть назву міста");
+    $("#walkCity").focus();
+    return;
+  }
+  const submit = $("#walkLocationForm button[type='submit']");
+  submit.disabled = true;
+  submit.textContent = "Шукаємо…";
+  try {
+    const places = await fetchWalkCityMatches(query, 100);
+    if (!places.length) {
+      hideWalkCitySuggestions();
+      showToast("Не знайшли таке місто");
+      return;
+    }
+    const normalizedQuery = query.toLocaleLowerCase("uk-UA");
+    const exactPlaces = places.filter((place) => place.name.toLocaleLowerCase("uk-UA") === normalizedQuery);
+    const matches = exactPlaces.length ? exactPlaces : places;
+    if (matches.length === 1) {
+      await chooseWalkCity(matches[0]);
+      return;
+    }
+    renderWalkCitySuggestions(matches);
+    showToast("Оберіть потрібне місто зі списку");
+  } catch {
+    showToast("Не вдалося знайти місто");
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Знайти";
+  }
+}
+
+function useWalkLocation() {
+  if (!navigator.geolocation) {
+    showToast("Геолокація недоступна");
+    return;
+  }
+  state.walkWeatherLoading = true;
+  renderWalkScreen();
+  navigator.geolocation.getCurrentPosition(
+    (position) => loadWalkWeather(position.coords.latitude, position.coords.longitude, "Ваше місце"),
+    () => {
+      state.walkWeatherLoading = false;
+      renderWalkScreen();
+      showToast("Не вдалося визначити місце");
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 15 * 60 * 1000 }
+  );
+}
+
+function openWalkScreen() {
+  hideContentScreens();
+  $("#walkScreen").hidden = false;
+  showMainNavigation("care");
+  renderWalkScreen();
+  updateTopBack();
+  showSectionIntroIfNeeded("walk");
+  const needsRefresh = !state.walkWeatherUpdatedAt || Date.now() - state.walkWeatherUpdatedAt > 15 * 60 * 1000;
+  if (needsRefresh && !state.walkWeatherLoading && state.walkLocationName !== "Ваше місце") {
+    if (state.walkPlace) {
+      loadWalkWeather(state.walkPlace.latitude, state.walkPlace.longitude, state.walkPlace.locationName);
+    } else {
+      searchWalkCity((state.walkLocationName || "Київ").split(",")[0]);
+    }
+  }
 }
 
 function renderHomeShortcuts() {
@@ -2277,6 +2925,7 @@ function openHomeShortcut(shortcutId) {
   if (shortcut.section === "stories") return showStories();
   if (shortcut.section === "poems") return showPoemCategories();
   if (shortcut.section === "sleep") return showSleepScreen();
+  if (shortcut.section === "walk") return openWalkScreen();
   if (shortcut.section === "quick-log") return openQuickLogScreen();
   if (shortcut.section === "medicine") return openMedicineScreen();
   if (shortcut.section === "food") showToast("Розділ прикорму скоро відкриємо");
@@ -2547,7 +3196,10 @@ function renderQuickLogJournal() {
     const details = [
       occurredAt.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
       value,
-      item.note
+      item.note,
+      item.recorded_by_name
+        ? `Записав(ла): ${item.recorded_by_you ? "ви" : item.recorded_by_name}`
+        : ""
     ].filter(Boolean).join(" · ");
     const typeIcon = type.image
       ? `<img loading="lazy" decoding="async" src="${type.image}" alt="" />`
@@ -2558,7 +3210,7 @@ function renderQuickLogJournal() {
         <strong>${escapeHtml(type.label)} · ${escapeHtml(item.event_action || item.eventAction)}</strong>
         <span>${escapeHtml(details)}</span>
       </span>
-      <button type="button" data-quick-log-delete="${escapeHtml(item.id)}" aria-label="Видалити запис">×</button>
+      ${item.can_delete === false ? "" : `<button type="button" data-quick-log-delete="${escapeHtml(item.id)}" aria-label="Видалити запис">×</button>`}
     </article>`;
   }).join("");
 }
@@ -3179,7 +3831,10 @@ function medicineCardHtml(reminder, dateKey, mode = "today") {
   const skipped = intake?.status === "skipped";
   const instructions = [
     medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation),
-    reminder.note
+    reminder.note,
+    intake?.recorded_by_name
+      ? `${intake.status === "taken" ? "Позначив(ла)" : "Пропуск позначив(ла)"}: ${intake.recorded_by_you ? "ви" : intake.recorded_by_name}`
+      : ""
   ].filter(Boolean).join(" · ");
   const note = instructions ? `<small>${escapeHtml(instructions)}</small>` : "";
   let actions = "";
@@ -3197,10 +3852,12 @@ function medicineCardHtml(reminder, dateKey, mode = "today") {
             <button class="medicine-take" type="button" data-medicine-take="${reminder.id}" aria-label="Позначити як дано">✓</button>
           </div>`;
   } else {
-    actions = `<div class="medicine-card-actions">
-      <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
-      <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
-    </div>`;
+    actions = !canManageActiveChildMedicine()
+      ? ""
+      : `<div class="medicine-card-actions">
+          <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
+          <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
+        </div>`;
   }
 
   return `<article class="medicine-card${taken ? " taken" : ""}${skipped ? " skipped" : ""}">
@@ -3305,10 +3962,10 @@ function renderMedicineAll() {
         <span>${escapeHtml(`${sorted.length} ${pluralizeUkrainian(sorted.length, "прийом", "прийоми", "прийомів")} · ${times}`)}</span>
         <small>${escapeHtml(details || "Без додаткових вказівок")}</small>
       </div>
-      <div class="medicine-card-actions">
-        <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
-        <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
-      </div>
+      ${!canManageActiveChildMedicine() ? "" : `<div class="medicine-card-actions">
+          <button type="button" data-medicine-edit="${reminder.id}" aria-label="Редагувати нагадування">✎</button>
+          <button type="button" data-medicine-delete="${reminder.id}" aria-label="Видалити нагадування">×</button>
+        </div>`}
     </article>`;
   }).join("");
 }
@@ -4375,6 +5032,7 @@ async function saveReportViaTelegram(blob) {
     if (!downloadStillValid) {
       const pdfBase64 = arrayBufferToBase64(await blob.arrayBuffer());
       const payload = await window.owlJoyAccount.prepareReportDownload({
+        childId: state.childProfile?.id,
         pdfBase64,
         fileName: reportFileName()
       });
@@ -4429,6 +5087,8 @@ function renderMedicineScreen() {
   const childName = state.childProfile?.nickname || "малюка";
   $("#medicineChildName").textContent = childName;
   $("#medicineTodayLabel").textContent = `${medicineDateLabel(localDateKey())}. Розклад і позначки про прийом.`;
+  const addButton = document.querySelector("[data-action='addMedicine']");
+  if (addButton) addButton.hidden = !canManageActiveChildMedicine();
   document.querySelectorAll("[data-medicine-tab]").forEach((button) => {
     const active = button.dataset.medicineTab === state.medicineTab;
     button.classList.toggle("active", active);
@@ -4443,7 +5103,9 @@ function renderMedicineScreen() {
 }
 
 function populateMedicineChildren(selectedId) {
-  $("#medicineChild").innerHTML = state.childProfiles.map((profile) =>
+  $("#medicineChild").innerHTML = state.childProfiles
+    .filter((profile) => profile.can_manage_medicine !== false)
+    .map((profile) =>
     `<option value="${escapeHtml(profile.id)}"${profile.id === selectedId ? " selected" : ""}>${escapeHtml(profile.nickname)}</option>`
   ).join("");
 }
@@ -4494,6 +5156,10 @@ function renderMedicineScheduleRows(count, values = []) {
 }
 
 function openMedicineForm(reminderId = null) {
+  if (!canManageActiveChildMedicine()) {
+    showToast("Змінювати розклад можуть лише батьки");
+    return;
+  }
   state.editingMedicineId = reminderId;
   const reminder = state.medicineReminders.find((item) => item.id === reminderId);
   const group = reminder ? medicineGroupReminders(reminder) : [];
@@ -4581,8 +5247,14 @@ async function saveMedicineForm(event) {
 
   error.hidden = true;
   $("#medicineSaveButton").disabled = true;
-  const writeAccessPromise = requestMedicineWriteAccess();
   try {
+    let notificationsEnabled = false;
+    if (window.owlJoyAccount?.status === "authenticated") {
+      notificationsEnabled = await requestMedicineWriteAccess();
+      if (!notificationsEnabled) {
+        throw new Error("Дозвольте боту надсилати повідомлення, щоб нагадування приходили всій родині");
+      }
+    }
     const existingReminder = state.medicineReminders.find((item) => item.id === state.editingMedicineId);
     const existingGroup = existingReminder ? medicineGroupReminders(existingReminder) : [];
     const scheduleGroupId = state.editingMedicineGroupId
@@ -4613,7 +5285,6 @@ async function saveMedicineForm(event) {
       await window.owlJoyAccount.deleteMedicineReminder(obsoleteReminder.id);
     }
     state.medicineReminders = [...window.owlJoyAccount.medicineReminders];
-    const notificationsEnabled = await writeAccessPromise;
     if (notificationsEnabled) window.owlJoyAccount.setMedicineNotifications(true).catch(() => {});
     showToast(state.editingMedicineId ? "Зміни збережено" : "Нагадування додано", "correct");
     state.editingMedicineId = null;
@@ -4758,11 +5429,286 @@ async function logMedicineIntake(reminderId, status) {
 
 function openProfileTab() {
   hideContentScreens();
-  renderChildSwitcher();
   $("#profileHubScreen").hidden = false;
   showMainNavigation("profile");
-  updateTopBack();
+  showProfileView("menu");
   showSectionIntroIfNeeded("profile");
+}
+
+function showProfileView(view = "menu") {
+  state.profileView = ["children", "family"].includes(view) ? view : "menu";
+  $("#profileMenuView").hidden = state.profileView !== "menu";
+  $("#profileChildrenView").hidden = state.profileView !== "children";
+  $("#profileFamilyView").hidden = state.profileView !== "family";
+  if (state.profileView === "children") renderChildSwitcher();
+  if (state.profileView === "family") renderFamilyAccess();
+  updateTopBack();
+}
+
+function openProfileSection(view) {
+  hideContentScreens();
+  $("#profileHubScreen").hidden = false;
+  showMainNavigation("profile");
+  showProfileView(view);
+}
+
+function familyRoleLabel(role) {
+  return {
+    owner: "Власник профілю",
+    parent: "Мама або тато",
+    grandmother: "Бабуся",
+    grandfather: "Дідусь"
+  }[role] || "Член родини";
+}
+
+function familyMembersForActiveChild() {
+  const childId = state.childProfile?.id;
+  return state.familyMembers.filter((member) => member.child_id === childId);
+}
+
+function renderFamilyAccess() {
+  const profile = state.childProfile;
+  const list = $("#familyMemberList");
+  if (!profile || !list) return;
+  const isOwner = profile.can_manage !== false;
+  const isParent = profile.access_role === "parent";
+  const account = window.owlJoyAccount;
+  const members = familyMembersForActiveChild();
+  const fallbackOwner = {
+    child_id: profile.id,
+    role: isOwner ? "owner" : profile.access_role,
+    display_name: account?.currentUser?.first_name || "Ви",
+    is_you: true
+  };
+  const visibleMembers = members.length ? members : [fallbackOwner];
+
+  $("#familyAccessLead").textContent = isOwner
+    ? `Запросіть рідних до профілю ${profile.nickname}, щоб усі бачили, які ліки вже дали.`
+    : isParent
+      ? `Ви маєте батьківський доступ до профілю ${profile.nickname}: журнал, звіти та керування розкладом ліків.`
+      : `Ви допомагаєте доглядати за ${profile.nickname}: бачите історію та можете позначати прийоми.`;
+  list.innerHTML = visibleMembers.map((member) => {
+    const name = member.display_name || "Член родини";
+    const initial = name.trim().charAt(0).toUpperCase() || "Р";
+    const you = member.is_you ? " · Ви" : "";
+    const remove = member.can_remove
+      ? `<button class="family-member-remove" type="button" data-family-remove="${escapeHtml(member.user_id)}" aria-label="Забрати доступ у ${escapeHtml(name)}">×</button>`
+      : "";
+    return `<div class="family-member">
+      <span class="family-member-avatar">${escapeHtml(initial)}</span>
+      <span class="family-member-copy">
+        <strong>${escapeHtml(name)}</strong>
+        <small>${escapeHtml(familyRoleLabel(member.role))}${you}</small>
+      </span>
+      ${remove}
+    </div>`;
+  }).join("");
+
+  $("#familyOwnerControls").hidden = !isOwner;
+  $("#familyLeaveButton").hidden = isOwner;
+  if (state.familyInvitation?.child_id !== profile.id) {
+    state.familyInvitation = null;
+    $("#familyInviteResult").hidden = true;
+    $("#familyInviteCode").textContent = "";
+  }
+  $("#familyAccessError").hidden = true;
+}
+
+function familyInviteMessage() {
+  const invitation = state.familyInvitation;
+  if (!invitation) return "";
+  return `Запрошую вас разом піклуватися про ${invitation.child_name} в OwlJoy. Тут видно розклад та історію ліків. Натисніть посилання, щоб відкрити запрошення в боті.`;
+}
+
+function familyInviteDeepLink() {
+  const code = state.familyInvitation?.code;
+  return code
+    ? `https://t.me/OwlJoy_bot/OwlJoy?startapp=family_${encodeURIComponent(code)}`
+    : "";
+}
+
+async function createFamilyInvitation() {
+  const profile = state.childProfile;
+  if (!profile?.id || profile.can_manage === false) return;
+  const button = $("#familyInviteButton");
+  const errorBox = $("#familyAccessError");
+  button.disabled = true;
+  button.textContent = "Створюємо…";
+  errorBox.hidden = true;
+  try {
+    state.familyInvitation = await window.owlJoyAccount.createFamilyInvitation({
+      childId: profile.id,
+      role: $("#familyInviteRole").value
+    });
+    $("#familyInviteCode").textContent = state.familyInvitation.code;
+    $("#familyInviteResult").hidden = false;
+    showToast("Запрошення створено", "correct");
+    await shareFamilyInvitation();
+  } catch (error) {
+    errorBox.textContent = error?.message || "Не вдалося створити запрошення";
+    errorBox.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Надіслати в Telegram";
+  }
+}
+
+async function copyFamilyInvitation() {
+  const message = familyInviteMessage();
+  if (!message) return;
+  try {
+    await navigator.clipboard.writeText(message);
+    showToast("Запрошення скопійовано", "correct");
+  } catch {
+    const field = document.createElement("textarea");
+    field.value = message;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.append(field);
+    field.select();
+    document.execCommand("copy");
+    field.remove();
+    showToast("Запрошення скопійовано", "correct");
+  }
+}
+
+async function shareFamilyInvitation() {
+  const message = familyInviteMessage();
+  const deepLink = familyInviteDeepLink();
+  if (!message || !deepLink) return;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(message)}`;
+  if (telegramApp?.openTelegramLink) {
+    telegramApp.openTelegramLink(shareUrl);
+    return;
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Сімейний доступ OwlJoy",
+        text: message,
+        url: deepLink
+      });
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+    }
+  }
+  window.open(shareUrl, "_blank", "noopener");
+}
+
+async function acceptFamilyInvitation(event) {
+  event.preventDefault();
+  const code = $("#familyJoinCode").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const button = $("#familyJoinButton");
+  const errorBox = $("#familyAccessError");
+  errorBox.hidden = true;
+  if (code.length !== 8) {
+    errorBox.textContent = "Введіть 8 символів коду запрошення";
+    errorBox.hidden = false;
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Приєднуємо…";
+  try {
+    const writeAccessAllowed = await requestMedicineWriteAccess();
+    if (!writeAccessAllowed) {
+      throw new Error("Дозвольте боту надсилати повідомлення — це потрібно для сімейних нагадувань");
+    }
+    const payload = await window.owlJoyAccount.acceptFamilyInvitation(code);
+    localStorage.setItem("owljoyActiveChildId", payload.childProfile.id);
+    showToast(`Додано профіль: ${payload.childProfile.nickname}`, "correct");
+    window.setTimeout(() => window.location.reload(), 500);
+  } catch (error) {
+    errorBox.textContent = error?.message || "Не вдалося прийняти запрошення";
+    errorBox.hidden = false;
+    button.disabled = false;
+    button.textContent = "Приєднатися";
+  }
+}
+
+async function removeFamilyMember(memberUserId) {
+  const profile = state.childProfile;
+  const member = familyMembersForActiveChild().find((item) => item.user_id === memberUserId);
+  if (!profile?.id || !member || !window.confirm(`Забрати доступ у «${member.display_name}»?`)) return;
+  try {
+    await window.owlJoyAccount.removeFamilyMember({ childId: profile.id, memberUserId });
+    state.familyMembers = [...window.owlJoyAccount.familyMembers];
+    renderFamilyAccess();
+    showToast("Сімейний доступ вимкнено");
+  } catch (error) {
+    showToast(error?.message || "Не вдалося змінити доступ", "wrong");
+  }
+}
+
+async function leaveFamilyProfile() {
+  const profile = state.childProfile;
+  if (!profile?.id || profile.can_manage !== false) return;
+  if (!window.confirm(`Від’єднатися від профілю «${profile.nickname}»?`)) return;
+  try {
+    await window.owlJoyAccount.leaveFamilyProfile(profile.id);
+    window.location.reload();
+  } catch (error) {
+    showToast(error?.message || "Не вдалося від’єднатися", "wrong");
+  }
+}
+
+function familyInvitationCodeFromStartParam() {
+  const startParam = telegramApp?.initDataUnsafe?.start_param
+    || new URLSearchParams(window.location.search).get("tgWebAppStartParam")
+    || "";
+  const match = /^family_([A-Z0-9]{8})$/i.exec(startParam);
+  return match ? match[1].toUpperCase() : "";
+}
+
+function openIncomingFamilyInvitation(code) {
+  state.incomingFamilyCode = code;
+  $("#incomingFamilyError").hidden = true;
+  $("#incomingFamilyOverlay").hidden = false;
+  window.requestAnimationFrame(() => $("#incomingFamilyAccept").focus());
+}
+
+function closeIncomingFamilyInvitation() {
+  state.incomingFamilyCode = "";
+  $("#incomingFamilyOverlay").hidden = true;
+}
+
+async function acceptIncomingFamilyInvitation() {
+  const code = state.incomingFamilyCode;
+  if (!code) return;
+  const button = $("#incomingFamilyAccept");
+  const errorBox = $("#incomingFamilyError");
+  button.disabled = true;
+  button.textContent = "Приєднуємо…";
+  errorBox.hidden = true;
+  try {
+    const writeAccessAllowed = await requestMedicineWriteAccess();
+    if (!writeAccessAllowed) {
+      throw new Error("Дозвольте боту надсилати повідомлення — це потрібно для сімейних нагадувань");
+    }
+    const payload = await window.owlJoyAccount.acceptFamilyInvitation(code);
+    const account = window.owlJoyAccount;
+    state.childProfiles = [...(account.childProfiles || [])];
+    state.familyMembers = [...(account.familyMembers || [])];
+    state.medicineReminders = [...(account.medicineReminders || [])];
+    state.medicineIntakes = [...(account.medicineIntakes || [])];
+    state.careQuickLogs = [...(account.careQuickLogs || [])];
+    const joinedProfile = state.childProfiles.find((profile) => profile.id === payload.childProfile?.id)
+      || payload.childProfile;
+    if (!joinedProfile) throw new Error("Профіль дитини не знайдено");
+    localStorage.setItem("owljoyActiveChildId", joinedProfile.id);
+    applyChildProfile(joinedProfile);
+    account.currentChild = joinedProfile;
+    closeIncomingFamilyInvitation();
+    openMedicineScreen("history");
+    showToast(`Ви приєдналися до профілю ${joinedProfile.nickname}`, "correct");
+  } catch (error) {
+    errorBox.textContent = error?.message || "Не вдалося прийняти запрошення";
+    errorBox.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Приєднатися";
+  }
 }
 
 function selectChildProfile(childId) {
@@ -4770,6 +5716,7 @@ function selectChildProfile(childId) {
   if (!profile) return;
   applyChildProfile(profile);
   if (window.owlJoyAccount) window.owlJoyAccount.currentChild = profile;
+  if (!$("#profileHubScreen").hidden) renderFamilyAccess();
   closeChildSwitcher();
   showToast(`Обрано профіль: ${profile.nickname}`);
 }
@@ -4820,7 +5767,7 @@ async function confirmDeleteChildProfile() {
     closeDeleteChildDialog();
     if (state.childProfile?.id === childId && nextProfile) applyChildProfile(nextProfile);
     else renderChildSwitcher();
-    openProfileTab();
+    openProfileSection("children");
     showToast(`Профіль «${profile.nickname}» видалено`);
   } catch (deleteError) {
     console.error("OwlJoy: не вдалося видалити профіль", deleteError);
@@ -4957,7 +5904,7 @@ async function saveOnboardingProfile(event) {
     state.childProfiles = [...window.owlJoyAccount.childProfiles];
     applyChildProfile(profile);
     state.editingChildId = null;
-    if ((addingChild || editingChild) && state.onboardingReturn === "profile") openProfileTab();
+    if ((addingChild || editingChild) && state.onboardingReturn === "profile") openProfileSection("children");
     else backToHome();
   } catch (saveError) {
     console.error("OwlJoy: не вдалося зберегти профіль", saveError);
@@ -4975,6 +5922,54 @@ $("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
 $("#medicineForm").addEventListener("submit", saveMedicineForm);
 $("#quickLogComposer").addEventListener("submit", saveQuickLogForm);
 $("#homeQuickLogForm").addEventListener("submit", saveHomeQuickLog);
+$("#familyJoinForm").addEventListener("submit", acceptFamilyInvitation);
+$("#familyJoinCode").addEventListener("input", (event) => {
+  const clean = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  event.target.value = clean.length > 4 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
+});
+$("#walkLocationForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  searchWalkCity($("#walkCity").value);
+});
+$("#walkCity").addEventListener("input", (event) => {
+  window.clearTimeout(walkCitySuggestionTimer);
+  const query = event.target.value.trim();
+  const requestId = ++walkCitySuggestionRequest;
+  if (query.length < 2) {
+    hideWalkCitySuggestions();
+    return;
+  }
+  walkCitySuggestionTimer = window.setTimeout(async () => {
+    try {
+      const places = await fetchWalkCityMatches(query, 12);
+      if (requestId !== walkCitySuggestionRequest || $("#walkCity").value.trim() !== query) return;
+      renderWalkCitySuggestions(places);
+    } catch {
+      if (requestId === walkCitySuggestionRequest) hideWalkCitySuggestions();
+    }
+  }, 320);
+});
+$("#walkCity").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    hideWalkCitySuggestions();
+    return;
+  }
+  if (event.key === "ArrowDown" && state.walkCitySuggestions.length) {
+    event.preventDefault();
+    const firstSuggestion = $("#walkCitySuggestions button");
+    if (firstSuggestion) firstSuggestion.focus();
+  }
+});
+$("#walkCitySuggestions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-walk-city-index]");
+  if (!button) return;
+  chooseWalkCity(state.walkCitySuggestions[Number(button.dataset.walkCityIndex)]);
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".walk-location-search") && !event.target.closest("#walkLocationForm button[type='submit']")) {
+    hideWalkCitySuggestions();
+  }
+});
 $("#journalSearch").addEventListener("input", (event) => {
   state.journalSearch = event.target.value;
   renderQuickLogJournal();
@@ -5104,6 +6099,7 @@ function hideContentScreens() {
   $("#emotionGameScreen").hidden = true;
   $("#dressGameScreen").hidden = true;
   $("#sleepScreen").hidden = true;
+  $("#walkScreen").hidden = true;
   $("#sleepPlayerScreen").hidden = true;
   $("#poemCategoriesScreen").hidden = true;
   $("#poemsScreen").hidden = true;
@@ -5628,6 +6624,11 @@ function backToGames() {
 }
 
 function goBack() {
+  if (!$("#profileHubScreen").hidden && state.profileView !== "menu") {
+    openProfileTab();
+    return;
+  }
+
   if (!$("#quickLogScreen").hidden) {
     openCareTab();
     return;
@@ -5641,6 +6642,11 @@ function goBack() {
   }
 
   if (!$("#medicineScreen").hidden) {
+    openCareTab();
+    return;
+  }
+
+  if (!$("#walkScreen").hidden) {
     openCareTab();
     return;
   }
@@ -5736,8 +6742,9 @@ function goBack() {
 }
 
 function updateTopBack() {
-  const isHome = ["#homeScreen", "#onboardingScreen", "#developmentHubScreen", "#careHubScreen", "#profileHubScreen"]
-    .some((selector) => $(selector).hidden === false);
+  const isProfileMenu = !$("#profileHubScreen").hidden && state.profileView === "menu";
+  const isHome = ["#homeScreen", "#onboardingScreen", "#developmentHubScreen", "#careHubScreen"]
+    .some((selector) => $(selector).hidden === false) || isProfileMenu;
 
   if (telegramApp) {
     if (isHome) {
@@ -6181,6 +7188,10 @@ document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const reportSource = event.target.closest("[data-report-source]")?.dataset.reportSource;
   if (reportSource) {
+    if (!canCreateActiveChildReport()) {
+      showToast("Медичний звіт доступний лише батькам");
+      return;
+    }
     openReport(reportSource);
     return;
   }
@@ -6405,6 +7416,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const familyRemove = event.target.closest("[data-family-remove]")?.dataset.familyRemove;
+  if (familyRemove) {
+    removeFamilyMember(familyRemove);
+    return;
+  }
+
   const mainTab = event.target.closest("[data-main-tab]")?.dataset.mainTab;
   if (mainTab === "today") {
     closeChildSwitcher();
@@ -6424,6 +7441,12 @@ document.addEventListener("click", (event) => {
   if (mainTab === "profile") {
     closeChildSwitcher();
     openProfileTab();
+    return;
+  }
+
+  const profileSection = event.target.closest("[data-profile-section]")?.dataset.profileSection;
+  if (profileSection === "children" || profileSection === "family") {
+    openProfileSection(profileSection);
     return;
   }
 
@@ -6476,6 +7499,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (section === "walk") {
+    openWalkScreen();
+    return;
+  }
+
   if (section === "quick-log") {
     openQuickLogScreen();
     return;
@@ -6493,6 +7521,21 @@ document.addEventListener("click", (event) => {
 
   if (section === "stories") {
     showStories();
+    return;
+  }
+
+  const walkMode = event.target.closest("[data-walk-mode]")?.dataset.walkMode;
+  if (walkMode) {
+    state.walkMode = walkMode;
+    localStorage.setItem("owljoyWalkMode", walkMode);
+    renderWalkScreen();
+    return;
+  }
+
+  const walkTime = event.target.closest("[data-walk-time]")?.dataset.walkTime;
+  if (walkTime) {
+    state.walkTime = walkTime;
+    renderWalkScreen();
     return;
   }
 
@@ -6608,8 +7651,41 @@ document.addEventListener("click", (event) => {
   const action = event.target.closest("[data-action]")?.dataset.action;
   if (!action) return;
 
+  if (action === "backToProfileMenu") {
+    openProfileTab();
+    return;
+  }
+
   if (action === "addMedicine") {
     openMedicineForm();
+    return;
+  }
+  if (action === "createFamilyInvite") {
+    createFamilyInvitation();
+    return;
+  }
+  if (action === "acceptIncomingFamilyInvite") {
+    acceptIncomingFamilyInvitation();
+    return;
+  }
+  if (action === "cancelIncomingFamilyInvite") {
+    closeIncomingFamilyInvitation();
+    return;
+  }
+  if (action === "copyFamilyInvite") {
+    copyFamilyInvitation();
+    return;
+  }
+  if (action === "shareFamilyInvite") {
+    shareFamilyInvitation();
+    return;
+  }
+  if (action === "leaveFamilyProfile") {
+    leaveFamilyProfile();
+    return;
+  }
+  if (action === "useWalkLocation") {
+    useWalkLocation();
     return;
   }
   if (action === "closeReport") {
@@ -6781,7 +7857,7 @@ document.addEventListener("click", (event) => {
   }
   if (action === "cancelAddChild") {
     state.editingChildId = null;
-    if (state.onboardingReturn === "profile") openProfileTab();
+    if (state.onboardingReturn === "profile") openProfileSection("children");
     else backToHome();
     return;
   }

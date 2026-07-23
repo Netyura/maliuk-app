@@ -102,6 +102,11 @@
               <strong>Сон і звуки</strong>
               <span>Спокійні звуки та таймер для відпочинку</span>
             </button>
+            <button data-section="walk">
+              <img loading="lazy" decoding="async" src="./assets/images/home-walk-weather-v1.webp" alt="" />
+              <strong>На прогулянку</strong>
+              <span>Погода та підказка, у що вдягнути малюка</span>
+            </button>
             <button data-section="food" disabled aria-label="Прикорм — розділ скоро з’явиться">
               <img loading="lazy" decoding="async" src="./assets/images/home-food.webp" alt="" />
               <strong>Прикорм</strong>
@@ -311,13 +316,86 @@
         </section>
 
         <section class="category-hub-screen" id="profileHubScreen" hidden>
-          <div class="profile-hub-card">
-            <div class="profile-hub-heading">
-              <span>Профілі дітей</span>
-              <small>Активний профіль позначено галочкою</small>
+          <div class="profile-menu-view" id="profileMenuView">
+            <div class="home-grid profile-home-grid" aria-label="Розділи профілю">
+              <button type="button" data-profile-section="children">
+                <img loading="lazy" decoding="async" src="./assets/images/profile-children-v1.webp" alt="" />
+                <strong>Профілі малюків</strong>
+                <span>Додати дитину, перемкнути або змінити дані</span>
+              </button>
+              <button type="button" data-profile-section="family">
+                <img loading="lazy" decoding="async" src="./assets/images/nav/care-v2.webp" alt="" />
+                <strong>Турбота разом</strong>
+                <span>Доступ для мами, тата, бабусі й дідуся</span>
+              </button>
             </div>
-            <div class="child-profile-list" id="profileHubChildList"></div>
-            <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
+          </div>
+
+          <div class="profile-section-view" id="profileChildrenView" hidden>
+            <div class="profile-section-heading">
+              <button type="button" data-action="backToProfileMenu" aria-label="Назад до меню профілю">‹</button>
+              <div>
+                <span>Профіль</span>
+                <h2>Профілі малюків</h2>
+              </div>
+            </div>
+            <div class="profile-hub-card">
+              <div class="profile-hub-heading">
+                <span>Ваші діти</span>
+                <small>Активний профіль позначено галочкою</small>
+              </div>
+              <div class="child-profile-list" id="profileHubChildList"></div>
+              <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
+            </div>
+          </div>
+
+          <div class="profile-section-view" id="profileFamilyView" hidden>
+            <div class="profile-section-heading">
+              <button type="button" data-action="backToProfileMenu" aria-label="Назад до меню профілю">‹</button>
+              <div>
+                <span>Профіль</span>
+                <h2>Турбота разом</h2>
+              </div>
+            </div>
+            <div class="family-access-card">
+              <div class="family-access-heading">
+                <span class="family-access-icon" aria-hidden="true">👨‍👩‍👧</span>
+                <div>
+                  <span>Сімейний доступ</span>
+                  <h3>Турбота разом</h3>
+                  <p id="familyAccessLead">Рідні бачитимуть розклад та історію ліків для активного профілю.</p>
+                </div>
+              </div>
+              <div class="family-member-list" id="familyMemberList" aria-live="polite"></div>
+              <div class="family-owner-controls" id="familyOwnerControls">
+                <label class="family-role-field">
+                  <span>Кого запросити?</span>
+                  <select id="familyInviteRole">
+                    <option value="parent">Маму або тата</option>
+                    <option value="grandmother">Бабусю</option>
+                    <option value="grandfather">Дідуся</option>
+                  </select>
+                </label>
+                <button class="family-invite-button" id="familyInviteButton" type="button" data-action="createFamilyInvite">Надіслати в Telegram</button>
+                <div class="family-invite-result" id="familyInviteResult" hidden>
+                  <span>Код діє 7 днів і лише один раз</span>
+                  <strong id="familyInviteCode"></strong>
+                  <div>
+                    <button type="button" data-action="copyFamilyInvite">Копіювати</button>
+                    <button type="button" data-action="shareFamilyInvite">Надіслати</button>
+                  </div>
+                </div>
+              </div>
+              <button class="family-leave-button" id="familyLeaveButton" type="button" data-action="leaveFamilyProfile" hidden>Від’єднатися від профілю</button>
+              <form class="family-join-form" id="familyJoinForm" novalidate>
+                <label for="familyJoinCode">Маєте код від рідних?</label>
+                <div>
+                  <input id="familyJoinCode" type="text" maxlength="9" inputmode="text" autocomplete="one-time-code" placeholder="Введіть 8 символів" aria-describedby="familyAccessError" />
+                  <button id="familyJoinButton" type="submit">Приєднатися</button>
+                </div>
+              </form>
+              <p class="family-access-error" id="familyAccessError" role="alert" hidden></p>
+            </div>
           </div>
         </section>
 
@@ -553,6 +631,68 @@
           <div class="sleep-list" id="sleepList" aria-label="Звуки для сну"></div>
         </section>
 
+        <section class="walk-screen" id="walkScreen" hidden>
+          <form class="walk-location-form" id="walkLocationForm">
+            <div class="walk-location-search">
+              <label for="walkCity">
+                <span>Місто</span>
+                <input id="walkCity" type="search" maxlength="80" autocomplete="off" placeholder="Місто в Україні" role="combobox" aria-autocomplete="list" aria-controls="walkCitySuggestions" aria-expanded="false" />
+              </label>
+              <div class="walk-city-suggestions" id="walkCitySuggestions" role="listbox" aria-label="Міста України" hidden></div>
+            </div>
+            <button type="submit">Знайти</button>
+            <button class="walk-location-button" type="button" data-action="useWalkLocation" aria-label="Визначити моє місце">⌖</button>
+          </form>
+          <div class="walk-time-picker" role="group" aria-label="Час прогулянки">
+            <button type="button" data-walk-time="now" aria-pressed="true">Зараз</button>
+            <button type="button" data-walk-time="hour" aria-pressed="false">Через годину</button>
+            <button type="button" data-walk-time="evening" aria-pressed="false">Увечері</button>
+          </div>
+
+          <section class="walk-weather-card" id="walkWeatherCard" aria-live="polite">
+            <div class="walk-weather-loading">
+              <span aria-hidden="true">☁️</span>
+              <strong>Дізнаємося погоду…</strong>
+            </div>
+          </section>
+
+          <fieldset class="walk-mode-picker">
+            <legend>Як гулятимете? <span id="walkAgeBadge">Вік малюка</span></legend>
+            <div>
+              <button type="button" data-walk-mode="stroller" aria-pressed="true"><span aria-hidden="true">👶</span><b>У візочку</b></button>
+              <button type="button" data-walk-mode="carrier" aria-pressed="false"><span aria-hidden="true">🤱</span><b>У переносці</b></button>
+              <button type="button" data-walk-mode="active" aria-pressed="false"><span aria-hidden="true">🏃</span><b>Активно</b></button>
+            </div>
+          </fieldset>
+
+          <section class="walk-recommendation" id="walkRecommendation" hidden>
+            <div class="walk-look-card">
+              <div class="walk-look-top">
+                <span id="walkComfortBadge">Комфортно</span>
+                <strong id="walkLookTemperature">+18°</strong>
+              </div>
+              <div class="walk-look-copy">
+                <h3 id="walkRecommendationTitle">Готові до прогулянки</h3>
+                <p id="walkRecommendationLead"></p>
+              </div>
+            </div>
+            <div class="walk-outfit-section">
+              <strong>Що вдягнути</strong>
+              <div class="walk-outfit-list" id="walkOutfitList"></div>
+            </div>
+            <details class="walk-why">
+              <summary>Чому такий образ?</summary>
+              <p id="walkWhy"></p>
+            </details>
+            <div class="walk-safety-tip">
+              <span aria-hidden="true">♡</span>
+              <p><strong>Перевірте шийку через 10–15 хв</strong>Гаряча або волога — зніміть один шар.</p>
+            </div>
+          </section>
+
+          <p class="walk-disclaimer">Це орієнтовна підказка, а не медична рекомендація. Враховуйте самопочуття та особливості вашої дитини.</p>
+        </section>
+
         <section class="poem-categories-screen" id="poemCategoriesScreen" hidden>
           <button class="favorites-folder" id="favoritesFolder" data-poem-folder="favorites" hidden>
             <span class="folder-icon">♥</span>
@@ -654,6 +794,17 @@
         </div>
         <div class="child-profile-list" id="childProfileList"></div>
         <button class="add-child-button" type="button" data-action="addChild">＋ Додати дитину</button>
+      </section>
+    </div>
+    <div class="incoming-family-overlay" id="incomingFamilyOverlay" hidden>
+      <section class="incoming-family-dialog" role="dialog" aria-modal="true" aria-labelledby="incomingFamilyTitle" aria-describedby="incomingFamilyText">
+        <span class="incoming-family-icon" aria-hidden="true">👨‍👩‍👧</span>
+        <small>Запрошення від рідних</small>
+        <h2 id="incomingFamilyTitle">Приєднатися до сімейного профілю?</h2>
+        <p id="incomingFamilyText">Ви бачитимете спільний розклад та історію ліків, зможете позначати прийоми й отримуватимете сімейні нагадування в Telegram.</p>
+        <p class="incoming-family-error" id="incomingFamilyError" role="alert" hidden></p>
+        <button class="incoming-family-accept" id="incomingFamilyAccept" type="button" data-action="acceptIncomingFamilyInvite">Приєднатися</button>
+        <button class="incoming-family-cancel" type="button" data-action="cancelIncomingFamilyInvite">Не зараз</button>
       </section>
     </div>
     <div class="home-shortcut-overlay" id="homeShortcutOverlay" hidden>
@@ -923,7 +1074,7 @@
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=12"></script>
-    <script src="./app.js?v=179"></script>
+    <script src="./telegram-user.js?v=16"></script>
+    <script src="./app.js?v=181"></script>
   </body>
 </html>

@@ -74,12 +74,32 @@ export default {
 
     const { data: reminder, error: reminderError } = await supabase
       .from("medicine_reminders")
-      .select("id, child_id, reminder_time")
+      .select("id, user_id, child_id, reminder_time")
       .eq("id", reminderId)
-      .eq("user_id", user.id)
       .maybeSingle();
     if (reminderError) throw reminderError;
-    if (!reminder) {
+    let hasAccess = reminder?.user_id === user.id;
+    if (reminder && !hasAccess) {
+      const [childResult, membershipResult] = await Promise.all([
+        supabase
+          .from("child_profiles")
+          .select("user_id")
+          .eq("id", reminder.child_id)
+          .maybeSingle(),
+        supabase
+          .from("child_family_members")
+          .select("user_id")
+          .eq("child_id", reminder.child_id)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      if (childResult.error) throw childResult.error;
+      if (membershipResult.error) throw membershipResult.error;
+      const child = childResult.data;
+      const membership = membershipResult.data;
+      hasAccess = child?.user_id === user.id || Boolean(membership);
+    }
+    if (!reminder || !hasAccess) {
       await telegramRequest(botToken, "answerCallbackQuery", {
         callback_query_id: callback.id,
         text: "Нагадування не знайдено",
