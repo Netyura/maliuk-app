@@ -625,6 +625,7 @@ h1 {
 .quick-log-actions button:nth-child(4) { background: linear-gradient(145deg, #eef6ff, #fff); }
 .quick-log-actions button:nth-child(5) { background: linear-gradient(145deg, #fff0ed, #fff); }
 .quick-log-actions button:nth-child(6) { background: linear-gradient(145deg, #fff8df, #fff); }
+.quick-log-actions button:nth-child(7) { background: linear-gradient(145deg, #f1f4ff, #fff); }
 
 .quick-log-actions button > span,
 .quick-log-actions button > img {

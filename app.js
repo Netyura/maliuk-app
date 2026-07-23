@@ -1692,11 +1692,12 @@ const stories = [
 
 const quickLogHomeShortcutCatalog = [
   { id: "quicklog:sleep", group: "Швидкий запис", title: "Сон", emoji: "🌙", quickLogType: "sleep", quickLogAction: "Заснув" },
-  { id: "quicklog:feeding", group: "Швидкий запис", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне" },
+  { id: "quicklog:feeding", group: "Швидкий запис", title: "Годування", emoji: "🍼", quickLogType: "feeding", quickLogAction: "Грудне молоко" },
   { id: "quicklog:diaper", group: "Швидкий запис", title: "Підгузок", image: "./assets/images/quick-log-diaper-v2.webp", quickLogType: "diaper", quickLogAction: "Мокрий" },
   { id: "quicklog:medicine", group: "Швидкий запис", title: "Ліки дано", emoji: "💊", quickLogType: "medicine", quickLogAction: "Ліки дано" },
   { id: "quicklog:temperature", group: "Швидкий запис", title: "Температура", emoji: "🌡️", quickLogType: "temperature", quickLogAction: "Виміряно" },
-  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "📝", quickLogType: "note", quickLogAction: "Нотатка" }
+  { id: "quicklog:note", group: "Швидкий запис", title: "Нотатка", emoji: "📝", quickLogType: "note", quickLogAction: "Нотатка" },
+  { id: "quicklog:head-position", group: "Швидкий запис", title: "Положення голови", emoji: "↔️", quickLogType: "head-position", quickLogAction: "Ліворуч" }
 ];
 
 const mainHomeShortcutCatalog = [
@@ -2259,11 +2260,12 @@ function escapeHtml(value) {
 
 const quickLogTypes = {
   sleep: { label: "Сон", icon: "🌙", actions: ["Заснув", "Прокинувся"] },
-  feeding: { label: "Годування", icon: "🍼", actions: ["Грудне", "Пляшечка", "Прикорм"] },
+  feeding: { label: "Годування", icon: "🍼", actions: ["Грудне молоко", "Суміш", "Зціджування", "Прикорм"] },
   diaper: { label: "Підгузок", icon: "", image: "./assets/images/quick-log-diaper-v2.webp", actions: ["Мокрий", "Брудний", "Обидва"] },
   medicine: { label: "Ліки", icon: "💊", actions: ["Ліки дано"] },
   temperature: { label: "Температура", icon: "🌡️", actions: ["Виміряно"] },
-  note: { label: "Нотатка", icon: "📝", actions: ["Нотатка"] }
+  note: { label: "Нотатка", icon: "📝", actions: ["Нотатка"] },
+  "head-position": { label: "Положення голови", icon: "↔️", actions: ["Ліворуч", "Праворуч"] }
 };
 
 function localDateTimeValue(date = new Date()) {
@@ -2304,7 +2306,7 @@ function renderQuickLogJournal() {
   if (!list) return;
   const logs = activeChildQuickLogs();
   if (!logs.length) {
-    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки, температуру та ваші нотатки.</p>';
+    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки, температуру, положення голови та ваші нотатки.</p>';
     return;
   }
 
@@ -2345,11 +2347,17 @@ function quickLogValueSettingsFor(type, action) {
   }
   if (type !== "feeding") return null;
   if (!action) return null;
-  if (action === "Грудне") {
+  if (action === "Грудне молоко") {
     return { label: "Тривалість годування", unit: "хв", placeholder: "Наприклад, 15", min: 1, max: 180 };
   }
   if (action === "Прикорм") {
     return { label: "Скільки з’їв", unit: "г", placeholder: "Наприклад, 80", min: 1, max: 2000 };
+  }
+  if (action === "Зціджування") {
+    return { label: "Скільки зціджено", unit: "мл", placeholder: "Наприклад, 90", min: 1, max: 2000 };
+  }
+  if (action === "Суміш") {
+    return { label: "Кількість суміші", unit: "мл", placeholder: "Наприклад, 120", min: 1, max: 2000 };
   }
   return { label: "Скільки випив", unit: "мл", placeholder: "Наприклад, 120", min: 1, max: 2000 };
 }
@@ -2439,6 +2447,8 @@ function renderHomeQuickLog() {
       ? "Оберіть тип годування та вкажіть кількість."
       : state.homeQuickLogType === "temperature"
         ? "Вкажіть температуру — час підставиться автоматично."
+        : state.homeQuickLogType === "head-position"
+          ? "Оберіть напрямок — час підставиться автоматично."
         : "Оберіть один варіант — запис збережеться одразу.";
 
   $("#homeQuickLogChoices").innerHTML = noMedicines

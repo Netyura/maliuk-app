@@ -320,7 +320,7 @@ Deno.serve(async (request) => {
         const numericValue = body.value === "" || body.value === null || body.value === undefined
           ? null
           : Number(body.value);
-        const allowedTypes = ["sleep", "feeding", "diaper", "medicine", "temperature", "note"];
+        const allowedTypes = ["sleep", "feeding", "diaper", "medicine", "temperature", "note", "head-position"];
 
         if (
           !childId || !allowedTypes.includes(eventType) || !eventAction || eventAction.length > 80 ||
@@ -526,7 +526,7 @@ Deno.serve(async (request) => {
               /^story:[a-z0-9-]{1,120}$/.test(id) ||
               /^poem:[a-z0-9-]{1,120}$/.test(id) ||
               /^sleep:[a-z0-9-]{1,120}$/.test(id) ||
-              /^quicklog:(sleep|feeding|diaper|medicine|temperature|note)$/.test(id)
+              /^quicklog:(sleep|feeding|diaper|medicine|temperature|note|head-position)$/.test(id)
             )
           ).slice(0, 12)
           : null;
