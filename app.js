@@ -1818,6 +1818,8 @@ const state = {
   journalSearch: "",
   journalPeriod: "all",
   journalDate: "",
+  journalDateFrom: "",
+  journalDateTo: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -1830,6 +1832,7 @@ const state = {
 };
 
 let journalCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let journalCalendarMode = "day";
 
 const homeShortcutDrag = {
   id: null,
@@ -2322,7 +2325,14 @@ function filteredJournalLogs() {
 
   return activeChildQuickLogs().filter((item) => {
     const occurredAt = new Date(item.occurred_at || item.occurredAt);
-    if (periodDate && localDateKey(occurredAt) !== periodDate) return false;
+    const occurredDateKey = localDateKey(occurredAt);
+    if (periodDate && occurredDateKey !== periodDate) return false;
+    if (
+      state.journalPeriod === "range"
+      && state.journalDateFrom
+      && state.journalDateTo
+      && (occurredDateKey < state.journalDateFrom || occurredDateKey > state.journalDateTo)
+    ) return false;
     if (!query) return true;
     const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія" };
     const searchable = [
@@ -2343,12 +2353,25 @@ function renderJournalFilters() {
     button.setAttribute("aria-pressed", String(button.dataset.journalPeriod === state.journalPeriod));
   });
   const dateButton = $("#journalDateButton");
-  const dateSelected = state.journalPeriod === "date" && Boolean(state.journalDate);
+  const dateSelected = (
+    state.journalPeriod === "date" && Boolean(state.journalDate)
+  ) || (
+    state.journalPeriod === "range" && Boolean(state.journalDateFrom) && Boolean(state.journalDateTo)
+  );
   dateButton.setAttribute("aria-pressed", String(dateSelected));
   dateButton.classList.toggle("active", dateSelected);
-  $("#journalDateLabel").textContent = dateSelected
-    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
-    : "Дата";
+  if (state.journalPeriod === "range" && state.journalDateFrom && state.journalDateTo) {
+    const fromDate = dateFromKey(state.journalDateFrom);
+    const toDate = dateFromKey(state.journalDateTo);
+    const sameMonth = fromDate.getFullYear() === toDate.getFullYear() && fromDate.getMonth() === toDate.getMonth();
+    const from = new Intl.DateTimeFormat("uk-UA", sameMonth ? { day: "2-digit" } : { day: "2-digit", month: "2-digit" }).format(fromDate);
+    const to = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(toDate);
+    $("#journalDateLabel").textContent = `${from}–${to}`;
+  } else {
+    $("#journalDateLabel").textContent = dateSelected
+      ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
+      : "Дата";
+  }
 }
 
 function renderJournalCalendar() {
@@ -2359,6 +2382,20 @@ function renderJournalCalendar() {
   const daysInMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0).getDate();
   const emptyDays = isoDayForDate(monthStart) - 1;
   const todayKey = localDateKey();
+  const rangeMode = journalCalendarMode === "range";
+
+  document.querySelectorAll("[data-journal-calendar-mode]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.journalCalendarMode === journalCalendarMode));
+  });
+  $("#journalCalendarTitle").textContent = rangeMode ? "Оберіть період" : "Оберіть дату";
+  $("#journalCalendarRange").hidden = !rangeMode;
+  $("#journalCalendarApply").hidden = !rangeMode;
+  $("#journalCalendarApply").disabled = !(state.journalDateFrom && state.journalDateTo);
+  const shortDate = (dateKey) => dateKey
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "short" }).format(dateFromKey(dateKey))
+    : "Оберіть";
+  $("#journalCalendarFrom").textContent = shortDate(state.journalDateFrom);
+  $("#journalCalendarTo").textContent = shortDate(state.journalDateTo);
 
   monthLabel.textContent = new Intl.DateTimeFormat("uk-UA", { month: "long", year: "numeric" }).format(monthStart);
   $("#journalCalendarNext").disabled = nextMonth > new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -2367,19 +2404,36 @@ function renderJournalCalendar() {
   const days = Array.from({ length: daysInMonth }, (_, index) => {
     const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1);
     const dateKey = localDateKey(date);
+    const rangeStart = rangeMode && dateKey === state.journalDateFrom;
+    const rangeEnd = rangeMode && dateKey === state.journalDateTo;
+    const inRange = rangeMode
+      && state.journalDateFrom
+      && state.journalDateTo
+      && dateKey > state.journalDateFrom
+      && dateKey < state.journalDateTo;
     const classes = [
       dateKey === todayKey ? "today" : "",
-      dateKey === state.journalDate ? "selected" : ""
+      !rangeMode && dateKey === state.journalDate ? "selected" : "",
+      rangeStart ? "range-start selected" : "",
+      rangeEnd ? "range-end selected" : "",
+      inRange ? "in-range" : ""
     ].filter(Boolean).join(" ");
     const disabled = dateKey > todayKey ? " disabled" : "";
-    const selected = dateKey === state.journalDate ? ' aria-selected="true"' : "";
+    const selected = (
+      (!rangeMode && dateKey === state.journalDate)
+      || rangeStart
+      || rangeEnd
+      || inRange
+    ) ? ' aria-selected="true"' : "";
     return `<button class="${classes}" type="button" role="gridcell" data-journal-calendar-date="${dateKey}"${selected}${disabled}>${index + 1}</button>`;
   });
   grid.innerHTML = [...blanks, ...days].join("");
 }
 
 function openJournalCalendar() {
-  const selectedDate = state.journalDate ? dateFromKey(state.journalDate) : new Date();
+  journalCalendarMode = state.journalPeriod === "range" ? "range" : "day";
+  const selectedDateKey = journalCalendarMode === "range" ? state.journalDateFrom : state.journalDate;
+  const selectedDate = selectedDateKey ? dateFromKey(selectedDateKey) : new Date();
   journalCalendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
   renderJournalCalendar();
   $("#journalCalendarOverlay").hidden = false;
@@ -2390,7 +2444,22 @@ function closeJournalCalendar() {
 }
 
 function selectJournalCalendarDate(dateKey) {
+  if (journalCalendarMode === "range") {
+    if (!state.journalDateFrom || state.journalDateTo) {
+      state.journalDateFrom = dateKey;
+      state.journalDateTo = "";
+    } else if (dateKey < state.journalDateFrom) {
+      state.journalDateTo = state.journalDateFrom;
+      state.journalDateFrom = dateKey;
+    } else {
+      state.journalDateTo = dateKey;
+    }
+    renderJournalCalendar();
+    return;
+  }
   state.journalDate = dateKey;
+  state.journalDateFrom = "";
+  state.journalDateTo = "";
   state.journalPeriod = "date";
   closeJournalCalendar();
   renderQuickLogJournal();
@@ -2400,6 +2469,8 @@ function showLatestJournalEntries() {
   state.journalSearch = "";
   state.journalPeriod = "today";
   state.journalDate = "";
+  state.journalDateFrom = "";
+  state.journalDateTo = "";
   const searchInput = $("#journalSearch");
   if (searchInput) searchInput.value = "";
 }
@@ -2412,7 +2483,7 @@ function renderQuickLogJournal() {
   if (!logs.length) {
     list.innerHTML = state.journalSearch
       ? '<p class="quick-log-empty">За вашим запитом записів не знайдено.</p>'
-      : '<p class="quick-log-empty">За вибраний день записів поки немає.</p>';
+      : `<p class="quick-log-empty">За вибраний ${state.journalPeriod === "range" ? "період" : "день"} записів поки немає.</p>`;
     return;
   }
 
@@ -4660,6 +4731,17 @@ function showToast(text, tone = "neutral") {
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const calendarMode = event.target.closest("[data-journal-calendar-mode]")?.dataset.journalCalendarMode;
+  if (calendarMode) {
+    journalCalendarMode = calendarMode;
+    if (calendarMode === "range" && state.journalPeriod !== "range") {
+      state.journalDateFrom = "";
+      state.journalDateTo = "";
+    }
+    renderJournalCalendar();
+    return;
+  }
+
   const calendarDate = event.target.closest("[data-journal-calendar-date]")?.dataset.journalCalendarDate;
   if (calendarDate) {
     selectJournalCalendarDate(calendarDate);
@@ -4681,6 +4763,10 @@ document.addEventListener("click", (event) => {
   if (journalPeriod) {
     state.journalPeriod = journalPeriod;
     if (journalPeriod !== "date") state.journalDate = "";
+    if (journalPeriod !== "range") {
+      state.journalDateFrom = "";
+      state.journalDateTo = "";
+    }
     renderQuickLogJournal();
     return;
   }
@@ -5004,8 +5090,18 @@ document.addEventListener("click", (event) => {
     closeJournalCalendar();
     return;
   }
+  if (action === "applyJournalDateRange") {
+    if (!state.journalDateFrom || !state.journalDateTo) return;
+    state.journalDate = "";
+    state.journalPeriod = "range";
+    closeJournalCalendar();
+    renderQuickLogJournal();
+    return;
+  }
   if (action === "showAllJournalDates") {
     state.journalDate = "";
+    state.journalDateFrom = "";
+    state.journalDateTo = "";
     state.journalPeriod = "all";
     closeJournalCalendar();
     renderQuickLogJournal();

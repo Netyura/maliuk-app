@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=147" />
+    <link rel="stylesheet" href="./styles.css?v=148" />
   </head>
   <body>
     <main class="app">
@@ -766,6 +766,15 @@
           </div>
           <button type="button" data-action="closeJournalCalendar" aria-label="Закрити">×</button>
         </div>
+        <div class="journal-calendar-mode" role="group" aria-label="Тип вибору дати">
+          <button type="button" data-journal-calendar-mode="day" aria-pressed="true">Один день</button>
+          <button type="button" data-journal-calendar-mode="range" aria-pressed="false">Період</button>
+        </div>
+        <div class="journal-calendar-range" id="journalCalendarRange" hidden>
+          <span><small>Від</small><strong id="journalCalendarFrom">Оберіть</strong></span>
+          <b aria-hidden="true">→</b>
+          <span><small>До</small><strong id="journalCalendarTo">Оберіть</strong></span>
+        </div>
         <div class="journal-calendar-month">
           <button type="button" data-journal-calendar-nav="-1" aria-label="Попередній місяць">‹</button>
           <strong id="journalCalendarMonth"></strong>
@@ -775,6 +784,7 @@
           <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
         </div>
         <div class="journal-calendar-grid" id="journalCalendarGrid" role="grid" aria-label="Дні місяця"></div>
+        <button class="journal-calendar-apply" id="journalCalendarApply" type="button" data-action="applyJournalDateRange" hidden disabled>Показати записи за період</button>
         <button class="journal-calendar-all" type="button" data-action="showAllJournalDates">Показати всі записи</button>
       </section>
     </div>
@@ -810,6 +820,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=141"></script>
+    <script src="./app.js?v=142"></script>
   </body>
 </html>
