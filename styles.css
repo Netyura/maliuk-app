@@ -1091,6 +1091,10 @@ h1 {
   padding: 1rem;
 }
 
+#reportCalendarOverlay {
+  z-index: 120;
+}
+
 .journal-calendar-overlay[hidden] {
   display: none;
 }
@@ -5998,32 +6002,29 @@ body,
   background: #ffecdf;
 }
 
-.report-custom-dates {
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+.report-date-picker {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
 }
 
-.report-custom-dates[hidden] {
-  display: none;
+.report-date-picker > span {
+  font-size: 0.76rem;
 }
 
-.report-custom-dates label {
-  display: grid;
-  gap: 0.25rem;
-  color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 800;
+.report-date-picker > b {
+  overflow: hidden;
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.report-custom-dates input {
-  width: 100%;
-  min-height: 44px;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid rgba(46, 39, 50, 0.1);
-  border-radius: 14px;
-  color: var(--ink);
-  background: #fff;
-  font: inherit;
+.report-date-picker.active {
+  border-color: rgba(244, 117, 64, 0.3);
+  color: #a64f23;
+  background: #ffecdf;
 }
 
 .report-summary {
@@ -6056,7 +6057,7 @@ body,
 
 .report-summary.is-ready::after {
   color: #3f7b55;
-  content: "✓ PDF готовий до надсилання";
+  content: "✓ PDF готовий до збереження";
 }
 
 .report-error {

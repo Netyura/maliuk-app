@@ -1853,6 +1853,8 @@ let journalCalendarMonth = new Date(new Date().getFullYear(), new Date().getMont
 let journalCalendarMode = "day";
 let medicineHistoryCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let medicineHistoryCalendarMode = "day";
+let reportCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let reportCalendarMode = "day";
 
 const homeShortcutDrag = {
   id: null,
@@ -3576,13 +3578,39 @@ function refreshReportDialog() {
   if (!includeJournal || !includeMedicine) return;
   state.reportIncludeJournal = includeJournal.checked;
   state.reportIncludeMedicine = includeMedicine.checked;
-  state.reportDateFrom = $("#reportDateFrom").value;
-  state.reportDateTo = $("#reportDateTo").value;
 
   document.querySelectorAll("[data-report-period]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.reportPeriod === state.reportPeriod));
   });
-  $("#reportCustomDates").hidden = state.reportPeriod !== "custom";
+  const reportDateButton = $("#reportDateButton");
+  const customDateSelected = state.reportPeriod === "custom"
+    && Boolean(state.reportDateFrom)
+    && Boolean(state.reportDateTo);
+  reportDateButton.setAttribute("aria-pressed", String(customDateSelected));
+  reportDateButton.classList.toggle("active", customDateSelected);
+  if (customDateSelected) {
+    if (state.reportDateFrom === state.reportDateTo) {
+      $("#reportDateLabel").textContent = new Intl.DateTimeFormat("uk-UA", {
+        day: "2-digit",
+        month: "2-digit"
+      }).format(dateFromKey(state.reportDateFrom));
+    } else {
+      const fromDate = dateFromKey(state.reportDateFrom);
+      const toDate = dateFromKey(state.reportDateTo);
+      const sameMonth = fromDate.getFullYear() === toDate.getFullYear()
+        && fromDate.getMonth() === toDate.getMonth();
+      const from = new Intl.DateTimeFormat("uk-UA", sameMonth
+        ? { day: "2-digit" }
+        : { day: "2-digit", month: "2-digit" }).format(fromDate);
+      const to = new Intl.DateTimeFormat("uk-UA", {
+        day: "2-digit",
+        month: "2-digit"
+      }).format(toDate);
+      $("#reportDateLabel").textContent = `${from}–${to}`;
+    }
+  } else {
+    $("#reportDateLabel").textContent = "Дата";
+  }
 
   const journalCount = reportJournalEntries().length;
   const medicineCount = reportMedicineEntries().length;
@@ -3611,16 +3639,121 @@ function openReport(source = "journal") {
 
   $("#reportIncludeJournal").checked = state.reportIncludeJournal;
   $("#reportIncludeMedicine").checked = state.reportIncludeMedicine;
-  $("#reportDateFrom").value = state.reportDateFrom;
-  $("#reportDateTo").value = state.reportDateTo;
-  $("#reportDateFrom").max = localDateKey();
-  $("#reportDateTo").max = localDateKey();
   $("#reportOverlay").hidden = false;
   refreshReportDialog();
 }
 
 function closeReport() {
+  closeReportCalendar();
   $("#reportOverlay").hidden = true;
+}
+
+function renderReportCalendar() {
+  const monthStart = new Date(
+    reportCalendarMonth.getFullYear(),
+    reportCalendarMonth.getMonth(),
+    1
+  );
+  const nextMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const daysInMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0).getDate();
+  const emptyDays = isoDayForDate(monthStart) - 1;
+  const todayKey = localDateKey();
+  const rangeMode = reportCalendarMode === "range";
+
+  document.querySelectorAll("[data-report-calendar-mode]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.reportCalendarMode === reportCalendarMode)
+    );
+  });
+  $("#reportCalendarTitle").textContent = rangeMode ? "Оберіть період" : "Оберіть дату";
+  $("#reportCalendarRange").hidden = !rangeMode;
+  $("#reportCalendarApply").hidden = !rangeMode;
+  $("#reportCalendarApply").disabled = !(state.reportDateFrom && state.reportDateTo);
+  const shortDate = (dateKey) => dateKey
+    ? new Intl.DateTimeFormat("uk-UA", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).format(dateFromKey(dateKey))
+    : "Оберіть";
+  $("#reportCalendarFrom").textContent = shortDate(state.reportDateFrom);
+  $("#reportCalendarTo").textContent = shortDate(state.reportDateTo);
+  $("#reportCalendarMonth").textContent = new Intl.DateTimeFormat("uk-UA", {
+    month: "long",
+    year: "numeric"
+  }).format(monthStart);
+  $("#reportCalendarNext").disabled =
+    nextMonth > new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const blanks = Array.from({ length: emptyDays }, () => "<span></span>");
+  const days = Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1);
+    const dateKey = localDateKey(date);
+    const rangeStart = rangeMode && dateKey === state.reportDateFrom;
+    const rangeEnd = rangeMode && dateKey === state.reportDateTo;
+    const inRange = rangeMode
+      && state.reportDateFrom
+      && state.reportDateTo
+      && dateKey > state.reportDateFrom
+      && dateKey < state.reportDateTo;
+    const singleSelected = !rangeMode
+      && state.reportDateFrom === dateKey
+      && state.reportDateTo === dateKey;
+    const classes = [
+      dateKey === todayKey ? "today" : "",
+      singleSelected ? "selected" : "",
+      rangeStart ? "range-start selected" : "",
+      rangeEnd ? "range-end selected" : "",
+      inRange ? "in-range" : ""
+    ].filter(Boolean).join(" ");
+    const disabled = dateKey > todayKey ? " disabled" : "";
+    const selected = (singleSelected || rangeStart || rangeEnd || inRange)
+      ? ' aria-selected="true"'
+      : "";
+    return `<button class="${classes}" type="button" role="gridcell" data-report-calendar-date="${dateKey}"${selected}${disabled}>${index + 1}</button>`;
+  });
+  $("#reportCalendarGrid").innerHTML = [...blanks, ...days].join("");
+}
+
+function openReportCalendar() {
+  const customRangeSelected = state.reportPeriod === "custom"
+    && state.reportDateFrom
+    && state.reportDateTo
+    && state.reportDateFrom !== state.reportDateTo;
+  reportCalendarMode = customRangeSelected ? "range" : "day";
+  const selectedDate = state.reportPeriod === "custom" && state.reportDateFrom
+    ? dateFromKey(state.reportDateFrom)
+    : new Date();
+  reportCalendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  renderReportCalendar();
+  $("#reportCalendarOverlay").hidden = false;
+}
+
+function closeReportCalendar() {
+  const overlay = $("#reportCalendarOverlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function selectReportCalendarDate(dateKey) {
+  if (reportCalendarMode === "range") {
+    if (!state.reportDateFrom || state.reportDateTo) {
+      state.reportDateFrom = dateKey;
+      state.reportDateTo = "";
+    } else if (dateKey < state.reportDateFrom) {
+      state.reportDateTo = state.reportDateFrom;
+      state.reportDateFrom = dateKey;
+    } else {
+      state.reportDateTo = dateKey;
+    }
+    renderReportCalendar();
+    return;
+  }
+  state.reportDateFrom = dateKey;
+  state.reportDateTo = dateKey;
+  state.reportPeriod = "custom";
+  closeReportCalendar();
+  refreshReportDialog();
 }
 
 function loadReportPdfLibrary() {
@@ -4754,18 +4887,6 @@ $("#medicineHistorySearch").addEventListener("input", (event) => {
 });
 $("#reportIncludeJournal").addEventListener("change", refreshReportDialog);
 $("#reportIncludeMedicine").addEventListener("change", refreshReportDialog);
-$("#reportDateFrom").addEventListener("change", (event) => {
-  if (event.target.value && $("#reportDateTo").value && event.target.value > $("#reportDateTo").value) {
-    $("#reportDateTo").value = event.target.value;
-  }
-  refreshReportDialog();
-});
-$("#reportDateTo").addEventListener("change", (event) => {
-  if (event.target.value && $("#reportDateFrom").value && event.target.value < $("#reportDateFrom").value) {
-    $("#reportDateFrom").value = event.target.value;
-  }
-  refreshReportDialog();
-});
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -5971,6 +6092,40 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const reportCalendarModeValue = event.target
+    .closest("[data-report-calendar-mode]")
+    ?.dataset.reportCalendarMode;
+  if (reportCalendarModeValue) {
+    reportCalendarMode = reportCalendarModeValue;
+    if (reportCalendarModeValue === "range") {
+      state.reportDateFrom = "";
+      state.reportDateTo = "";
+    }
+    renderReportCalendar();
+    return;
+  }
+
+  const reportCalendarDate = event.target
+    .closest("[data-report-calendar-date]")
+    ?.dataset.reportCalendarDate;
+  if (reportCalendarDate) {
+    selectReportCalendarDate(reportCalendarDate);
+    return;
+  }
+
+  const reportCalendarNavigation = event.target
+    .closest("[data-report-calendar-nav]")
+    ?.dataset.reportCalendarNav;
+  if (reportCalendarNavigation) {
+    reportCalendarMonth = new Date(
+      reportCalendarMonth.getFullYear(),
+      reportCalendarMonth.getMonth() + Number(reportCalendarNavigation),
+      1
+    );
+    renderReportCalendar();
+    return;
+  }
+
   const medicineHistoryCalendarModeValue = event.target
     .closest("[data-medicine-history-calendar-mode]")
     ?.dataset.medicineHistoryCalendarMode;
@@ -6356,6 +6511,21 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeReport") {
     closeReport();
+    return;
+  }
+  if (action === "openReportCalendar") {
+    openReportCalendar();
+    return;
+  }
+  if (action === "closeReportCalendar") {
+    closeReportCalendar();
+    return;
+  }
+  if (action === "applyReportDateRange") {
+    if (!state.reportDateFrom || !state.reportDateTo) return;
+    state.reportPeriod = "custom";
+    closeReportCalendar();
+    refreshReportDialog();
     return;
   }
   if (action === "saveReport") {

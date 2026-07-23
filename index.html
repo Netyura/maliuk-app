@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=158" />
+    <link rel="stylesheet" href="./styles.css?v=160" />
   </head>
   <body>
     <main class="app">
@@ -926,11 +926,10 @@
             <button type="button" data-report-period="today" aria-pressed="false">Сьогодні</button>
             <button type="button" data-report-period="7days" aria-pressed="true">7 днів</button>
             <button type="button" data-report-period="30days" aria-pressed="false">30 днів</button>
-            <button type="button" data-report-period="custom" aria-pressed="false">Свій період</button>
-          </div>
-          <div class="report-custom-dates" id="reportCustomDates" hidden>
-            <label><span>Від</span><input id="reportDateFrom" type="date" /></label>
-            <label><span>До</span><input id="reportDateTo" type="date" /></label>
+            <button class="report-date-picker" id="reportDateButton" type="button" data-action="openReportCalendar" aria-pressed="false">
+              <span aria-hidden="true">▣</span>
+              <b id="reportDateLabel">Дата</b>
+            </button>
           </div>
         </fieldset>
 
@@ -948,10 +947,41 @@
         </small>
       </section>
     </div>
+    <div class="journal-calendar-overlay" id="reportCalendarOverlay" hidden>
+      <button class="journal-calendar-backdrop" type="button" data-action="closeReportCalendar" aria-label="Закрити календар"></button>
+      <section class="journal-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="reportCalendarTitle">
+        <div class="journal-calendar-heading">
+          <div>
+            <span>Період звіту</span>
+            <h2 id="reportCalendarTitle">Оберіть дату</h2>
+          </div>
+          <button type="button" data-action="closeReportCalendar" aria-label="Закрити">×</button>
+        </div>
+        <div class="journal-calendar-mode" role="group" aria-label="Тип вибору дати для звіту">
+          <button type="button" data-report-calendar-mode="day" aria-pressed="true">Один день</button>
+          <button type="button" data-report-calendar-mode="range" aria-pressed="false">Період</button>
+        </div>
+        <div class="journal-calendar-range" id="reportCalendarRange" hidden>
+          <span><small>Від</small><strong id="reportCalendarFrom">Оберіть</strong></span>
+          <b aria-hidden="true">→</b>
+          <span><small>До</small><strong id="reportCalendarTo">Оберіть</strong></span>
+        </div>
+        <div class="journal-calendar-month">
+          <button type="button" data-report-calendar-nav="-1" aria-label="Попередній місяць">‹</button>
+          <strong id="reportCalendarMonth"></strong>
+          <button id="reportCalendarNext" type="button" data-report-calendar-nav="1" aria-label="Наступний місяць">›</button>
+        </div>
+        <div class="journal-calendar-weekdays" aria-hidden="true">
+          <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
+        </div>
+        <div class="journal-calendar-grid" id="reportCalendarGrid" role="grid" aria-label="Дні місяця"></div>
+        <button class="journal-calendar-apply" id="reportCalendarApply" type="button" data-action="applyReportDateRange" hidden disabled>Створити звіт за період</button>
+      </section>
+    </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=12"></script>
-    <script src="./app.js?v=158"></script>
+    <script src="./app.js?v=159"></script>
   </body>
 </html>
