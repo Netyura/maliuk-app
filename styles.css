@@ -4358,7 +4358,7 @@ html.telegram-mini-app body {
 
 .medicine-content {
   display: grid;
-  gap: 0.58rem;
+  gap: 0.48rem;
 }
 
 .medicine-day-heading {
@@ -4366,47 +4366,47 @@ html.telegram-mini-app body {
   align-items: end;
   justify-content: space-between;
   gap: 0.8rem;
-  padding: 0 0.2rem;
+  padding: 0.1rem 0.12rem 0;
 }
 
 .medicine-day-heading strong {
-  font-size: 1.08rem;
+  font-size: 0.82rem;
 }
 
 .medicine-day-heading span {
   color: #817b87;
-  font-size: 0.76rem;
+  font-size: 0.66rem;
   font-weight: 750;
 }
 
 .medicine-card {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 88px;
-  padding: 0.75rem;
-  border: 1px solid rgba(39, 34, 47, 0.07);
-  border-radius: 21px;
-  background: #fffdfa;
-  box-shadow: 0 6px 16px rgba(66, 49, 37, 0.055);
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 0;
+  border-radius: 18px;
+  background: #fbf7f3;
+  box-shadow: none;
 }
 
 .medicine-card.taken {
-  border-color: rgba(92, 165, 116, 0.2);
   background: linear-gradient(135deg, #eef9f0, #fff);
 }
 
 .medicine-time {
   display: grid;
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 14px;
   color: #9e4d24;
-  background: #fff0e7;
-  font-size: 0.82rem;
+  background: #fff;
+  font-size: 0.7rem;
   font-weight: 900;
+  box-shadow: 0 4px 10px rgba(74, 55, 42, 0.06);
 }
 
 .medicine-card.taken .medicine-time {
@@ -4426,24 +4426,24 @@ html.telegram-mini-app body {
 
 .medicine-card-copy strong {
   overflow: hidden;
-  font-size: 1rem;
-  line-height: 1.16;
+  font-size: 0.8rem;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .medicine-card-copy span {
-  margin-top: 0.24rem;
+  margin-top: 0.15rem;
   color: #625d6d;
-  font-size: 0.8rem;
-  font-weight: 780;
+  font-size: 0.68rem;
+  font-weight: 750;
 }
 
 .medicine-card-copy small {
-  margin-top: 0.2rem;
+  margin-top: 0.12rem;
   overflow: hidden;
   color: #918b96;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4452,20 +4452,20 @@ html.telegram-mini-app body {
 .medicine-card-actions {
   display: flex;
   align-items: center;
-  gap: 0.38rem;
+  gap: 0.3rem;
 }
 
 .medicine-card-actions button {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   padding: 0;
-  border-radius: 15px;
+  border-radius: 11px;
   color: #716b77;
-  background: #f7f3ee;
+  background: #fff;
   box-shadow: none;
-  font-size: 1rem;
+  font-size: 0.88rem;
   font-weight: 900;
 }
 
@@ -4476,7 +4476,7 @@ html.telegram-mini-app body {
 
 .medicine-status {
   color: #44845a;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 900;
 }
 
