@@ -1814,8 +1814,10 @@ const state = {
   careQuickLogs: [],
   quickLogType: null,
   quickLogAction: null,
+  quickLogBreastSide: null,
   homeQuickLogType: null,
   homeQuickLogAction: null,
+  homeQuickLogBreastSide: null,
   medicineTab: "today",
   editingMedicineId: null,
   deletingMedicineId: null,
@@ -2366,6 +2368,24 @@ function quickLogValueSettings() {
   return quickLogValueSettingsFor(state.quickLogType, state.quickLogAction);
 }
 
+function needsBreastSide(type, action) {
+  return type === "feeding" && action === "Зціджування";
+}
+
+function savedQuickLogAction(type, action, breastSide) {
+  return needsBreastSide(type, action) && breastSide
+    ? `${action} · ${breastSide}`
+    : action;
+}
+
+function renderBreastChoices(containerSelector, selectedSide, attributeName) {
+  const container = $(containerSelector);
+  if (!container) return;
+  container.querySelectorAll(`[${attributeName}]`).forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.getAttribute(attributeName) === selectedSide));
+  });
+}
+
 function updateQuickLogValueField() {
   const field = $("#quickLogValueField");
   const valueInput = $("#quickLogValue");
@@ -2391,6 +2411,9 @@ function renderQuickLogComposer() {
     : actions.map((action) =>
       `<button type="button" data-quick-log-choice="${escapeHtml(action)}" aria-pressed="${action === state.quickLogAction}">${escapeHtml(action)}</button>`
     ).join("");
+  const showBreastSide = needsBreastSide(state.quickLogType, state.quickLogAction);
+  $("#quickLogBreastField").hidden = !showBreastSide;
+  renderBreastChoices("#quickLogBreastChoices", state.quickLogBreastSide, "data-quick-log-breast");
   $("#quickLogSaveButton").disabled = noMedicines;
   $("#quickLogNote").required = state.quickLogType === "note";
   $("#quickLogNoteLabel").innerHTML = state.quickLogType === "note"
@@ -2412,6 +2435,7 @@ function openQuickLogComposer(type) {
   if (!quickLogTypes[type]) return;
   state.quickLogType = type;
   state.quickLogAction = quickLogActionsForType(type)[0] || "";
+  state.quickLogBreastSide = null;
   $("#quickLogComposer").hidden = false;
   $("#quickLogOccurredAt").value = localDateTimeValue();
   $("#quickLogValue").value = "";
@@ -2424,6 +2448,7 @@ function openQuickLogComposer(type) {
 function closeQuickLogComposer() {
   state.quickLogType = null;
   state.quickLogAction = null;
+  state.quickLogBreastSide = null;
   $("#quickLogComposer").hidden = true;
   $("#quickLogError").hidden = true;
 }
@@ -2457,6 +2482,9 @@ function renderHomeQuickLog() {
       ? ""
       : actions.map((action) => `<button type="button" data-home-quick-log-choice="${escapeHtml(action)}" aria-pressed="${action === state.homeQuickLogAction}">${escapeHtml(action)}</button>`).join("");
 
+  const showBreastSide = needsBreastSide(state.homeQuickLogType, state.homeQuickLogAction);
+  $("#homeQuickLogBreastField").hidden = !showBreastSide;
+  renderBreastChoices("#homeQuickLogBreastChoices", state.homeQuickLogBreastSide, "data-home-quick-log-breast");
   const valueField = $("#homeQuickLogValueField");
   valueField.hidden = !settings;
   $("#homeQuickLogValueLabel").textContent = settings?.label || "Значення";
@@ -2471,6 +2499,7 @@ function openHomeQuickLog(type) {
   if (!quickLogTypes[type]) return;
   state.homeQuickLogType = type;
   state.homeQuickLogAction = type === "temperature" ? "Виміряно" : type === "note" ? "Нотатка" : "";
+  state.homeQuickLogBreastSide = null;
   $("#homeQuickLogValue").value = "";
   $("#homeQuickLogNote").value = "";
   $("#homeQuickLogError").hidden = true;
@@ -2486,6 +2515,7 @@ function openHomeQuickLog(type) {
 function closeHomeQuickLog() {
   state.homeQuickLogType = null;
   state.homeQuickLogAction = null;
+  state.homeQuickLogBreastSide = null;
   $("#homeQuickLogOverlay").hidden = true;
   $("#homeQuickLogError").hidden = true;
   $("#homeQuickLogForm").removeAttribute("aria-busy");
@@ -2506,6 +2536,11 @@ async function saveHomeQuickLog(event) {
 
   if (!state.childProfile?.id || !type || !action) {
     error.textContent = "Оберіть потрібний варіант.";
+    error.hidden = false;
+    return;
+  }
+  if (needsBreastSide(type, action) && !state.homeQuickLogBreastSide) {
+    error.textContent = "Оберіть, з якої груді зціджували.";
     error.hidden = false;
     return;
   }
@@ -2533,7 +2568,7 @@ async function saveHomeQuickLog(event) {
     await window.owlJoyAccount.saveCareQuickLog({
       childId: state.childProfile.id,
       eventType: type,
-      eventAction: action,
+      eventAction: savedQuickLogAction(type, action, state.homeQuickLogBreastSide),
       value: numberValue,
       unit: settings?.unit || null,
       note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
@@ -2552,13 +2587,20 @@ async function saveHomeQuickLog(event) {
 
 function selectHomeQuickLogChoice(action) {
   state.homeQuickLogAction = action;
+  state.homeQuickLogBreastSide = null;
   $("#homeQuickLogValue").value = "";
   renderHomeQuickLog();
   if (state.homeQuickLogType === "feeding") {
-    window.requestAnimationFrame(() => $("#homeQuickLogValue").focus());
+    if (action !== "Зціджування") window.requestAnimationFrame(() => $("#homeQuickLogValue").focus());
     return;
   }
   saveHomeQuickLog();
+}
+
+function selectHomeQuickLogBreastSide(side) {
+  state.homeQuickLogBreastSide = side;
+  renderHomeQuickLog();
+  window.requestAnimationFrame(() => $("#homeQuickLogValue").focus());
 }
 
 function openQuickLogScreen() {
@@ -2597,6 +2639,11 @@ async function saveQuickLogForm(event) {
     $("#quickLogNote").focus();
     return;
   }
+  if (needsBreastSide(state.quickLogType, state.quickLogAction) && !state.quickLogBreastSide) {
+    error.textContent = "Оберіть, з якої груді зціджували.";
+    error.hidden = false;
+    return;
+  }
   if (valueSettings && (numberValue === null || numberValue < valueSettings.min || numberValue > valueSettings.max)) {
     error.textContent = state.quickLogType === "temperature"
       ? "Вкажіть температуру від 30 до 45 °C."
@@ -2619,7 +2666,7 @@ async function saveQuickLogForm(event) {
     await window.owlJoyAccount.saveCareQuickLog({
       childId: state.childProfile.id,
       eventType: state.quickLogType,
-      eventAction: state.quickLogAction,
+      eventAction: savedQuickLogAction(state.quickLogType, state.quickLogAction, state.quickLogBreastSide),
       value: numberValue,
       unit: valueSettings?.unit || null,
       note: typedNote || (selectedMedicine ? medicineDoseText(selectedMedicine) : ""),
@@ -4376,6 +4423,12 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const homeQuickLogBreast = event.target.closest("[data-home-quick-log-breast]")?.dataset.homeQuickLogBreast;
+  if (homeQuickLogBreast) {
+    selectHomeQuickLogBreastSide(homeQuickLogBreast);
+    return;
+  }
+
   const homeQuickLogChoice = event.target.closest("[data-home-quick-log-choice]")?.dataset.homeQuickLogChoice;
   if (homeQuickLogChoice) {
     selectHomeQuickLogChoice(homeQuickLogChoice);
@@ -4391,8 +4444,17 @@ document.addEventListener("click", (event) => {
   const quickLogChoice = event.target.closest("[data-quick-log-choice]")?.dataset.quickLogChoice;
   if (quickLogChoice) {
     state.quickLogAction = quickLogChoice;
+    state.quickLogBreastSide = null;
     $("#quickLogValue").value = "";
     renderQuickLogComposer();
+    return;
+  }
+
+  const quickLogBreast = event.target.closest("[data-quick-log-breast]")?.dataset.quickLogBreast;
+  if (quickLogBreast) {
+    state.quickLogBreastSide = quickLogBreast;
+    renderQuickLogComposer();
+    window.requestAnimationFrame(() => $("#quickLogValue").focus());
     return;
   }
 

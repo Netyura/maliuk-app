@@ -719,6 +719,58 @@ h1 {
   background: #ffeade;
 }
 
+.quick-log-breast-field,
+.home-quick-log-breast {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 0.42rem;
+}
+
+.quick-log-breast-field[hidden],
+.home-quick-log-breast[hidden] {
+  display: none;
+}
+
+.quick-log-breast-field legend,
+.home-quick-log-breast legend {
+  margin-bottom: 0.42rem;
+  padding: 0;
+  color: #514b57;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.quick-log-breast-field > div,
+.home-quick-log-breast > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.quick-log-breast-field button,
+.home-quick-log-breast button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.55rem 0.35rem;
+  border: 1px solid rgba(244, 117, 64, 0.16);
+  border-radius: 15px;
+  color: #665f6a;
+  background: #fff7f1;
+  box-shadow: none;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.quick-log-breast-field button[aria-pressed="true"],
+.home-quick-log-breast button[aria-pressed="true"] {
+  color: #9f491d;
+  border-color: rgba(244, 117, 64, 0.38);
+  background: #ffe4d3;
+}
+
 .quick-log-no-medicine {
   display: grid;
   width: 100%;

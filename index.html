@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=141" />
+    <link rel="stylesheet" href="./styles.css?v=142" />
   </head>
   <body>
     <main class="app">
@@ -166,6 +166,14 @@
               <button type="button" data-action="cancelQuickLog" aria-label="Закрити">×</button>
             </div>
             <div class="quick-log-choice-list" id="quickLogChoiceList" aria-label="Уточнення події"></div>
+            <fieldset class="quick-log-breast-field" id="quickLogBreastField" hidden>
+              <legend>З якої груді?</legend>
+              <div id="quickLogBreastChoices">
+                <button type="button" data-quick-log-breast="Ліва грудь">Ліва</button>
+                <button type="button" data-quick-log-breast="Права грудь">Права</button>
+                <button type="button" data-quick-log-breast="Обидві груді">Обидві</button>
+              </div>
+            </fieldset>
             <label class="quick-log-value-field" id="quickLogValueField" hidden>
               <span id="quickLogValueLabel">Значення</span>
               <div><input id="quickLogValue" type="text" inputmode="decimal" maxlength="8" placeholder="Вкажіть" /><b id="quickLogValueUnit"></b></div>
@@ -718,6 +726,14 @@
           <button type="button" data-action="closeHomeQuickLog" aria-label="Закрити">×</button>
         </div>
         <div class="home-quick-log-choices" id="homeQuickLogChoices"></div>
+        <fieldset class="home-quick-log-breast" id="homeQuickLogBreastField" hidden>
+          <legend>З якої груді?</legend>
+          <div id="homeQuickLogBreastChoices">
+            <button type="button" data-home-quick-log-breast="Ліва грудь">Ліва</button>
+            <button type="button" data-home-quick-log-breast="Права грудь">Права</button>
+            <button type="button" data-home-quick-log-breast="Обидві груді">Обидві</button>
+          </div>
+        </fieldset>
         <label class="home-quick-log-value" id="homeQuickLogValueField" hidden>
           <span id="homeQuickLogValueLabel">Значення</span>
           <div><input id="homeQuickLogValue" type="text" inputmode="decimal" maxlength="8" placeholder="Вкажіть" /><b id="homeQuickLogValueUnit"></b></div>
@@ -762,6 +778,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=132"></script>
+    <script src="./app.js?v=133"></script>
   </body>
 </html>
