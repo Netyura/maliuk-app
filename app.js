@@ -1820,6 +1820,11 @@ const state = {
   journalDate: "",
   journalDateFrom: "",
   journalDateTo: "",
+  medicineHistorySearch: "",
+  medicineHistoryPeriod: "all",
+  medicineHistoryDate: "",
+  medicineHistoryDateFrom: "",
+  medicineHistoryDateTo: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -1834,6 +1839,8 @@ const state = {
 
 let journalCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let journalCalendarMode = "day";
+let medicineHistoryCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let medicineHistoryCalendarMode = "day";
 
 const homeShortcutDrag = {
   id: null,
@@ -3192,12 +3199,208 @@ function renderMedicineAll() {
   }).join("");
 }
 
+function medicineHistoryPeriodDate() {
+  if (state.medicineHistoryPeriod === "today") return localDateKey();
+  if (state.medicineHistoryPeriod === "yesterday") {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return localDateKey(yesterday);
+  }
+  if (state.medicineHistoryPeriod === "date") return state.medicineHistoryDate;
+  return "";
+}
+
+function filteredMedicineHistory() {
+  const childId = state.childProfile?.id;
+  const periodDate = medicineHistoryPeriodDate();
+  const query = state.medicineHistorySearch.trim().toLocaleLowerCase("uk-UA");
+
+  return state.medicineIntakes
+    .filter((intake) => {
+      if (childId && intake.child_id !== childId && intake.childId !== childId) return false;
+      const dateKey = intake.scheduled_date || intake.scheduledDate;
+      if (periodDate && dateKey !== periodDate) return false;
+      if (
+        state.medicineHistoryPeriod === "range"
+        && state.medicineHistoryDateFrom
+        && state.medicineHistoryDateTo
+        && (dateKey < state.medicineHistoryDateFrom || dateKey > state.medicineHistoryDateTo)
+      ) return false;
+      if (!query) return true;
+      const reminder = state.medicineReminders.find((item) => item.id === (intake.reminder_id || intake.reminderId));
+      const status = (intake.status === "taken" || intake.status === "done") ? "дано прийнято" : "пропущено";
+      const searchable = [
+        reminder?.title,
+        reminder ? medicineDoseText(reminder) : "",
+        reminder ? medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation) : "",
+        status,
+        medicineDateLabel(dateKey, "short"),
+        dateFromKey(dateKey).toLocaleDateString("uk-UA")
+      ].filter(Boolean).join(" ").toLocaleLowerCase("uk-UA");
+      return searchable.includes(query);
+    })
+    .sort((left, right) => {
+      const leftKey = `${left.scheduled_date || left.scheduledDate} ${left.scheduled_time || left.scheduledTime || ""}`;
+      const rightKey = `${right.scheduled_date || right.scheduledDate} ${right.scheduled_time || right.scheduledTime || ""}`;
+      return rightKey.localeCompare(leftKey);
+    });
+}
+
+function renderMedicineHistoryFilters() {
+  document.querySelectorAll("[data-medicine-history-period]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.medicineHistoryPeriod === state.medicineHistoryPeriod)
+    );
+  });
+  const dateButton = $("#medicineHistoryDateButton");
+  const dateSelected = (
+    state.medicineHistoryPeriod === "date" && Boolean(state.medicineHistoryDate)
+  ) || (
+    state.medicineHistoryPeriod === "range"
+    && Boolean(state.medicineHistoryDateFrom)
+    && Boolean(state.medicineHistoryDateTo)
+  );
+  dateButton.setAttribute("aria-pressed", String(dateSelected));
+  dateButton.classList.toggle("active", dateSelected);
+  if (
+    state.medicineHistoryPeriod === "range"
+    && state.medicineHistoryDateFrom
+    && state.medicineHistoryDateTo
+  ) {
+    const fromDate = dateFromKey(state.medicineHistoryDateFrom);
+    const toDate = dateFromKey(state.medicineHistoryDateTo);
+    const sameMonth = fromDate.getFullYear() === toDate.getFullYear()
+      && fromDate.getMonth() === toDate.getMonth();
+    const from = new Intl.DateTimeFormat(
+      "uk-UA",
+      sameMonth ? { day: "2-digit" } : { day: "2-digit", month: "2-digit" }
+    ).format(fromDate);
+    const to = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(toDate);
+    $("#medicineHistoryDateLabel").textContent = `${from}–${to}`;
+    return;
+  }
+  $("#medicineHistoryDateLabel").textContent = dateSelected
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.medicineHistoryDate))
+    : "Дата";
+}
+
+function renderMedicineHistoryCalendar() {
+  const monthStart = new Date(
+    medicineHistoryCalendarMonth.getFullYear(),
+    medicineHistoryCalendarMonth.getMonth(),
+    1
+  );
+  const nextMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const daysInMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0).getDate();
+  const emptyDays = isoDayForDate(monthStart) - 1;
+  const todayKey = localDateKey();
+  const rangeMode = medicineHistoryCalendarMode === "range";
+
+  document.querySelectorAll("[data-medicine-history-calendar-mode]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.medicineHistoryCalendarMode === medicineHistoryCalendarMode)
+    );
+  });
+  $("#medicineHistoryCalendarTitle").textContent = rangeMode ? "Оберіть період" : "Оберіть дату";
+  $("#medicineHistoryCalendarRange").hidden = !rangeMode;
+  $("#medicineHistoryCalendarApply").hidden = !rangeMode;
+  $("#medicineHistoryCalendarApply").disabled = !(
+    state.medicineHistoryDateFrom && state.medicineHistoryDateTo
+  );
+  const shortDate = (dateKey) => dateKey
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "short" }).format(dateFromKey(dateKey))
+    : "Оберіть";
+  $("#medicineHistoryCalendarFrom").textContent = shortDate(state.medicineHistoryDateFrom);
+  $("#medicineHistoryCalendarTo").textContent = shortDate(state.medicineHistoryDateTo);
+  $("#medicineHistoryCalendarMonth").textContent = new Intl.DateTimeFormat(
+    "uk-UA",
+    { month: "long", year: "numeric" }
+  ).format(monthStart);
+  $("#medicineHistoryCalendarNext").disabled = nextMonth
+    > new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const blanks = Array.from({ length: emptyDays }, () => "<span></span>");
+  const days = Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1);
+    const dateKey = localDateKey(date);
+    const rangeStart = rangeMode && dateKey === state.medicineHistoryDateFrom;
+    const rangeEnd = rangeMode && dateKey === state.medicineHistoryDateTo;
+    const inRange = rangeMode
+      && state.medicineHistoryDateFrom
+      && state.medicineHistoryDateTo
+      && dateKey > state.medicineHistoryDateFrom
+      && dateKey < state.medicineHistoryDateTo;
+    const classes = [
+      dateKey === todayKey ? "today" : "",
+      !rangeMode && dateKey === state.medicineHistoryDate ? "selected" : "",
+      rangeStart ? "range-start selected" : "",
+      rangeEnd ? "range-end selected" : "",
+      inRange ? "in-range" : ""
+    ].filter(Boolean).join(" ");
+    const disabled = dateKey > todayKey ? " disabled" : "";
+    const selected = (
+      (!rangeMode && dateKey === state.medicineHistoryDate)
+      || rangeStart
+      || rangeEnd
+      || inRange
+    ) ? ' aria-selected="true"' : "";
+    return `<button class="${classes}" type="button" role="gridcell" data-medicine-history-calendar-date="${dateKey}"${selected}${disabled}>${index + 1}</button>`;
+  });
+  $("#medicineHistoryCalendarGrid").innerHTML = [...blanks, ...days].join("");
+}
+
+function openMedicineHistoryCalendar() {
+  medicineHistoryCalendarMode = state.medicineHistoryPeriod === "range" ? "range" : "day";
+  const selectedDateKey = medicineHistoryCalendarMode === "range"
+    ? state.medicineHistoryDateFrom
+    : state.medicineHistoryDate;
+  const selectedDate = selectedDateKey ? dateFromKey(selectedDateKey) : new Date();
+  medicineHistoryCalendarMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  renderMedicineHistoryCalendar();
+  $("#medicineHistoryCalendarOverlay").hidden = false;
+}
+
+function closeMedicineHistoryCalendar() {
+  $("#medicineHistoryCalendarOverlay").hidden = true;
+}
+
+function selectMedicineHistoryCalendarDate(dateKey) {
+  if (medicineHistoryCalendarMode === "range") {
+    if (!state.medicineHistoryDateFrom || state.medicineHistoryDateTo) {
+      state.medicineHistoryDateFrom = dateKey;
+      state.medicineHistoryDateTo = "";
+    } else if (dateKey < state.medicineHistoryDateFrom) {
+      state.medicineHistoryDateTo = state.medicineHistoryDateFrom;
+      state.medicineHistoryDateFrom = dateKey;
+    } else {
+      state.medicineHistoryDateTo = dateKey;
+    }
+    renderMedicineHistoryCalendar();
+    return;
+  }
+  state.medicineHistoryDate = dateKey;
+  state.medicineHistoryDateFrom = "";
+  state.medicineHistoryDateTo = "";
+  state.medicineHistoryPeriod = "date";
+  closeMedicineHistoryCalendar();
+  renderMedicineScreen();
+}
+
 function renderMedicineHistory() {
   const childId = state.childProfile?.id;
-  const history = state.medicineIntakes
-    .filter((intake) => !childId || intake.child_id === childId || intake.childId === childId)
-    .sort((left, right) => String(right.scheduled_date || right.scheduledDate).localeCompare(String(left.scheduled_date || left.scheduledDate)));
+  const allHistory = state.medicineIntakes
+    .filter((intake) => !childId || intake.child_id === childId || intake.childId === childId);
+  const history = filteredMedicineHistory();
   if (!history.length) {
+    if (
+      allHistory.length
+      || state.medicineHistorySearch.trim()
+      || state.medicineHistoryPeriod !== "all"
+    ) {
+      return `<div class="medicine-empty"><span>⌕</span><strong>Записів не знайдено</strong><small>Змініть пошук або вибраний період.</small></div>`;
+    }
     return `<div class="medicine-empty"><span>✓</span><strong>Історія ще порожня</strong><small>Тут з’являться позначки «Дано» та «Пропущено».</small></div>`;
   }
 
@@ -3227,6 +3430,9 @@ function renderMedicineScreen() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
+  const historyTools = $("#medicineHistoryTools");
+  historyTools.hidden = state.medicineTab !== "history";
+  if (state.medicineTab === "history") renderMedicineHistoryFilters();
   $("#medicineContent").innerHTML = state.medicineTab === "all"
     ? renderMedicineAll()
     : state.medicineTab === "history" ? renderMedicineHistory() : renderMedicineToday();
@@ -3721,6 +3927,10 @@ $("#homeQuickLogForm").addEventListener("submit", saveHomeQuickLog);
 $("#journalSearch").addEventListener("input", (event) => {
   state.journalSearch = event.target.value;
   renderQuickLogJournal();
+});
+$("#medicineHistorySearch").addEventListener("input", (event) => {
+  state.medicineHistorySearch = event.target.value;
+  renderMedicineScreen();
 });
 
 function shuffle(items) {
@@ -4914,6 +5124,54 @@ function showToast(text, tone = "neutral") {
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const medicineHistoryCalendarModeValue = event.target
+    .closest("[data-medicine-history-calendar-mode]")
+    ?.dataset.medicineHistoryCalendarMode;
+  if (medicineHistoryCalendarModeValue) {
+    medicineHistoryCalendarMode = medicineHistoryCalendarModeValue;
+    if (medicineHistoryCalendarModeValue === "range" && state.medicineHistoryPeriod !== "range") {
+      state.medicineHistoryDateFrom = "";
+      state.medicineHistoryDateTo = "";
+    }
+    renderMedicineHistoryCalendar();
+    return;
+  }
+
+  const medicineHistoryCalendarDate = event.target
+    .closest("[data-medicine-history-calendar-date]")
+    ?.dataset.medicineHistoryCalendarDate;
+  if (medicineHistoryCalendarDate) {
+    selectMedicineHistoryCalendarDate(medicineHistoryCalendarDate);
+    return;
+  }
+
+  const medicineHistoryCalendarNavigation = event.target
+    .closest("[data-medicine-history-calendar-nav]")
+    ?.dataset.medicineHistoryCalendarNav;
+  if (medicineHistoryCalendarNavigation) {
+    medicineHistoryCalendarMonth = new Date(
+      medicineHistoryCalendarMonth.getFullYear(),
+      medicineHistoryCalendarMonth.getMonth() + Number(medicineHistoryCalendarNavigation),
+      1
+    );
+    renderMedicineHistoryCalendar();
+    return;
+  }
+
+  const medicineHistoryPeriod = event.target
+    .closest("[data-medicine-history-period]")
+    ?.dataset.medicineHistoryPeriod;
+  if (medicineHistoryPeriod) {
+    state.medicineHistoryPeriod = medicineHistoryPeriod;
+    if (medicineHistoryPeriod !== "date") state.medicineHistoryDate = "";
+    if (medicineHistoryPeriod !== "range") {
+      state.medicineHistoryDateFrom = "";
+      state.medicineHistoryDateTo = "";
+    }
+    renderMedicineScreen();
+    return;
+  }
+
   const calendarMode = event.target.closest("[data-journal-calendar-mode]")?.dataset.journalCalendarMode;
   if (calendarMode) {
     journalCalendarMode = calendarMode;
@@ -5294,6 +5552,31 @@ document.addEventListener("click", (event) => {
     state.journalPeriod = "all";
     closeJournalCalendar();
     renderQuickLogJournal();
+    return;
+  }
+  if (action === "openMedicineHistoryCalendar") {
+    openMedicineHistoryCalendar();
+    return;
+  }
+  if (action === "closeMedicineHistoryCalendar") {
+    closeMedicineHistoryCalendar();
+    return;
+  }
+  if (action === "applyMedicineHistoryDateRange") {
+    if (!state.medicineHistoryDateFrom || !state.medicineHistoryDateTo) return;
+    state.medicineHistoryDate = "";
+    state.medicineHistoryPeriod = "range";
+    closeMedicineHistoryCalendar();
+    renderMedicineScreen();
+    return;
+  }
+  if (action === "showAllMedicineHistoryDates") {
+    state.medicineHistoryDate = "";
+    state.medicineHistoryDateFrom = "";
+    state.medicineHistoryDateTo = "";
+    state.medicineHistoryPeriod = "all";
+    closeMedicineHistoryCalendar();
+    renderMedicineScreen();
     return;
   }
   if (action === "closeHomeShortcutPicker") {

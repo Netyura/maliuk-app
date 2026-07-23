@@ -206,6 +206,22 @@
               <button type="button" data-medicine-tab="history" role="tab" aria-selected="false">Історія</button>
             </div>
 
+            <div class="journal-tools medicine-history-tools" id="medicineHistoryTools" hidden>
+              <label class="journal-search">
+                <span aria-hidden="true">⌕</span>
+                <input id="medicineHistorySearch" type="search" maxlength="80" autocomplete="off" placeholder="Пошук в історії ліків" aria-label="Пошук в історії ліків" />
+              </label>
+              <div class="journal-date-filters" aria-label="Період історії ліків">
+                <button type="button" data-medicine-history-period="all" aria-pressed="true">Усі</button>
+                <button type="button" data-medicine-history-period="today" aria-pressed="false">Сьогодні</button>
+                <button type="button" data-medicine-history-period="yesterday" aria-pressed="false">Учора</button>
+                <button class="journal-date-picker" id="medicineHistoryDateButton" type="button" data-action="openMedicineHistoryCalendar" aria-pressed="false">
+                  <span aria-hidden="true">▣</span>
+                  <b id="medicineHistoryDateLabel">Дата</b>
+                </button>
+              </div>
+            </div>
+
             <div class="medicine-content" id="medicineContent" aria-live="polite"></div>
             <p class="medicine-safety-note">OwlJoy лише нагадує про введений вами розклад і не призначає лікування чи дозування.</p>
           </section>
@@ -798,6 +814,38 @@
         <button class="journal-calendar-all" type="button" data-action="showAllJournalDates">Показати всі записи</button>
       </section>
     </div>
+    <div class="journal-calendar-overlay" id="medicineHistoryCalendarOverlay" hidden>
+      <button class="journal-calendar-backdrop" type="button" data-action="closeMedicineHistoryCalendar" aria-label="Закрити календар"></button>
+      <section class="journal-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="medicineHistoryCalendarTitle">
+        <div class="journal-calendar-heading">
+          <div>
+            <span>Фільтр ліків</span>
+            <h2 id="medicineHistoryCalendarTitle">Оберіть дату</h2>
+          </div>
+          <button type="button" data-action="closeMedicineHistoryCalendar" aria-label="Закрити">×</button>
+        </div>
+        <div class="journal-calendar-mode" role="group" aria-label="Тип вибору дати">
+          <button type="button" data-medicine-history-calendar-mode="day" aria-pressed="true">Один день</button>
+          <button type="button" data-medicine-history-calendar-mode="range" aria-pressed="false">Період</button>
+        </div>
+        <div class="journal-calendar-range" id="medicineHistoryCalendarRange" hidden>
+          <span><small>Від</small><strong id="medicineHistoryCalendarFrom">Оберіть</strong></span>
+          <b aria-hidden="true">→</b>
+          <span><small>До</small><strong id="medicineHistoryCalendarTo">Оберіть</strong></span>
+        </div>
+        <div class="journal-calendar-month">
+          <button type="button" data-medicine-history-calendar-nav="-1" aria-label="Попередній місяць">‹</button>
+          <strong id="medicineHistoryCalendarMonth"></strong>
+          <button id="medicineHistoryCalendarNext" type="button" data-medicine-history-calendar-nav="1" aria-label="Наступний місяць">›</button>
+        </div>
+        <div class="journal-calendar-weekdays" aria-hidden="true">
+          <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
+        </div>
+        <div class="journal-calendar-grid" id="medicineHistoryCalendarGrid" role="grid" aria-label="Дні місяця"></div>
+        <button class="journal-calendar-apply" id="medicineHistoryCalendarApply" type="button" data-action="applyMedicineHistoryDateRange" hidden disabled>Показати записи за період</button>
+        <button class="journal-calendar-all" type="button" data-action="showAllMedicineHistoryDates">Показати всі записи</button>
+      </section>
+    </div>
     <div class="profile-delete-overlay" id="profileDeleteOverlay" hidden>
       <button class="profile-delete-backdrop" type="button" data-action="cancelDeleteChild" aria-label="Скасувати видалення"></button>
       <section class="profile-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="profileDeleteTitle" aria-describedby="profileDeleteText">
@@ -830,6 +878,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=8"></script>
-    <script src="./app.js?v=146"></script>
+    <script src="./app.js?v=147"></script>
   </body>
 </html>
