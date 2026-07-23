@@ -894,6 +894,100 @@ h1 {
   font-weight: 700;
 }
 
+.journal-tools {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.journal-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 46px;
+  padding: 0 0.72rem;
+  border: 1px solid rgba(39, 34, 47, 0.09);
+  border-radius: 16px;
+  color: #8a838e;
+  background: #fbf7f3;
+}
+
+.journal-search > span {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.journal-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.journal-search input::placeholder {
+  color: #9b949e;
+}
+
+.journal-date-filters {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(46px, 1fr);
+  gap: 0.38rem;
+}
+
+.journal-date-filters > button,
+.journal-date-picker {
+  min-height: 40px;
+  border: 1px solid rgba(244, 117, 64, 0.13);
+  border-radius: 14px;
+  color: #766f79;
+  background: #fff8f3;
+  box-shadow: none;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.journal-date-filters > button {
+  padding: 0.48rem 0.56rem;
+}
+
+.journal-date-filters > button[aria-pressed="true"],
+.journal-date-picker.active {
+  color: #a04b20;
+  border-color: rgba(244, 117, 64, 0.32);
+  background: #ffe8da;
+}
+
+.journal-date-picker {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.journal-date-picker > span {
+  font-size: 0.95rem;
+}
+
+.journal-date-picker > b {
+  font-size: 0.64rem;
+}
+
+.journal-date-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .quick-log-journal h3 {
   margin-top: 0.16rem;
   font-size: 1.12rem;

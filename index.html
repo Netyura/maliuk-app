@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=143" />
+    <link rel="stylesheet" href="./styles.css?v=144" />
   </head>
   <body>
     <main class="app">
@@ -187,6 +187,22 @@
                 <h3 id="quickLogJournalTitle">Усі записи</h3>
               </div>
               <button class="journal-add-actions" type="button" data-action="openQuickActionsPicker" aria-label="Додати швидкі дії на головну">＋</button>
+            </div>
+            <div class="journal-tools">
+              <label class="journal-search">
+                <span aria-hidden="true">⌕</span>
+                <input id="journalSearch" type="search" maxlength="80" autocomplete="off" placeholder="Пошук у журналі" aria-label="Пошук у журналі" />
+              </label>
+              <div class="journal-date-filters" aria-label="Період журналу">
+                <button type="button" data-journal-period="all" aria-pressed="false">Усі</button>
+                <button type="button" data-journal-period="today" aria-pressed="true">Сьогодні</button>
+                <button type="button" data-journal-period="yesterday" aria-pressed="false">Учора</button>
+                <label class="journal-date-picker" aria-label="Вибрати дату">
+                  <span aria-hidden="true">▣</span>
+                  <b id="journalDateLabel">Дата</b>
+                  <input id="journalDate" type="date" aria-label="Дата журналу" />
+                </label>
+              </div>
             </div>
             <div class="quick-log-list" id="quickLogList"></div>
           </section>
@@ -771,6 +787,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
     <script src="./telegram-user.js?v=7"></script>
-    <script src="./app.js?v=134"></script>
+    <script src="./app.js?v=135"></script>
   </body>
 </html>

@@ -1815,6 +1815,9 @@ const state = {
   quickLogType: null,
   quickLogAction: null,
   quickLogBreastSide: null,
+  journalSearch: "",
+  journalPeriod: "today",
+  journalDate: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -2303,12 +2306,58 @@ function activeChildQuickLogs() {
     .sort((left, right) => new Date(right.occurred_at || right.occurredAt) - new Date(left.occurred_at || left.occurredAt));
 }
 
+function filteredJournalLogs() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const periodDate = state.journalPeriod === "today"
+    ? localDateKey()
+    : state.journalPeriod === "yesterday"
+      ? localDateKey(yesterday)
+      : state.journalPeriod === "date"
+        ? state.journalDate
+        : "";
+  const query = state.journalSearch.trim().toLocaleLowerCase("uk-UA");
+
+  return activeChildQuickLogs().filter((item) => {
+    const occurredAt = new Date(item.occurred_at || item.occurredAt);
+    if (periodDate && localDateKey(occurredAt) !== periodDate) return false;
+    if (!query) return true;
+    const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія" };
+    const searchable = [
+      type.label,
+      item.event_action || item.eventAction,
+      item.value,
+      item.unit,
+      item.note,
+      quickLogDateLabel(occurredAt),
+      occurredAt.toLocaleDateString("uk-UA")
+    ].filter(Boolean).join(" ").toLocaleLowerCase("uk-UA");
+    return searchable.includes(query);
+  });
+}
+
+function renderJournalFilters() {
+  document.querySelectorAll("[data-journal-period]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.journalPeriod === state.journalPeriod));
+  });
+  const dateInput = $("#journalDate");
+  dateInput.max = localDateKey();
+  dateInput.value = state.journalDate;
+  $("#journalDateLabel").textContent = state.journalDate
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
+    : "Дата";
+  dateInput.closest(".journal-date-picker")?.classList.toggle("active", state.journalPeriod === "date");
+}
+
 function renderQuickLogJournal() {
   const list = $("#quickLogList");
   if (!list) return;
-  const logs = activeChildQuickLogs();
+  renderJournalFilters();
+  const logs = filteredJournalLogs();
   if (!logs.length) {
-    list.innerHTML = '<p class="quick-log-empty">Тут з’являться записи про сон, годування, підгузки, ліки, температуру, положення голови та ваші нотатки.</p>';
+    list.innerHTML = state.journalSearch
+      ? '<p class="quick-log-empty">За вашим запитом записів не знайдено.</p>'
+      : '<p class="quick-log-empty">За вибраний день записів поки немає.</p>';
     return;
   }
 
@@ -2607,6 +2656,7 @@ function openQuickLogScreen() {
   hideContentScreens();
   closeQuickLogComposer();
   $("#quickLogChildName").textContent = state.childProfile?.nickname || "малюка";
+  $("#journalSearch").value = state.journalSearch;
   $("#quickLogScreen").hidden = false;
   renderQuickLogJournal();
   showMainNavigation("care");
@@ -3009,8 +3059,32 @@ async function logMedicineIntake(reminderId, status) {
       status
     });
     state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+    let journalSaved = true;
+    if (status === "taken") {
+      try {
+        await window.owlJoyAccount.saveCareQuickLog({
+          childId: reminder.child_id,
+          eventType: "medicine",
+          eventAction: reminder.title,
+          value: null,
+          unit: null,
+          note: medicineDoseText(reminder),
+          occurredAt: new Date().toISOString()
+        });
+        state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+        renderQuickLogJournal();
+      } catch (journalError) {
+        journalSaved = false;
+        console.error("OwlJoy: ліки позначено, але журнал не оновлено", journalError);
+      }
+    }
     renderMedicineScreen();
-    showToast(status === "taken" ? "Позначено: дано" : "Позначено: пропущено", status === "taken" ? "correct" : "neutral");
+    showToast(
+      status === "taken"
+        ? journalSaved ? "Позначено: дано" : "Ліки позначено, але журнал не оновлено"
+        : "Позначено: пропущено",
+      status === "taken" && journalSaved ? "correct" : "neutral"
+    );
   } catch (error) {
     showToast(error.message || "Не вдалося зберегти позначку", "wrong");
   }
@@ -3234,6 +3308,19 @@ $("#onboardingForm").addEventListener("submit", saveOnboardingProfile);
 $("#medicineForm").addEventListener("submit", saveMedicineForm);
 $("#quickLogComposer").addEventListener("submit", saveQuickLogForm);
 $("#homeQuickLogForm").addEventListener("submit", saveHomeQuickLog);
+$("#journalSearch").addEventListener("input", (event) => {
+  state.journalSearch = event.target.value;
+  renderQuickLogJournal();
+});
+$("#journalDate").addEventListener("change", (event) => {
+  state.journalDate = event.target.value;
+  if (!state.journalDate) {
+    state.journalPeriod = "all";
+  } else {
+    state.journalPeriod = "date";
+  }
+  renderQuickLogJournal();
+});
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -4423,6 +4510,14 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  const journalPeriod = event.target.closest("[data-journal-period]")?.dataset.journalPeriod;
+  if (journalPeriod) {
+    state.journalPeriod = journalPeriod;
+    if (journalPeriod !== "date") state.journalDate = "";
+    renderQuickLogJournal();
+    return;
+  }
+
   const homeQuickLogBreast = event.target.closest("[data-home-quick-log-breast]")?.dataset.homeQuickLogBreast;
   if (homeQuickLogBreast) {
     selectHomeQuickLogBreastSide(homeQuickLogBreast);
