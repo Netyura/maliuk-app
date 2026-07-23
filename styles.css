@@ -6941,6 +6941,107 @@ body,
   }
 }
 
+/* Візуальний вибір віку перед грою */
+.age-picker .age-intro {
+  height: 138px;
+  min-height: 138px;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  grid-template-rows: 1fr;
+}
+
+.age-picker .intro-copy p {
+  max-width: 250px;
+}
+
+.age-picker .intro-copy {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+.age-picker .intro-copy h2 {
+  margin: 0.24rem 0 0.3rem;
+  font-size: 1.65rem;
+}
+
+.age-picker .intro-copy p {
+  font-size: 0.78rem;
+  line-height: 1.22;
+}
+
+.age-picker .intro-mascot {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+.age-picker .age-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
+}
+
+.age-picker .age-grid button,
+.age-picker .age-grid button:first-child {
+  height: 176px;
+  min-height: 176px;
+  grid-template-columns: 1fr;
+  grid-template-rows: 108px auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: 0.18rem;
+  padding: 0.62rem;
+  text-align: center;
+}
+
+.age-picker .age-icon,
+.age-picker .age-grid .age-icon {
+  width: 106px;
+  height: 106px;
+  grid-column: 1;
+  grid-row: 1;
+  border-radius: 27px;
+}
+
+.age-picker .age-grid strong {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 1rem;
+}
+
+.age-picker .age-grid span:not(.age-icon) {
+  grid-column: 1;
+  grid-row: 3;
+  display: block;
+  color: #77717e;
+  font-size: 0.7rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.age-picker .age-grid button::after {
+  display: none;
+}
+
+@media (max-width: 370px) {
+  .age-picker .age-grid button,
+  .age-picker .age-grid button:first-child {
+    height: 164px;
+    min-height: 164px;
+    grid-template-rows: 96px auto auto;
+  }
+
+  .age-picker .age-icon,
+  .age-picker .age-grid .age-icon {
+    width: 94px;
+    height: 94px;
+  }
+
+  .age-picker .age-grid span:not(.age-icon) {
+    font-size: 0.64rem;
+  }
+}
+
 .child-profile-option {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 30px;
