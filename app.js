@@ -2045,6 +2045,34 @@ function renderChildSwitcher() {
   document.querySelectorAll("[data-action='addChild']").forEach((button) => {
     button.hidden = state.childProfiles.length >= 6;
   });
+  renderHomeChildSwitcher();
+}
+
+function renderHomeChildSwitcher() {
+  const switcher = $("#homeChildSwitcher");
+  const list = $("#homeChildSwitcherList");
+  if (!switcher || !list) return;
+  switcher.hidden = state.childProfiles.length < 2;
+  list.replaceChildren();
+  if (switcher.hidden) return;
+
+  state.childProfiles.forEach((profile, index) => {
+    const active = profile.id === state.childProfile?.id;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "home-child-option";
+    button.dataset.childId = profile.id;
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-label", `${active ? "Активний профіль" : "Перемкнути на профіль"} ${profile.nickname}`);
+    button.title = profile.nickname || `Малюк ${index + 1}`;
+    if (active) button.classList.add("active");
+
+    const avatar = document.createElement("span");
+    avatar.className = "home-child-avatar";
+    avatar.textContent = (profile.nickname || String(index + 1)).trim().charAt(0).toUpperCase();
+    button.append(avatar);
+    list.append(button);
+  });
 }
 
 function openChildSwitcher() {
