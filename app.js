@@ -1833,8 +1833,6 @@ const state = {
   reportDateTo: "",
   reportPdfBlob: null,
   reportPdfSignature: "",
-  reportTelegramPreparedId: "",
-  reportTelegramSignature: "",
   reportDownloadUrl: "",
   reportDownloadSignature: "",
   reportDownloadExpiresAt: 0,
@@ -3520,21 +3518,18 @@ function reportSignature() {
 function invalidateReportPdf() {
   state.reportPdfBlob = null;
   state.reportPdfSignature = "";
-  state.reportTelegramPreparedId = "";
-  state.reportTelegramSignature = "";
   state.reportDownloadUrl = "";
   state.reportDownloadSignature = "";
   state.reportDownloadExpiresAt = 0;
 }
 
 function setReportPreparing(preparing) {
-  const shareButton = $("#reportShareButton");
   const saveButton = $("#reportSaveButton");
-  if (!shareButton || !saveButton) return;
-  shareButton.disabled = preparing;
+  if (!saveButton) return;
   saveButton.disabled = preparing;
-  shareButton.querySelector("span").textContent = preparing ? "Готуємо PDF…" : "Надіслати лікарю";
-  saveButton.querySelector("span").textContent = preparing ? "Зачекайте…" : "Зберегти PDF";
+  saveButton.querySelector("span").textContent = preparing
+    ? "Готуємо PDF…"
+    : "Зберегти PDF на телефон";
   $("#reportSummary")?.classList.toggle("is-preparing", preparing);
 }
 
@@ -3543,7 +3538,6 @@ function scheduleReportPreparation() {
   const token = ++reportPreparationToken;
   if (!state.reportIncludeJournal && !state.reportIncludeMedicine) {
     setReportPreparing(false);
-    $("#reportShareButton").disabled = true;
     $("#reportSaveButton").disabled = true;
     return;
   }
@@ -3820,90 +3814,6 @@ function showReportError(error) {
   errorBox.hidden = false;
 }
 
-function shareReportViaSystem(blob) {
-  const file = new File([blob], reportFileName(), { type: "application/pdf" });
-  const shareData = {
-    files: [file],
-    title: `Звіт OwlJoy — ${state.childProfile?.nickname || "малюк"}`,
-    text: `Звіт OwlJoy за період ${reportPeriodText()}`
-  };
-  let canShareFile = false;
-  try {
-    canShareFile = Boolean(navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] })));
-  } catch {
-    canShareFile = false;
-  }
-  if (!canShareFile) {
-    saveReportBlob(blob);
-    showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
-    return;
-  }
-  const sharing = navigator.share(shareData);
-  setReportPreparing(true);
-  sharing.then(() => {
-    showToast("Звіт передано у вікно надсилання", "correct");
-    closeReport();
-  }).catch((error) => {
-    if (error?.name !== "AbortError") showReportError(error);
-  }).finally(() => setReportPreparing(false));
-}
-
-async function shareReportViaTelegram(blob) {
-  setReportPreparing(true);
-  $("#reportShareButton span").textContent = "Готуємо в Telegram…";
-  try {
-    const signature = reportSignature();
-    if (
-      !state.reportTelegramPreparedId ||
-      state.reportTelegramSignature !== signature
-    ) {
-      const pdfBase64 = arrayBufferToBase64(await blob.arrayBuffer());
-      const payload = await window.owlJoyAccount.prepareReportShare({
-        pdfBase64,
-        fileName: reportFileName(),
-        caption: `Звіт OwlJoy · ${state.childProfile?.nickname || "Малюк"} · ${reportPeriodText()}`
-      });
-      state.reportTelegramPreparedId = payload.preparedMessageId;
-      state.reportTelegramSignature = signature;
-    }
-
-    telegramApp.HapticFeedback?.impactOccurred?.("light");
-    telegramApp.shareMessage(state.reportTelegramPreparedId, (sent) => {
-      setReportPreparing(false);
-      if (sent) {
-        showToast("Звіт надіслано", "correct");
-        closeReport();
-      }
-    });
-  } catch (error) {
-    setReportPreparing(false);
-    showReportError(new Error(
-      error?.message || "Telegram не зміг підготувати звіт. Скористайтеся кнопкою «Зберегти PDF»."
-    ));
-  }
-}
-
-function shareReport() {
-  $("#reportError").hidden = true;
-  const blob = state.reportPdfBlob;
-  if (!blob || state.reportPdfSignature !== reportSignature()) {
-    scheduleReportPreparation();
-    showToast("PDF ще готується — зачекайте мить");
-    return;
-  }
-  const nativeTelegramShare = Boolean(
-    telegramApp?.initData &&
-    telegramApp?.shareMessage &&
-    (!telegramApp.isVersionAtLeast || telegramApp.isVersionAtLeast("8.0")) &&
-    window.owlJoyAccount?.prepareReportShare
-  );
-  if (nativeTelegramShare) {
-    shareReportViaTelegram(blob);
-    return;
-  }
-  shareReportViaSystem(blob);
-}
-
 function saveReportBlob(blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -3946,12 +3856,12 @@ async function saveReportViaTelegram(blob) {
       file_name: reportFileName()
     }, (accepted) => {
       saveButton.disabled = false;
-      saveButton.querySelector("span").textContent = "Зберегти PDF";
+      saveButton.querySelector("span").textContent = "Зберегти PDF на телефон";
       if (accepted) showToast("Telegram почав завантаження PDF", "correct");
     });
   } catch (error) {
     saveButton.disabled = false;
-    saveButton.querySelector("span").textContent = "Зберегти PDF";
+    saveButton.querySelector("span").textContent = "Зберегти PDF на телефон";
     showReportError(new Error(
       error?.message || "Telegram не зміг завантажити PDF. Спробуйте ще раз."
     ));
@@ -6141,10 +6051,6 @@ document.addEventListener("click", (event) => {
   }
   if (action === "closeReport") {
     closeReport();
-    return;
-  }
-  if (action === "shareReport") {
-    shareReport();
     return;
   }
   if (action === "saveReport") {

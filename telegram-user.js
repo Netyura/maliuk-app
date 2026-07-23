@@ -304,13 +304,6 @@
     return { ok: true };
   }
 
-  async function prepareReportShare(values) {
-    if (account.status !== "authenticated") {
-      throw account.error || new Error("Надсилання через Telegram доступне лише в боті");
-    }
-    return request("report.prepareShare", values);
-  }
-
   async function prepareReportDownload(values) {
     if (account.status !== "authenticated") {
       throw account.error || new Error("Завантаження через Telegram доступне лише в боті");
@@ -329,7 +322,6 @@
   account.saveCareQuickLog = saveCareQuickLog;
   account.deleteCareQuickLog = deleteCareQuickLog;
   account.setHomeShortcuts = setHomeShortcuts;
-  account.prepareReportShare = prepareReportShare;
   account.prepareReportDownload = prepareReportDownload;
   account.ready = bootstrap();
   window.owlJoyAccount = account;

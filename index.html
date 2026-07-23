@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=157" />
+    <link rel="stylesheet" href="./styles.css?v=158" />
   </head>
   <body>
     <main class="app">
@@ -937,25 +937,21 @@
         <div class="report-summary" id="reportSummary" aria-live="polite"></div>
         <p class="report-error" id="reportError" role="alert" hidden></p>
         <div class="report-actions">
-          <button class="report-share" id="reportShareButton" type="button" data-action="shareReport">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8M5 13v6h14v-6"/></svg>
-            <span>Надіслати лікарю</span>
-          </button>
           <button class="report-save" id="reportSaveButton" type="button" data-action="saveReport">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4h14v-4"/></svg>
-            <span>Зберегти PDF</span>
+            <span>Зберегти PDF на телефон</span>
           </button>
         </div>
         <small class="report-privacy">
           🔒 У звіті будуть лише вибрані вами записи активної дитини.<br />
-          Щоб надіслати без позначки бота, збережіть PDF і прикріпіть його у чаті лікаря.
+          Після збереження прикріпіть PDF у чаті лікаря як звичайний файл.
         </small>
       </section>
     </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=11"></script>
-    <script src="./app.js?v=154"></script>
+    <script src="./telegram-user.js?v=12"></script>
+    <script src="./app.js?v=155"></script>
   </body>
 </html>
