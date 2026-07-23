@@ -4407,23 +4407,13 @@ html.telegram-mini-app body {
   box-shadow: 0 4px 10px rgba(74, 55, 42, 0.06);
 }
 
-.medicine-unit-icon svg {
-  width: 23px;
-  height: 23px;
-  overflow: visible;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.medicine-unit-icon svg path:first-child {
-  fill: rgba(244, 117, 64, 0.14);
+.medicine-unit-icon img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .medicine-card.taken .medicine-unit-icon {
-  color: #377d4f;
   background: #e3f5e7;
 }
 

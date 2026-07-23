@@ -2996,13 +2996,13 @@ function medicineDoseText(reminder) {
 function medicineUnitIcon(reminder) {
   const unit = reminder.dose_unit || reminder.doseUnit || "";
   const icons = {
-    "краплі": '<svg viewBox="0 0 24 24"><path d="M8.2 3.8C6.6 6.4 4.5 8.8 4.5 12a4.2 4.2 0 0 0 8.4 0c0-3.2-2.1-5.6-3.7-8.2a.6.6 0 0 0-1 0Z"/><path d="M16.2 9.4c-1.2 1.9-2.7 3.7-2.7 6a3.2 3.2 0 0 0 6.4 0c0-2.3-1.5-4.1-2.7-6a.6.6 0 0 0-1 0Z" opacity=".58"/></svg>',
-    "мл": '<svg viewBox="0 0 24 24"><path d="M8 3h8v3l2 2.5V20H6V8.5L8 6V3Z"/><path d="M8 10h8M9 14h2m-2 3h2"/></svg>',
-    "таблетка": '<svg viewBox="0 0 24 24"><path d="M7.1 17.9a4.2 4.2 0 0 1 0-5.9l4.9-4.9a4.2 4.2 0 1 1 5.9 5.9L13 17.9a4.2 4.2 0 0 1-5.9 0Z"/><path d="m9.6 9.6 4.8 4.8"/></svg>',
-    "мірна ложка": '<svg viewBox="0 0 24 24"><ellipse cx="7" cy="8" rx="4" ry="3.5"/><path d="m10 10 9 8a1.4 1.4 0 0 0 2-2l-9-8"/></svg>',
-    "доза": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>'
+    "краплі": "./assets/images/medicine-units/drops-v1.webp",
+    "мл": "./assets/images/medicine-units/ml-v1.webp",
+    "таблетка": "./assets/images/medicine-units/tablet-v1.webp",
+    "мірна ложка": "./assets/images/medicine-units/spoon-v1.webp",
+    "доза": "./assets/images/medicine-units/dose-v1.webp"
   };
-  return icons[unit] || icons["доза"];
+  return `<img loading="lazy" decoding="async" src="${icons[unit] || icons["доза"]}" alt="" />`;
 }
 
 function medicineDoseInstruction(reminder) {
