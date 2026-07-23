@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=149" />
+    <link rel="stylesheet" href="./styles.css?v=150" />
   </head>
   <body>
     <main class="app">
@@ -190,24 +190,25 @@
         </section>
 
         <section class="medicine-screen" id="medicineScreen" hidden>
-          <div class="medicine-hero">
-            <div>
-              <span>Турбота без метушні</span>
-              <h2>Ліки для <b id="medicineChildName">малюка</b></h2>
-              <p id="medicineTodayLabel">Сьогоднішній розклад і позначки про прийом.</p>
+          <section class="medicine-dashboard" aria-labelledby="medicineScreenTitle">
+            <div class="journal-heading medicine-heading">
+              <div>
+                <span>Для <b id="medicineChildName">малюка</b></span>
+                <h3 id="medicineScreenTitle">Ліки</h3>
+              </div>
+              <button class="journal-add-actions" type="button" data-action="addMedicine" aria-label="Додати ліки">＋</button>
             </div>
-            <img loading="lazy" decoding="async" src="./assets/images/medicine-reminder-hero-v2.webp" alt="" />
-          </div>
+            <p class="medicine-summary" id="medicineTodayLabel">Сьогоднішній розклад і позначки про прийом.</p>
 
-          <div class="medicine-tabs" role="tablist" aria-label="Розділи ліків">
-            <button class="active" type="button" data-medicine-tab="today" role="tab" aria-selected="true">Сьогодні</button>
-            <button type="button" data-medicine-tab="all" role="tab" aria-selected="false">Мої ліки</button>
-            <button type="button" data-medicine-tab="history" role="tab" aria-selected="false">Історія</button>
-          </div>
+            <div class="medicine-tabs" role="tablist" aria-label="Розділи ліків">
+              <button class="active" type="button" data-medicine-tab="today" role="tab" aria-selected="true">Сьогодні</button>
+              <button type="button" data-medicine-tab="all" role="tab" aria-selected="false">Розклад</button>
+              <button type="button" data-medicine-tab="history" role="tab" aria-selected="false">Історія</button>
+            </div>
 
-          <div class="medicine-content" id="medicineContent" aria-live="polite"></div>
-          <button class="medicine-add-button" type="button" data-action="addMedicine">＋ Додати ліки</button>
-          <p class="medicine-safety-note">OwlJoy лише нагадує про введений вами розклад і не призначає лікування чи дозування.</p>
+            <div class="medicine-content" id="medicineContent" aria-live="polite"></div>
+            <p class="medicine-safety-note">OwlJoy лише нагадує про введений вами розклад і не призначає лікування чи дозування.</p>
+          </section>
         </section>
 
         <section class="medicine-form-screen" id="medicineFormScreen" hidden>

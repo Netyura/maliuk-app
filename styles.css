@@ -4259,43 +4259,51 @@ html.telegram-mini-app body {
   -webkit-overflow-scrolling: touch;
 }
 
+.medicine-screen {
+  gap: 0;
+  padding-bottom: 0.45rem;
+}
+
 .medicine-screen::-webkit-scrollbar,
 .medicine-form-screen::-webkit-scrollbar {
   display: none;
 }
 
-.medicine-hero {
+.medicine-dashboard {
   display: grid;
-  flex: 0 0 auto;
-  box-sizing: border-box;
-  width: 100%;
-  height: 170px;
-  min-height: 170px;
-  grid-template-columns: minmax(0, 1fr) 78px;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 1rem;
-  overflow: hidden;
+  flex: 1;
+  align-content: start;
+  gap: 0.72rem;
+  padding: 0.9rem;
   border: 1px solid var(--surface-border);
-  border-radius: 28px;
-  background: linear-gradient(135deg, #fff1e7, #fffaf5);
-  box-shadow: var(--menu-hero-shadow);
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--menu-card-shadow);
 }
 
-.medicine-hero > div {
-  min-width: 0;
+.medicine-heading {
+  align-items: center;
 }
 
-.medicine-hero span,
+.medicine-heading > div > span,
 .medicine-form-heading > span {
   color: #a45322;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.medicine-hero h2,
+.medicine-heading > div > span b {
+  font: inherit;
+}
+
+.medicine-heading h3 {
+  margin: 0.16rem 0 0;
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
 .medicine-form-heading h2 {
   margin: 0.38rem 0 0.46rem;
   font-size: 1.9rem;
@@ -4303,11 +4311,6 @@ html.telegram-mini-app body {
   letter-spacing: -0.025em;
 }
 
-.medicine-hero h2 b {
-  font: inherit;
-}
-
-.medicine-hero p,
 .medicine-form-heading p {
   display: -webkit-box;
   margin: 0;
@@ -4320,44 +4323,42 @@ html.telegram-mini-app body {
   -webkit-line-clamp: 2;
 }
 
-.medicine-hero img {
-  width: 78px;
-  height: 78px;
-  border-radius: 23px;
-  object-fit: cover;
+.medicine-summary {
+  margin: -0.18rem 0 0;
+  color: #6f6874;
+  font-size: 0.76rem;
+  font-weight: 720;
+  line-height: 1.35;
 }
 
 .medicine-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.3rem;
-  padding: 0.3rem;
-  border: 1px solid var(--surface-border);
-  border-radius: 19px;
-  background: rgba(243, 236, 227, 0.78);
+  gap: 0.38rem;
 }
 
 .medicine-tabs button {
   min-width: 0;
-  min-height: 42px;
-  padding: 0.55rem 0.3rem;
-  border-radius: 15px;
-  color: #77717d;
-  background: transparent;
+  min-height: 40px;
+  padding: 0.48rem 0.4rem;
+  border: 1px solid rgba(244, 117, 64, 0.13);
+  border-radius: 14px;
+  color: #766f79;
+  background: #fff8f3;
   box-shadow: none;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 850;
 }
 
 .medicine-tabs button.active {
-  color: #9e4d24;
-  background: #fff;
-  box-shadow: 0 5px 14px rgba(66, 49, 37, 0.08);
+  color: #a04b20;
+  border-color: rgba(244, 117, 64, 0.32);
+  background: #ffe8da;
 }
 
 .medicine-content {
   display: grid;
-  gap: 0.68rem;
+  gap: 0.58rem;
 }
 
 .medicine-day-heading {
@@ -4383,12 +4384,12 @@ html.telegram-mini-app body {
   grid-template-columns: 54px minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
-  min-height: 96px;
+  min-height: 88px;
   padding: 0.75rem;
-  border: 1px solid var(--surface-border);
-  border-radius: 25px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: var(--menu-card-shadow);
+  border: 1px solid rgba(39, 34, 47, 0.07);
+  border-radius: 21px;
+  background: #fffdfa;
+  box-shadow: 0 6px 16px rgba(66, 49, 37, 0.055);
 }
 
 .medicine-card.taken {
@@ -4482,8 +4483,8 @@ html.telegram-mini-app body {
 .medicine-empty {
   padding: 1.5rem 1rem;
   border: 1px dashed rgba(164, 83, 34, 0.2);
-  border-radius: 25px;
-  background: rgba(255, 250, 246, 0.75);
+  border-radius: 21px;
+  background: #fffaf6;
   text-align: center;
 }
 
@@ -4529,7 +4530,7 @@ html.telegram-mini-app body {
 }
 
 .medicine-safety-note {
-  margin: -0.2rem 0 0;
+  margin: 0.05rem 0 0;
   padding: 0 0.5rem;
   color: #8e8792;
   font-size: 0.68rem;
