@@ -1816,7 +1816,7 @@ const state = {
   quickLogAction: null,
   quickLogBreastSide: null,
   journalSearch: "",
-  journalPeriod: "today",
+  journalPeriod: "all",
   journalDate: "",
   homeQuickLogType: null,
   homeQuickLogAction: null,
@@ -1865,6 +1865,7 @@ window.owlJoyAccount?.ready.then((account) => {
   state.medicineReminders = [...(account.medicineReminders || [])];
   state.medicineIntakes = [...(account.medicineIntakes || [])];
   state.careQuickLogs = [...(account.careQuickLogs || [])];
+  if (!$("#quickLogScreen").hidden) renderQuickLogJournal();
   if (Array.isArray(account.homeShortcutIds)) {
     state.homeShortcutIds = normalizeHomeShortcutIds(account.homeShortcutIds);
     localStorage.setItem("owljoyHomeShortcuts", JSON.stringify(state.homeShortcutIds));
@@ -2349,6 +2350,14 @@ function renderJournalFilters() {
   dateInput.closest(".journal-date-picker")?.classList.toggle("active", state.journalPeriod === "date");
 }
 
+function showLatestJournalEntries() {
+  state.journalSearch = "";
+  state.journalPeriod = "today";
+  state.journalDate = "";
+  const searchInput = $("#journalSearch");
+  if (searchInput) searchInput.value = "";
+}
+
 function renderQuickLogJournal() {
   const list = $("#quickLogList");
   if (!list) return;
@@ -2624,9 +2633,10 @@ async function saveHomeQuickLog(event) {
       occurredAt: new Date().toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    showLatestJournalEntries();
     closeHomeQuickLog();
     renderQuickLogJournal();
-    showToast(type === "note" ? "Нотатку збережено" : "Запис додано", "correct");
+    showToast(type === "note" ? "Нотатку збережено в журналі" : "Запис збережено в журналі", "correct");
   } catch (saveError) {
     error.textContent = saveError.message || "Не вдалося зберегти запис.";
     error.hidden = false;
@@ -2732,9 +2742,10 @@ async function saveQuickLogForm(event) {
       occurredAt: occurredAt.toISOString()
     });
     state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+    showLatestJournalEntries();
     closeQuickLogComposer();
     renderQuickLogJournal();
-    showToast("Запис додано", "correct");
+    showToast("Запис збережено в журналі", "correct");
   } catch (saveError) {
     error.textContent = saveError.message || "Не вдалося зберегти запис.";
     error.hidden = false;
@@ -3081,6 +3092,7 @@ async function logMedicineIntake(reminderId, status) {
           occurredAt: new Date().toISOString()
         });
         state.careQuickLogs = [...window.owlJoyAccount.careQuickLogs];
+        showLatestJournalEntries();
         renderQuickLogJournal();
       } catch (journalError) {
         journalSaved = false;
@@ -3090,7 +3102,7 @@ async function logMedicineIntake(reminderId, status) {
     renderMedicineScreen();
     showToast(
       status === "taken"
-        ? journalSaved ? "Позначено: дано" : "Ліки позначено, але журнал не оновлено"
+        ? journalSaved ? "Ліки дано — запис у журналі" : "Ліки позначено, але журнал не оновлено"
         : "Позначено: пропущено",
       status === "taken" && journalSaved ? "correct" : "neutral"
     );
@@ -4519,6 +4531,7 @@ function showToast(text, tone = "neutral") {
 }
 
 document.addEventListener("click", (event) => {
+  if (!(event.target instanceof Element)) return;
   const journalPeriod = event.target.closest("[data-journal-period]")?.dataset.journalPeriod;
   if (journalPeriod) {
     state.journalPeriod = journalPeriod;
