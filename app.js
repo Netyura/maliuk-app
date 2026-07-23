@@ -3508,8 +3508,22 @@ function reportSignature() {
     period: state.reportPeriod,
     from: state.reportDateFrom,
     to: state.reportDateTo,
-    journal: journal.map((item) => [item.id, item.occurred_at || item.occurredAt]),
-    medicine: medicine.map((item) => [item.id, item.status, item.recorded_at || item.recordedAt]),
+    journal: journal.map((item) => [
+      item.id,
+      item.occurred_at || item.occurredAt,
+      item.event_type || item.eventType,
+      item.event_action || item.eventAction,
+      item.value,
+      item.unit,
+      item.note
+    ]),
+    medicine: medicine.map((item) => [
+      item.id,
+      item.status,
+      item.scheduled_date || item.scheduledDate,
+      item.scheduled_time || item.scheduledTime,
+      item.recorded_at || item.recordedAt
+    ]),
     includeJournal: state.reportIncludeJournal,
     includeMedicine: state.reportIncludeMedicine
   });
@@ -3660,16 +3674,17 @@ function pdfTextWriter(doc) {
   const left = 16;
   const right = 16;
   const contentWidth = pageWidth - left - right;
-  let y = 18;
+  let y = 16;
 
   const ensureSpace = (height = 12) => {
-    if (y + height <= pageHeight - 16) return;
+    if (y + height <= pageHeight - 18) return false;
     doc.addPage();
-    y = 18;
+    y = 16;
+    return true;
   };
   const write = (text, options = {}) => {
     const size = options.size || 10;
-    const lineHeight = options.lineHeight || size * 0.48;
+    const lineHeight = options.lineHeight || size * 0.44;
     const before = options.before || 0;
     const after = options.after ?? 2;
     y += before;
@@ -3682,13 +3697,187 @@ function pdfTextWriter(doc) {
     doc.text(lines, options.x || left, y);
     y += height + after;
   };
-  const divider = () => {
-    ensureSpace(7);
-    doc.setDrawColor(229, 222, 216);
-    doc.line(left, y, pageWidth - right, y);
-    y += 6;
+  const sectionTitle = (title, count, accent, background) => {
+    ensureSpace(14);
+    doc.setFillColor(...background);
+    doc.roundedRect(left, y, contentWidth, 11, 4, 4, "F");
+    doc.setFillColor(...accent);
+    doc.roundedRect(left + 3, y + 2.4, 2.2, 6.2, 1.1, 1.1, "F");
+    doc.setFont("DejaVu", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(35, 31, 39);
+    doc.text(title, left + 8, y + 7.2);
+    doc.setFontSize(8);
+    doc.setTextColor(...accent);
+    doc.text(String(count), pageWidth - right - 6, y + 7.1, { align: "right" });
+    y += 15;
   };
-  return { write, divider, ensureSpace };
+  const dayTitle = (dateKey, continued = false) => {
+    ensureSpace(9);
+    const date = dateFromKey(dateKey);
+    const dateLabel = new Intl.DateTimeFormat("uk-UA", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(date);
+    const label = `${dateLabel.charAt(0).toUpperCase()}${dateLabel.slice(1)}${continued ? " · продовження" : ""}`;
+    doc.setFont("DejaVu", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(104, 94, 107);
+    doc.text(label, left + 1, y + 4);
+    doc.setDrawColor(232, 224, 218);
+    doc.line(left + 64, y + 3, pageWidth - right, y + 3);
+    y += 8;
+  };
+  const card = ({
+    title,
+    meta = "",
+    details = "",
+    accent = [207, 92, 42],
+    background = [255, 250, 247],
+    badge = "",
+    badgeBackground = null,
+    badgeText = null,
+    dateKey = ""
+  }) => {
+    const badgeWidth = badge ? Math.min(48, Math.max(22, badge.length * 2.15 + 8)) : 0;
+    const titleWidth = contentWidth - 18 - badgeWidth;
+    doc.setFont("DejaVu", "bold");
+    doc.setFontSize(9.5);
+    const titleLines = doc.splitTextToSize(String(title || ""), titleWidth);
+    doc.setFont("DejaVu", "normal");
+    doc.setFontSize(8.3);
+    const metaLines = meta ? doc.splitTextToSize(String(meta), contentWidth - 16) : [];
+    const detailLines = details ? doc.splitTextToSize(String(details), contentWidth - 16) : [];
+    const cardHeight = Math.max(
+      18,
+      6 + titleLines.length * 4.2 + metaLines.length * 3.7 + detailLines.length * 3.7
+    );
+    const movedToNewPage = ensureSpace(cardHeight + 3);
+    if (movedToNewPage && dateKey) {
+      dayTitle(dateKey, true);
+      ensureSpace(cardHeight + 3);
+    }
+
+    doc.setFillColor(...background);
+    doc.setDrawColor(236, 228, 222);
+    doc.roundedRect(left, y, contentWidth, cardHeight, 4, 4, "FD");
+    doc.setFillColor(...accent);
+    doc.roundedRect(left, y, 3, cardHeight, 1.5, 1.5, "F");
+
+    let textY = y + 6.3;
+    doc.setFont("DejaVu", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(37, 32, 40);
+    doc.text(titleLines, left + 7, textY);
+    textY += titleLines.length * 4.2;
+
+    if (badge) {
+      const badgeBg = badgeBackground || background;
+      const badgeFg = badgeText || accent;
+      doc.setFillColor(...badgeBg);
+      doc.roundedRect(pageWidth - right - badgeWidth - 4, y + 3.2, badgeWidth, 7.2, 3.6, 3.6, "F");
+      doc.setFont("DejaVu", "bold");
+      doc.setFontSize(7.4);
+      doc.setTextColor(...badgeFg);
+      doc.text(
+        badge,
+        pageWidth - right - 4 - badgeWidth / 2,
+        y + 8,
+        { align: "center" }
+      );
+    }
+
+    if (metaLines.length) {
+      doc.setFont("DejaVu", "bold");
+      doc.setFontSize(8.1);
+      doc.setTextColor(...accent);
+      doc.text(metaLines, left + 7, textY);
+      textY += metaLines.length * 3.7;
+    }
+    if (detailLines.length) {
+      doc.setFont("DejaVu", "normal");
+      doc.setFontSize(8.3);
+      doc.setTextColor(97, 89, 101);
+      doc.text(detailLines, left + 7, textY);
+    }
+    y += cardHeight + 3;
+  };
+  const infoCard = (label, value, accent, background, x, width) => {
+    doc.setFillColor(...background);
+    doc.roundedRect(x, y, width, 17, 4, 4, "F");
+    doc.setFont("DejaVu", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(...accent);
+    doc.text(label.toUpperCase(), x + 5, y + 5.5);
+    doc.setFontSize(11);
+    doc.setTextColor(42, 36, 44);
+    doc.text(String(value), x + 5, y + 12.5);
+  };
+  const advance = (height) => {
+    y += height;
+  };
+  return {
+    write,
+    sectionTitle,
+    dayTitle,
+    card,
+    infoCard,
+    ensureSpace,
+    advance,
+    left,
+    right,
+    contentWidth,
+    pageWidth
+  };
+}
+
+function reportJournalPalette(eventType, value) {
+  if (eventType === "temperature") {
+    const temperature = Number(value);
+    if (Number.isFinite(temperature) && temperature >= 38) {
+      return {
+        accent: [194, 59, 47],
+        background: [255, 242, 239],
+        badgeBackground: [255, 220, 215],
+        badgeText: [164, 44, 34]
+      };
+    }
+    if (Number.isFinite(temperature) && temperature >= 37.5) {
+      return {
+        accent: [194, 119, 28],
+        background: [255, 248, 232],
+        badgeBackground: [255, 232, 182],
+        badgeText: [156, 91, 17]
+      };
+    }
+    return {
+      accent: [55, 128, 170],
+      background: [240, 249, 255],
+      badgeBackground: [218, 240, 252],
+      badgeText: [38, 105, 143]
+    };
+  }
+  const palettes = {
+    sleep: { accent: [87, 91, 169], background: [245, 245, 255] },
+    feeding: { accent: [67, 133, 92], background: [242, 251, 245] },
+    diaper: { accent: [191, 129, 35], background: [255, 249, 237] },
+    medicine: { accent: [151, 83, 150], background: [252, 244, 252] },
+    note: { accent: [108, 99, 112], background: [249, 247, 249] },
+    "head-position": { accent: [48, 137, 142], background: [240, 250, 250] }
+  };
+  return palettes[eventType] || { accent: [207, 92, 42], background: [255, 247, 242] };
+}
+
+function groupReportEntries(entries, dateSelector) {
+  const groups = new Map();
+  entries.forEach((entry) => {
+    const dateKey = dateSelector(entry);
+    if (!groups.has(dateKey)) groups.set(dateKey, []);
+    groups.get(dateKey).push(entry);
+  });
+  return groups;
 }
 
 async function createReportPdfBlob() {
@@ -3709,87 +3898,203 @@ async function createReportPdfBlob() {
   doc.addFileToVFS("DejaVuSans.ttf", fontBase64);
   doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
   doc.addFont("DejaVuSans.ttf", "DejaVu", "bold");
-  const { write, divider, ensureSpace } = pdfTextWriter(doc);
+  const layout = pdfTextWriter(doc);
+  const {
+    write,
+    sectionTitle,
+    dayTitle,
+    card,
+    infoCard,
+    ensureSpace,
+    advance,
+    left,
+    right,
+    contentWidth,
+    pageWidth
+  } = layout;
 
   const child = state.childProfile || {};
   const birthDate = child.birth_date || child.birthDate;
-  write("OwlJoy", { size: 10, bold: true, color: [207, 92, 42], after: 3 });
-  write("Звіт для лікаря", { size: 21, bold: true, after: 4 });
-  write(`Дитина: ${child.nickname || "Не вказано"}`, { size: 11, bold: true, after: 1 });
-  if (birthDate) write(`Дата народження: ${reportDateText(birthDate)} · ${formatChildAge(birthDate)}`, { size: 9, color: [100, 92, 105], after: 1 });
-  write(`Період: ${reportPeriodText()}`, { size: 9, color: [100, 92, 105], after: 1 });
-  write(`Сформовано: ${new Intl.DateTimeFormat("uk-UA", {
+  const medicineEntries = reportMedicineEntries();
+  const journalEntries = reportJournalEntries();
+  const temperatures = journalEntries
+    .filter((item) => (item.event_type || item.eventType) === "temperature")
+    .map((item) => Number(item.value))
+    .filter(Number.isFinite);
+  const highestTemperature = temperatures.length ? Math.max(...temperatures) : null;
+  const createdAtText = new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit"
-  }).format(new Date())}`, { size: 9, color: [100, 92, 105], after: 4 });
-  divider();
+  }).format(new Date());
 
-  const medicineEntries = reportMedicineEntries();
+  doc.setFillColor(222, 99, 48);
+  doc.roundedRect(left, 14, contentWidth, 42, 7, 7, "F");
+  doc.setFont("DejaVu", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text("OWLJOY", left + 8, 24);
+  doc.setFontSize(21);
+  doc.text("Звіт про турботу", left + 8, 36);
+  doc.setFontSize(10);
+  doc.text(`${child.nickname || "Малюк"} · ${reportPeriodText()}`, left + 8, 45);
+  doc.setFont("DejaVu", "normal");
+  doc.setFontSize(7.7);
+  doc.setTextColor(255, 235, 225);
+  const childInfo = birthDate
+    ? `Народження: ${reportDateText(birthDate)} · ${formatChildAge(birthDate)}`
+    : "Дата народження не вказана";
+  doc.text(childInfo, left + 8, 51);
+  doc.text(`Сформовано: ${createdAtText}`, pageWidth - right - 8, 51, { align: "right" });
+  advance(45);
+
+  const summaryItems = [
+    {
+      label: "Журнал",
+      value: `${journalEntries.length} ${pluralizeUkrainian(journalEntries.length, "запис", "записи", "записів")}`,
+      accent: [70, 116, 151],
+      background: [239, 248, 254]
+    },
+    {
+      label: "Ліки",
+      value: `${medicineEntries.length} ${pluralizeUkrainian(medicineEntries.length, "прийом", "прийоми", "прийомів")}`,
+      accent: [76, 139, 92],
+      background: [241, 250, 243]
+    }
+  ];
+  if (highestTemperature !== null) {
+    const palette = reportJournalPalette("temperature", highestTemperature);
+    summaryItems.push({
+      label: "Макс. температура",
+      value: `${String(highestTemperature).replace(".", ",")} °C`,
+      accent: palette.accent,
+      background: palette.background
+    });
+  }
+  const summaryGap = 3;
+  const summaryWidth = (contentWidth - summaryGap * (summaryItems.length - 1)) / summaryItems.length;
+  summaryItems.forEach((item, index) => {
+    infoCard(
+      item.label,
+      item.value,
+      item.accent,
+      item.background,
+      left + index * (summaryWidth + summaryGap),
+      summaryWidth
+    );
+  });
+  advance(23);
+
   if (state.reportIncludeMedicine) {
-    write("Історія ліків", { size: 14, bold: true, before: 1, after: 3 });
+    sectionTitle(
+      "Історія ліків",
+      medicineEntries.length,
+      [69, 133, 87],
+      [239, 249, 242]
+    );
     if (!medicineEntries.length) {
-      write("За вибраний період записів про ліки немає.", { size: 9, color: [100, 92, 105], after: 4 });
+      write("За вибраний період записів про ліки немає.", {
+        size: 9,
+        color: [100, 92, 105],
+        after: 5
+      });
     } else {
-      medicineEntries.forEach((intake) => {
-        ensureSpace(15);
-        const reminder = state.medicineReminders.find((item) => item.id === (intake.reminder_id || intake.reminderId));
-        const dateKey = intake.scheduled_date || intake.scheduledDate;
-        const time = intake.scheduled_time || intake.scheduledTime || "";
-        const taken = intake.status === "taken" || intake.status === "done";
-        const title = reminder?.title || "Ліки";
-        const instruction = reminder
-          ? [medicineDoseText(reminder), medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation)].filter(Boolean).join(" · ")
-          : "";
-        write(`${reportDateText(dateKey)} · ${time} · ${taken ? "Дано" : "Пропущено"}`, {
-          size: 9.5,
-          bold: true,
-          color: taken ? [50, 121, 78] : [171, 72, 62],
-          after: 1
+      const medicineGroups = groupReportEntries(
+        medicineEntries,
+        (item) => item.scheduled_date || item.scheduledDate
+      );
+      medicineGroups.forEach((entries, dateKey) => {
+        dayTitle(dateKey);
+        entries.forEach((intake) => {
+          const reminder = state.medicineReminders.find(
+            (item) => item.id === (intake.reminder_id || intake.reminderId)
+          );
+          const time = (intake.scheduled_time || intake.scheduledTime || "").slice(0, 5);
+          const taken = intake.status === "taken" || intake.status === "done";
+          const title = reminder?.title || "Ліки";
+          const instruction = reminder
+            ? [
+              medicineDoseText(reminder),
+              medicineMealRelationLabel(reminder.meal_relation || reminder.mealRelation)
+            ].filter(Boolean).join(" · ")
+            : "Дозування не вказане";
+          card({
+            title,
+            meta: time ? `Заплановано на ${time}` : "Час не вказаний",
+            details: instruction,
+            badge: taken ? "ДАНО" : "ПРОПУЩЕНО",
+            accent: taken ? [54, 132, 78] : [185, 67, 54],
+            background: taken ? [241, 251, 244] : [255, 242, 239],
+            badgeBackground: taken ? [216, 242, 224] : [255, 218, 213],
+            badgeText: taken ? [43, 112, 64] : [157, 48, 38],
+            dateKey
+          });
         });
-        write([title, instruction].filter(Boolean).join(" · "), { size: 9, after: 3 });
       });
     }
-    divider();
+    advance(3);
   }
 
-  const journalEntries = reportJournalEntries();
   if (state.reportIncludeJournal) {
-    write("Журнал турботи", { size: 14, bold: true, before: 1, after: 3 });
+    sectionTitle(
+      "Журнал турботи",
+      journalEntries.length,
+      [72, 112, 151],
+      [239, 247, 253]
+    );
     if (!journalEntries.length) {
-      write("За вибраний період записів у журналі немає.", { size: 9, color: [100, 92, 105], after: 4 });
+      write("За вибраний період записів у журналі немає.", {
+        size: 9,
+        color: [100, 92, 105],
+        after: 5
+      });
     } else {
-      journalEntries.forEach((item) => {
-        ensureSpace(15);
-        const type = quickLogTypes[item.event_type || item.eventType] || { label: "Подія" };
-        const occurredAt = new Date(item.occurred_at || item.occurredAt);
-        const value = item.value !== null && item.value !== undefined && item.value !== ""
-          ? `${item.value} ${item.unit || ""}`.trim()
-          : "";
-        write(`${new Intl.DateTimeFormat("uk-UA", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }).format(occurredAt)} · ${type.label}`, { size: 9.5, bold: true, color: [84, 76, 89], after: 1 });
-        write([
-          item.event_action || item.eventAction,
-          value,
-          item.note
-        ].filter(Boolean).join(" · "), { size: 9, after: 3 });
+      const journalGroups = groupReportEntries(
+        journalEntries,
+        (item) => localDateKey(new Date(item.occurred_at || item.occurredAt))
+      );
+      journalGroups.forEach((entries, dateKey) => {
+        dayTitle(dateKey);
+        entries.forEach((item) => {
+          const eventType = item.event_type || item.eventType;
+          const type = quickLogTypes[eventType] || { label: "Подія" };
+          const occurredAt = new Date(item.occurred_at || item.occurredAt);
+          const time = occurredAt.toLocaleTimeString("uk-UA", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+          const value = item.value !== null && item.value !== undefined && item.value !== ""
+            ? `${String(item.value).replace(".", ",")} ${item.unit || ""}`.trim()
+            : "";
+          const action = item.event_action || item.eventAction || "";
+          const palette = reportJournalPalette(eventType, item.value);
+          const temperatureBadge = eventType === "temperature" && value ? value : "";
+          card({
+            title: type.label,
+            meta: `${time}${action ? ` · ${action}` : ""}`,
+            details: [eventType === "temperature" ? "" : value, item.note]
+              .filter(Boolean)
+              .join(" · "),
+            badge: temperatureBadge,
+            accent: palette.accent,
+            background: palette.background,
+            badgeBackground: palette.badgeBackground,
+            badgeText: palette.badgeText,
+            dateKey
+          });
+        });
       });
     }
-    divider();
+    advance(3);
   }
 
-  write("Важливо", { size: 9, bold: true, color: [166, 79, 35], after: 1 });
-  write("Цей звіт містить дані, внесені користувачем, і не є медичним висновком. Не змінюйте лікування або дозування без консультації лікаря.", {
-    size: 8,
-    color: [105, 97, 109],
-    after: 0
+  card({
+    title: "Важливо",
+    details: "Кольори допомагають швидше переглядати записи, але не є медичним висновком. Не змінюйте лікування або дозування без консультації лікаря.",
+    accent: [184, 109, 35],
+    background: [255, 249, 237]
   });
 
   const pageCount = doc.getNumberOfPages();
