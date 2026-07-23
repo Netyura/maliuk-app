@@ -6037,6 +6037,28 @@ body,
   line-height: 1.4;
 }
 
+.report-summary::after {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.report-summary.is-preparing::after {
+  color: #9b6b38;
+  content: "Готуємо PDF…";
+}
+
+.report-summary.is-ready {
+  color: #496b57;
+  background: #edf7f0;
+}
+
+.report-summary.is-ready::after {
+  color: #3f7b55;
+  content: "✓ PDF готовий до надсилання";
+}
+
 .report-error {
   margin: 0.65rem 0 0;
   padding: 0.65rem 0.72rem;

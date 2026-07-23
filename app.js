@@ -3435,6 +3435,8 @@ function renderMedicineHistory() {
 
 let reportPdfLibraryPromise = null;
 let reportFontBase64Promise = null;
+let reportPreparationTimer = null;
+let reportPreparationToken = 0;
 
 function reportPeriodRange() {
   const today = new Date();
@@ -3515,6 +3517,41 @@ function invalidateReportPdf() {
   state.reportPdfSignature = "";
 }
 
+function setReportPreparing(preparing) {
+  const shareButton = $("#reportShareButton");
+  const saveButton = $("#reportSaveButton");
+  if (!shareButton || !saveButton) return;
+  shareButton.disabled = preparing;
+  saveButton.disabled = preparing;
+  shareButton.querySelector("span").textContent = preparing ? "Готуємо PDF…" : "Надіслати лікарю";
+  saveButton.querySelector("span").textContent = preparing ? "Зачекайте…" : "Зберегти PDF";
+  $("#reportSummary")?.classList.toggle("is-preparing", preparing);
+}
+
+function scheduleReportPreparation() {
+  window.clearTimeout(reportPreparationTimer);
+  const token = ++reportPreparationToken;
+  if (!state.reportIncludeJournal && !state.reportIncludeMedicine) {
+    setReportPreparing(false);
+    $("#reportShareButton").disabled = true;
+    $("#reportSaveButton").disabled = true;
+    return;
+  }
+  setReportPreparing(true);
+  reportPreparationTimer = window.setTimeout(async () => {
+    try {
+      await createReportPdfBlob();
+      if (token !== reportPreparationToken) return;
+      setReportPreparing(false);
+      $("#reportSummary").classList.add("is-ready");
+    } catch (error) {
+      if (token !== reportPreparationToken) return;
+      setReportPreparing(false);
+      showReportError(error);
+    }
+  }, 80);
+}
+
 function refreshReportDialog() {
   const includeJournal = $("#reportIncludeJournal");
   const includeMedicine = $("#reportIncludeMedicine");
@@ -3537,8 +3574,10 @@ function refreshReportDialog() {
   $("#reportSummary").textContent = parts.length
     ? `${state.childProfile?.nickname || "Малюк"} · ${reportPeriodText()} · ${parts.join(" та ")}`
     : "Оберіть хоча б один розділ для звіту.";
+  $("#reportSummary").classList.remove("is-ready");
   $("#reportError").hidden = true;
   invalidateReportPdf();
+  scheduleReportPreparation();
 }
 
 function openReport(source = "journal") {
@@ -3558,8 +3597,8 @@ function openReport(source = "journal") {
   $("#reportDateTo").value = state.reportDateTo;
   $("#reportDateFrom").max = localDateKey();
   $("#reportDateTo").max = localDateKey();
-  refreshReportDialog();
   $("#reportOverlay").hidden = false;
+  refreshReportDialog();
 }
 
 function closeReport() {
@@ -3765,44 +3804,45 @@ async function createReportPdfBlob() {
   return state.reportPdfBlob;
 }
 
-function setReportBusy(busy) {
-  const shareButton = $("#reportShareButton");
-  const saveButton = $("#reportSaveButton");
-  shareButton.disabled = busy;
-  saveButton.disabled = busy;
-  shareButton.querySelector("span").textContent = busy ? "Готуємо PDF…" : "Надіслати лікарю";
-}
-
 function showReportError(error) {
   const errorBox = $("#reportError");
   errorBox.textContent = error?.message || "Не вдалося створити PDF. Спробуйте ще раз.";
   errorBox.hidden = false;
 }
 
-async function shareReport() {
-  setReportBusy(true);
+function shareReport() {
   $("#reportError").hidden = true;
+  const blob = state.reportPdfBlob;
+  if (!blob || state.reportPdfSignature !== reportSignature()) {
+    scheduleReportPreparation();
+    showToast("PDF ще готується — зачекайте мить");
+    return;
+  }
+  const file = new File([blob], reportFileName(), { type: "application/pdf" });
+  const shareData = {
+    files: [file],
+    title: `Звіт OwlJoy — ${state.childProfile?.nickname || "малюк"}`,
+    text: `Звіт OwlJoy за період ${reportPeriodText()}`
+  };
+  let canShareFile = false;
   try {
-    const blob = await createReportPdfBlob();
-    const file = new File([blob], reportFileName(), { type: "application/pdf" });
-    const shareData = {
-      files: [file],
-      title: `Звіт OwlJoy — ${state.childProfile?.nickname || "малюк"}`,
-      text: `Звіт OwlJoy за період ${reportPeriodText()}`
-    };
-    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-      await navigator.share(shareData);
+    canShareFile = Boolean(navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] })));
+  } catch {
+    canShareFile = false;
+  }
+  if (canShareFile) {
+    const sharing = navigator.share(shareData);
+    setReportPreparing(true);
+    sharing.then(() => {
       showToast("Звіт передано у вікно надсилання", "correct");
       closeReport();
-      return;
-    }
-    saveReportBlob(blob);
-    showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
-  } catch (error) {
-    if (error?.name !== "AbortError") showReportError(error);
-  } finally {
-    setReportBusy(false);
+    }).catch((error) => {
+      if (error?.name !== "AbortError") showReportError(error);
+    }).finally(() => setReportPreparing(false));
+    return;
   }
+  saveReportBlob(blob);
+  showToast("PDF збережено — прикріпіть його в чаті лікаря", "correct");
 }
 
 function saveReportBlob(blob) {
@@ -3817,18 +3857,16 @@ function saveReportBlob(blob) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
-async function saveReport() {
-  setReportBusy(true);
+function saveReport() {
   $("#reportError").hidden = true;
-  try {
-    const blob = await createReportPdfBlob();
-    saveReportBlob(blob);
-    showToast("PDF збережено", "correct");
-  } catch (error) {
-    showReportError(error);
-  } finally {
-    setReportBusy(false);
+  const blob = state.reportPdfBlob;
+  if (!blob || state.reportPdfSignature !== reportSignature()) {
+    scheduleReportPreparation();
+    showToast("PDF ще готується — зачекайте мить");
+    return;
   }
+  saveReportBlob(blob);
+  showToast("PDF збережено", "correct");
 }
 
 function renderMedicineScreen() {
