@@ -311,6 +311,13 @@
     return request("report.prepareShare", values);
   }
 
+  async function prepareReportDownload(values) {
+    if (account.status !== "authenticated") {
+      throw account.error || new Error("Завантаження через Telegram доступне лише в боті");
+    }
+    return request("report.prepareDownload", values);
+  }
+
   account.request = request;
   account.saveChildProfile = saveChildProfile;
   account.deleteChildProfile = deleteChildProfile;
@@ -323,6 +330,7 @@
   account.deleteCareQuickLog = deleteCareQuickLog;
   account.setHomeShortcuts = setHomeShortcuts;
   account.prepareReportShare = prepareReportShare;
+  account.prepareReportDownload = prepareReportDownload;
   account.ready = bootstrap();
   window.owlJoyAccount = account;
 })();

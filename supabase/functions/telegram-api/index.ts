@@ -2,6 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const encoder = new TextEncoder();
 const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
+const REPORT_BUCKET = "owljoy-reports";
+const REPORT_DOWNLOAD_TTL_SECONDS = 10 * 60;
 
 function corsHeaders(origin: string | null) {
   const configuredOrigins = (
@@ -75,6 +77,38 @@ function decodePdfBase64(value: string) {
     throw new Error("INVALID_REPORT_PDF");
   }
   return bytes;
+}
+
+function cleanReportFileName(value: string) {
+  const fileName = (value || "OwlJoy-report.pdf")
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 140);
+  return fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+}
+
+async function ensureReportBucket(
+  supabase: ReturnType<typeof createClient>,
+) {
+  const { data: buckets, error: listError } =
+    await supabase.storage.listBuckets();
+  if (listError) throw listError;
+  if (buckets?.some((bucket) => bucket.name === REPORT_BUCKET)) return;
+
+  const { error: createError } = await supabase.storage.createBucket(
+    REPORT_BUCKET,
+    {
+      public: false,
+      fileSizeLimit: "5MB",
+      allowedMimeTypes: ["application/pdf"],
+    },
+  );
+  if (
+    createError &&
+    !/already exists|duplicate/i.test(createError.message || "")
+  ) {
+    throw createError;
+  }
 }
 
 function toHex(bytes: ArrayBuffer) {
@@ -623,15 +657,12 @@ Deno.serve(async (request) => {
         }
 
         const pdfBytes = decodePdfBase64(pdfBase64);
-        const fileName = (rawFileName || "OwlJoy-report.pdf")
-          .replace(/[^\p{L}\p{N}._-]+/gu, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 140);
+        const fileName = cleanReportFileName(rawFileName);
         const form = new FormData();
         form.set("chat_id", String(telegramUser.id));
         form.set("document", new Blob([pdfBytes], {
           type: "application/pdf",
-        }), fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`);
+        }), fileName);
         form.set("caption", caption || "Звіт OwlJoy для лікаря");
         form.set("disable_notification", "true");
 
@@ -681,6 +712,70 @@ Deno.serve(async (request) => {
           {
             preparedMessageId: preparedMessage.id,
             expiresAt: preparedMessage.expiration_date || null,
+          },
+          200,
+          headers,
+        );
+      }
+
+      if (body.action === "report.prepareDownload") {
+        const pdfBase64 =
+          typeof body.pdfBase64 === "string" ? body.pdfBase64 : "";
+        const rawFileName =
+          typeof body.fileName === "string" ? body.fileName.trim() : "";
+        if (rawFileName.length > 140) {
+          return json({ error: "Некоректні дані звіту" }, 400, headers);
+        }
+
+        const pdfBytes = decodePdfBase64(pdfBase64);
+        const fileName = cleanReportFileName(rawFileName);
+        await ensureReportBucket(supabase);
+
+        const userFolder = String(user.id);
+        const { data: previousFiles, error: listFilesError } =
+          await supabase.storage
+            .from(REPORT_BUCKET)
+            .list(userFolder, { limit: 20 });
+        if (listFilesError) throw listFilesError;
+        const previousPaths = (previousFiles || [])
+          .filter((item) => item.name)
+          .map((item) => `${userFolder}/${item.name}`);
+        if (previousPaths.length) {
+          const { error: cleanupError } = await supabase.storage
+            .from(REPORT_BUCKET)
+            .remove(previousPaths);
+          if (cleanupError) {
+            console.warn("report download cleanup", cleanupError);
+          }
+        }
+
+        const storagePath = `${userFolder}/${crypto.randomUUID()}.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from(REPORT_BUCKET)
+          .upload(storagePath, pdfBytes, {
+            contentType: "application/pdf",
+            cacheControl: "60",
+            upsert: false,
+          });
+        if (uploadError) throw uploadError;
+
+        const { data: signedDownload, error: signedUrlError } =
+          await supabase.storage
+            .from(REPORT_BUCKET)
+            .createSignedUrl(storagePath, REPORT_DOWNLOAD_TTL_SECONDS, {
+              download: fileName,
+            });
+        if (signedUrlError || !signedDownload?.signedUrl) {
+          throw signedUrlError || new Error("REPORT_DOWNLOAD_URL_FAILED");
+        }
+
+        return json(
+          {
+            downloadUrl: signedDownload.signedUrl,
+            fileName,
+            expiresAt: new Date(
+              Date.now() + REPORT_DOWNLOAD_TTL_SECONDS * 1000,
+            ).toISOString(),
           },
           200,
           headers,

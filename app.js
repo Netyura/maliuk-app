@@ -1835,6 +1835,9 @@ const state = {
   reportPdfSignature: "",
   reportTelegramPreparedId: "",
   reportTelegramSignature: "",
+  reportDownloadUrl: "",
+  reportDownloadSignature: "",
+  reportDownloadExpiresAt: 0,
   homeQuickLogType: null,
   homeQuickLogAction: null,
   homeQuickLogBreastSide: null,
@@ -3519,6 +3522,9 @@ function invalidateReportPdf() {
   state.reportPdfSignature = "";
   state.reportTelegramPreparedId = "";
   state.reportTelegramSignature = "";
+  state.reportDownloadUrl = "";
+  state.reportDownloadSignature = "";
+  state.reportDownloadExpiresAt = 0;
 }
 
 function setReportPreparing(preparing) {
@@ -3910,12 +3916,64 @@ function saveReportBlob(blob) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
+async function saveReportViaTelegram(blob) {
+  const saveButton = $("#reportSaveButton");
+  saveButton.disabled = true;
+  saveButton.querySelector("span").textContent = "Готуємо завантаження…";
+  try {
+    const signature = reportSignature();
+    const downloadStillValid =
+      state.reportDownloadUrl &&
+      state.reportDownloadSignature === signature &&
+      state.reportDownloadExpiresAt > Date.now() + 30000;
+
+    if (!downloadStillValid) {
+      const pdfBase64 = arrayBufferToBase64(await blob.arrayBuffer());
+      const payload = await window.owlJoyAccount.prepareReportDownload({
+        pdfBase64,
+        fileName: reportFileName()
+      });
+      state.reportDownloadUrl = payload.downloadUrl;
+      state.reportDownloadSignature = signature;
+      state.reportDownloadExpiresAt = payload.expiresAt
+        ? new Date(payload.expiresAt).getTime()
+        : Date.now() + 8 * 60 * 1000;
+    }
+
+    telegramApp.HapticFeedback?.impactOccurred?.("light");
+    telegramApp.downloadFile({
+      url: state.reportDownloadUrl,
+      file_name: reportFileName()
+    }, (accepted) => {
+      saveButton.disabled = false;
+      saveButton.querySelector("span").textContent = "Зберегти PDF";
+      if (accepted) showToast("Telegram почав завантаження PDF", "correct");
+    });
+  } catch (error) {
+    saveButton.disabled = false;
+    saveButton.querySelector("span").textContent = "Зберегти PDF";
+    showReportError(new Error(
+      error?.message || "Telegram не зміг завантажити PDF. Спробуйте ще раз."
+    ));
+  }
+}
+
 function saveReport() {
   $("#reportError").hidden = true;
   const blob = state.reportPdfBlob;
   if (!blob || state.reportPdfSignature !== reportSignature()) {
     scheduleReportPreparation();
     showToast("PDF ще готується — зачекайте мить");
+    return;
+  }
+  const nativeTelegramDownload = Boolean(
+    telegramApp?.initData &&
+    telegramApp?.downloadFile &&
+    (!telegramApp.isVersionAtLeast || telegramApp.isVersionAtLeast("8.0")) &&
+    window.owlJoyAccount?.prepareReportDownload
+  );
+  if (nativeTelegramDownload) {
+    saveReportViaTelegram(blob);
     return;
   }
   saveReportBlob(blob);
