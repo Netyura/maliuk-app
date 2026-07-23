@@ -50,7 +50,7 @@ export default {
     const supabase = context.supabaseAdmin;
     const { data: reminders, error: reminderError } = await supabase
       .from("medicine_reminders")
-      .select("id, user_id, child_id, title, note, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date")
+      .select("id, user_id, child_id, title, note, meal_relation, dose_amount, dose_unit, reminder_time, timezone, days_of_week, start_date, end_date")
       .eq("is_active", true);
     if (reminderError) throw reminderError;
 
@@ -94,8 +94,14 @@ export default {
       if (!chatId) continue;
       const childName = childMap.get(reminder.child_id) || "Малюк";
       const dose = [reminder.dose_amount, reminder.dose_unit].filter(Boolean).join(" ");
+      const mealRelation = reminder.meal_relation === "before"
+        ? "до їди"
+        : reminder.meal_relation === "with"
+          ? "під час їди"
+          : reminder.meal_relation === "after" ? "після їди" : "";
+      const mealText = mealRelation ? ` · ${mealRelation}` : "";
       const note = reminder.note ? `\n${reminder.note}` : "";
-      const text = `💊 Час дати ліки\n\n${childName} · ${reminder.title} · ${dose}\nЗаплановано на ${reminderTime}${note}`;
+      const text = `💊 Час дати ліки\n\n${childName} · ${reminder.title} · ${dose}${mealText}\nЗаплановано на ${reminderTime}${note}`;
 
       try {
         const message = await telegramRequest(botToken, "sendMessage", {

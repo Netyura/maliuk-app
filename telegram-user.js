@@ -164,11 +164,13 @@
     if (account.status === "error") throw account.error || new Error("Не вдалося підключитися до OwlJoy");
 
     const reminder = {
-      id: values.reminderId || `preview-medicine-${Date.now()}`,
+      id: values.reminderId || `preview-medicine-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`,
       child_id: values.childId,
       title: values.title,
+      schedule_group_id: values.scheduleGroupId || values.reminderId || `preview-group-${Date.now()}`,
       dose_amount: values.doseAmount,
       dose_unit: values.doseUnit,
+      meal_relation: values.mealRelation || "none",
       reminder_time: `${values.reminderTime}:00`,
       days_of_week: values.daysOfWeek,
       start_date: values.startDate,
