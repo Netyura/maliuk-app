@@ -934,7 +934,7 @@ h1 {
 
 .journal-date-filters {
   display: grid;
-  grid-template-columns: auto auto auto minmax(46px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.38rem;
 }
 
@@ -962,13 +962,13 @@ h1 {
 }
 
 .journal-date-picker {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  overflow: hidden;
+  gap: 0.42rem;
+  padding: 0.38rem 0.6rem;
 }
 
 .journal-date-picker > span {
@@ -976,15 +976,21 @@ h1 {
 }
 
 .journal-date-picker > b {
-  font-size: 0.64rem;
+  text-align: left;
+  font-size: 0.68rem;
 }
 
 .journal-date-picker input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
+  box-sizing: border-box;
+  width: 125px;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #6b6470;
+  background: transparent;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
   cursor: pointer;
 }
 

@@ -2344,9 +2344,6 @@ function renderJournalFilters() {
   const dateInput = $("#journalDate");
   dateInput.max = localDateKey();
   dateInput.value = state.journalDate;
-  $("#journalDateLabel").textContent = state.journalDate
-    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit" }).format(dateFromKey(state.journalDate))
-    : "Дата";
   dateInput.closest(".journal-date-picker")?.classList.toggle("active", state.journalPeriod === "date");
 }
 
