@@ -1,4 +1,4 @@
-import { withSupabase } from "jsr:@supabase/server@^1";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const encoder = new TextEncoder();
 const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
@@ -113,8 +113,9 @@ function childAgeInMonths(birthDate: string) {
   return months;
 }
 
-export default {
-  fetch: withSupabase({ auth: "none" }, async (request, context) => {
+// Використовуємо стабільний клієнт напряму: функція не залежить від
+// експериментальної обгортки середовища виконання Supabase.
+Deno.serve(async (request) => {
     const headers = corsHeaders(request.headers.get("Origin"));
     if (request.method === "OPTIONS")
       return new Response(null, { status: 204, headers });
@@ -123,7 +124,9 @@ export default {
 
     try {
       const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-      if (!botToken) throw new Error("SERVER_NOT_CONFIGURED");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!botToken || !supabaseUrl || !serviceRoleKey) throw new Error("SERVER_NOT_CONFIGURED");
 
       const authorization = request.headers.get("Authorization") || "";
       if (!authorization.startsWith("tma "))
@@ -135,7 +138,9 @@ export default {
       );
       const body = await request.json().catch(() => ({}));
 
-      const supabase = context.supabaseAdmin;
+      const supabase = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
 
       const { data: user, error } = await supabase
         .from("owljoy_users")
@@ -591,5 +596,4 @@ export default {
         headers,
       );
     }
-  }),
-};
+});
