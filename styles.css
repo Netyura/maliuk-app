@@ -6162,7 +6162,9 @@ body,
 }
 .home-child-switcher {
   display: flex;
+  justify-content: flex-end;
   margin-bottom: 0.65rem;
+  padding-right: max(0px, calc((25% - 64px) / 2));
 }
 
 .home-child-switcher[hidden] {
@@ -6171,7 +6173,9 @@ body,
 
 .home-child-switcher-list {
   display: flex;
+  width: max-content;
   gap: 0.38rem;
+  justify-content: flex-end;
   overflow-x: auto;
   padding: 0.08rem;
   scrollbar-width: none;
@@ -6191,7 +6195,7 @@ body,
   padding: 2px;
   place-items: center;
   border: 1px solid rgba(103, 83, 162, 0.12);
-  border-radius: 50%;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: none;
 }
@@ -6207,7 +6211,7 @@ body,
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 10px;
   color: #8c5d3f;
   background: #fff0e5;
   font-size: 0.92rem;
