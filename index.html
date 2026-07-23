@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbf6ee" />
     <title>OwlJoy</title>
-    <link rel="stylesheet" href="./styles.css?v=154" />
+    <link rel="stylesheet" href="./styles.css?v=155" />
   </head>
   <body>
     <main class="app">
@@ -874,10 +874,22 @@
         </div>
       </section>
     </div>
+    <div class="profile-delete-overlay" id="medicineSkipOverlay" hidden>
+      <button class="profile-delete-backdrop" type="button" data-action="cancelSkipMedicine" aria-label="Не пропускати прийом"></button>
+      <section class="profile-delete-dialog medicine-skip-dialog" role="dialog" aria-modal="true" aria-labelledby="medicineSkipTitle" aria-describedby="medicineSkipText">
+        <span class="medicine-skip-dialog-icon" aria-hidden="true">✕</span>
+        <h2 id="medicineSkipTitle">Пропустити прийом?</h2>
+        <p id="medicineSkipText">Підтвердьте, що ліки не було дано.</p>
+        <div class="profile-delete-actions">
+          <button type="button" data-action="cancelSkipMedicine">Ні, повернутися</button>
+          <button class="medicine-skip-confirm" id="confirmSkipMedicine" type="button" data-action="confirmSkipMedicine">Так, пропустити</button>
+        </div>
+      </section>
+    </div>
     <div class="toast" id="toast" hidden></div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="./config.js?v=1"></script>
-    <script src="./telegram-user.js?v=8"></script>
-    <script src="./app.js?v=147"></script>
+    <script src="./telegram-user.js?v=9"></script>
+    <script src="./app.js?v=148"></script>
   </body>
 </html>

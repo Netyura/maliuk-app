@@ -4549,9 +4549,46 @@ html.telegram-mini-app body {
   background: #56a66e;
 }
 
+.medicine-card-actions .medicine-skip {
+  color: #a8594f;
+  background: #fff0ed;
+}
+
 .medicine-status {
   color: #44845a;
   font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.medicine-status-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.28rem;
+}
+
+.medicine-status-actions .medicine-status-skipped {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.3rem 0.46rem;
+  border-radius: 10px;
+  color: #9f4f46;
+  background: #fde7e3;
+  line-height: 1;
+}
+
+.medicine-status-actions .medicine-status-skipped b {
+  font-size: 0.62rem;
+}
+
+.medicine-status-actions > button {
+  min-height: 28px;
+  padding: 0.25rem 0.48rem;
+  border-radius: 9px;
+  color: #736c77;
+  background: #fff;
+  box-shadow: none;
+  font-size: 0.82rem;
   font-weight: 900;
 }
 
@@ -5760,6 +5797,24 @@ body,
 .profile-delete-actions .danger {
   color: #fff;
   background: #c95650;
+}
+
+.medicine-skip-dialog-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 0.8rem;
+  place-items: center;
+  border-radius: 17px;
+  color: #a8594f;
+  background: #fde7e3;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.profile-delete-actions .medicine-skip-confirm {
+  color: #fff;
+  background: #b96156;
 }
 
 /* Головна у форматі екрана телефона */

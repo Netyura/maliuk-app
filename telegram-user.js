@@ -233,6 +233,22 @@
     return intake;
   }
 
+  async function deleteMedicineIntake(values) {
+    if (account.status === "authenticated") {
+      await request("medicine.intake.delete", values);
+    } else if (account.status === "error") {
+      throw account.error || new Error("Не вдалося підключитися до OwlJoy");
+    }
+    account.medicineIntakes = account.medicineIntakes.filter((item) =>
+      (item.reminder_id || item.reminderId) !== values.reminderId
+      || (item.scheduled_date || item.scheduledDate) !== values.scheduledDate
+    );
+    if (account.status !== "authenticated") {
+      localStorage.setItem(previewIntakesKey, JSON.stringify(account.medicineIntakes));
+    }
+    return { ok: true };
+  }
+
   async function setMedicineNotifications(enabled) {
     if (account.status === "authenticated") {
       return request("medicine.notifications", { enabled: Boolean(enabled) });
@@ -294,6 +310,7 @@
   account.saveMedicineReminder = saveMedicineReminder;
   account.deleteMedicineReminder = deleteMedicineReminder;
   account.logMedicineIntake = logMedicineIntake;
+  account.deleteMedicineIntake = deleteMedicineIntake;
   account.setMedicineNotifications = setMedicineNotifications;
   account.saveCareQuickLog = saveCareQuickLog;
   account.deleteCareQuickLog = deleteCareQuickLog;

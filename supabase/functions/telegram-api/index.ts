@@ -471,6 +471,22 @@ Deno.serve(async (request) => {
         return json({ ok: true }, 200, headers);
       }
 
+      if (body.action === "medicine.intake.delete") {
+        const reminderId = typeof body.reminderId === "string" ? body.reminderId : "";
+        const scheduledDate = typeof body.scheduledDate === "string" ? body.scheduledDate : "";
+        if (!reminderId || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
+          return json({ error: "Некоректний прийом ліків" }, 400, headers);
+        }
+        const { error: intakeDeleteError } = await supabase
+          .from("medicine_intakes")
+          .delete()
+          .eq("reminder_id", reminderId)
+          .eq("scheduled_date", scheduledDate)
+          .eq("user_id", user.id);
+        if (intakeDeleteError) throw intakeDeleteError;
+        return json({ ok: true }, 200, headers);
+      }
+
       if (body.action === "medicine.intake") {
         const reminderId = typeof body.reminderId === "string" ? body.reminderId : "";
         const scheduledDate = typeof body.scheduledDate === "string" ? body.scheduledDate : "";

@@ -1832,6 +1832,7 @@ const state = {
   editingMedicineId: null,
   editingMedicineGroupId: null,
   deletingMedicineId: null,
+  skippingMedicineId: null,
   homeShortcutIds: readHomeShortcutIds(),
   homeShortcutFolder: null,
   task: null
@@ -3077,9 +3078,12 @@ function medicineCardHtml(reminder, dateKey, mode = "today") {
     actions = taken
       ? '<span class="medicine-status">Дано ✓</span>'
       : skipped
-        ? '<span class="medicine-status">Пропущено</span>'
+        ? `<div class="medicine-status-actions">
+            <span class="medicine-status medicine-status-skipped"><b aria-hidden="true">✕</b> Пропущено</span>
+            <button type="button" data-medicine-undo-skip="${reminder.id}" data-medicine-intake-date="${dateKey}" aria-label="Скасувати пропуск і повернути прийом">↶</button>
+          </div>`
         : `<div class="medicine-card-actions">
-            <button type="button" data-medicine-skip="${reminder.id}" aria-label="Пропустити прийом">−</button>
+            <button class="medicine-skip" type="button" data-medicine-skip="${reminder.id}" aria-label="Пропустити прийом">✕</button>
             <button class="medicine-take" type="button" data-medicine-take="${reminder.id}" aria-label="Позначити як дано">✓</button>
           </div>`;
   } else {
@@ -3638,6 +3642,34 @@ function closeMedicineDeleteDialog() {
   $("#medicineDeleteOverlay").hidden = true;
 }
 
+function openMedicineSkipDialog(reminderId) {
+  const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  if (!reminder) return;
+  state.skippingMedicineId = reminderId;
+  $("#medicineSkipText").textContent = `Ви хочете пропустити прийом «${reminder.title}» о ${medicineTime(reminder)}? Це можна буде скасувати.`;
+  $("#medicineSkipOverlay").hidden = false;
+}
+
+function closeMedicineSkipDialog() {
+  state.skippingMedicineId = null;
+  $("#medicineSkipOverlay").hidden = true;
+}
+
+async function confirmMedicineSkip() {
+  const reminderId = state.skippingMedicineId;
+  if (!reminderId) return closeMedicineSkipDialog();
+  const confirmButton = $("#confirmSkipMedicine");
+  confirmButton.disabled = true;
+  confirmButton.textContent = "Зберігаємо…";
+  try {
+    const saved = await logMedicineIntake(reminderId, "skipped");
+    if (saved) closeMedicineSkipDialog();
+  } finally {
+    confirmButton.disabled = false;
+    confirmButton.textContent = "Так, пропустити";
+  }
+}
+
 async function confirmMedicineDelete() {
   const reminderId = state.deletingMedicineId;
   if (!reminderId) return closeMedicineDeleteDialog();
@@ -3659,6 +3691,22 @@ async function confirmMedicineDelete() {
   } finally {
     confirmButton.disabled = false;
     confirmButton.textContent = "Видалити";
+  }
+}
+
+async function undoMedicineSkip(reminderId, scheduledDate = localDateKey()) {
+  const reminder = state.medicineReminders.find((item) => item.id === reminderId);
+  if (!reminder) return;
+  try {
+    await window.owlJoyAccount.deleteMedicineIntake({
+      reminderId,
+      scheduledDate
+    });
+    state.medicineIntakes = [...window.owlJoyAccount.medicineIntakes];
+    renderMedicineScreen();
+    showToast("Прийом повернуто до розкладу");
+  } catch (error) {
+    showToast(error.message || "Не вдалося повернути прийом", "wrong");
   }
 }
 
@@ -3701,8 +3749,10 @@ async function logMedicineIntake(reminderId, status) {
         : "Позначено: пропущено",
       status === "taken" && journalSaved ? "correct" : "neutral"
     );
+    return true;
   } catch (error) {
     showToast(error.message || "Не вдалося зберегти позначку", "wrong");
+    return false;
   }
 }
 
@@ -5280,7 +5330,14 @@ document.addEventListener("click", (event) => {
 
   const medicineSkip = event.target.closest("[data-medicine-skip]")?.dataset.medicineSkip;
   if (medicineSkip) {
-    logMedicineIntake(medicineSkip, "skipped");
+    openMedicineSkipDialog(medicineSkip);
+    return;
+  }
+
+  const medicineUndoSkip = event.target.closest("[data-medicine-undo-skip]")?.dataset.medicineUndoSkip;
+  if (medicineUndoSkip) {
+    const undoButton = event.target.closest("[data-medicine-undo-skip]");
+    undoMedicineSkip(medicineUndoSkip, undoButton?.dataset.medicineIntakeDate || localDateKey());
     return;
   }
 
@@ -5498,6 +5555,14 @@ document.addEventListener("click", (event) => {
 
   if (action === "addMedicine") {
     openMedicineForm();
+    return;
+  }
+  if (action === "cancelSkipMedicine") {
+    closeMedicineSkipDialog();
+    return;
+  }
+  if (action === "confirmSkipMedicine") {
+    confirmMedicineSkip();
     return;
   }
   if (action === "cancelQuickLog") {
