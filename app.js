@@ -5527,6 +5527,12 @@ function familyInviteDeepLink() {
     : "";
 }
 
+function familyInviteFullText() {
+  const message = familyInviteMessage();
+  const deepLink = familyInviteDeepLink();
+  return message && deepLink ? `${message}\n\n${deepLink}` : "";
+}
+
 async function createFamilyInvitation() {
   const profile = state.childProfile;
   if (!profile?.id || profile.can_manage === false) return;
@@ -5545,8 +5551,10 @@ async function createFamilyInvitation() {
     showToast("Запрошення створено", "correct");
     await shareFamilyInvitation();
   } catch (error) {
+    console.error("OwlJoy: не вдалося створити сімейне запрошення", error);
     errorBox.textContent = error?.message || "Не вдалося створити запрошення";
     errorBox.hidden = false;
+    showToast(errorBox.textContent, "wrong");
   } finally {
     button.disabled = false;
     button.textContent = "Надіслати в Telegram";
@@ -5554,14 +5562,14 @@ async function createFamilyInvitation() {
 }
 
 async function copyFamilyInvitation() {
-  const message = familyInviteMessage();
-  if (!message) return;
+  const text = familyInviteFullText();
+  if (!text) return;
   try {
-    await navigator.clipboard.writeText(message);
+    await navigator.clipboard.writeText(text);
     showToast("Запрошення скопійовано", "correct");
   } catch {
     const field = document.createElement("textarea");
-    field.value = message;
+    field.value = text;
     field.setAttribute("readonly", "");
     field.style.position = "fixed";
     field.style.opacity = "0";
@@ -5578,9 +5586,22 @@ async function shareFamilyInvitation() {
   const deepLink = familyInviteDeepLink();
   if (!message || !deepLink) return;
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(message)}`;
-  if (telegramApp?.openTelegramLink) {
-    telegramApp.openTelegramLink(shareUrl);
-    return;
+  const canUseTelegramLink = Boolean(
+    telegramApp?.initData
+    && telegramApp?.openTelegramLink
+    && (
+      typeof telegramApp.isVersionAtLeast !== "function"
+      || telegramApp.isVersionAtLeast("6.1")
+    )
+  );
+  if (canUseTelegramLink) {
+    try {
+      showToast("Відкриваємо Telegram…");
+      telegramApp.openTelegramLink(shareUrl);
+      return;
+    } catch (error) {
+      console.warn("OwlJoy: Telegram не відкрив вікно надсилання", error);
+    }
   }
   if (navigator.share) {
     try {
@@ -5594,7 +5615,8 @@ async function shareFamilyInvitation() {
       if (error?.name === "AbortError") return;
     }
   }
-  window.open(shareUrl, "_blank", "noopener");
+  const popup = window.open(shareUrl, "_blank", "noopener");
+  if (!popup) window.location.assign(shareUrl);
 }
 
 async function acceptFamilyInvitation(event) {
