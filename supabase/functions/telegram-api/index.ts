@@ -1038,7 +1038,7 @@ Deno.serve(async (request) => {
         const allowedShortcuts = new Set([
           "game:animals", "game:objects", "game:colors", "game:families", "game:emotions",
           "game:dress-up", "game:bubbles", "game:my-face", "game:my-body",
-          "games", "stories", "poems", "sleep", "quick-log", "medicine", "food",
+          "games", "stories", "poems", "sleep", "walk", "quick-log", "medicine", "food",
         ]);
         const shortcutIds = Array.isArray(body.shortcutIds)
           ? [...new Set(body.shortcutIds)].filter((id) =>
